@@ -66,3 +66,7 @@ dev-output.log
 # Backup files
 *.backup
 *.bak
+
+# Reference/Template files
+reference-design/
+*.zip
