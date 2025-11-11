@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-text antialiased;
+  }
+  
+  input[type="range"] {
+    @apply w-full h-2 bg-surface rounded-lg appearance-none cursor-pointer;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb {
+    @apply appearance-none w-5 h-5 bg-primary rounded-full cursor-pointer hover:bg-primary-hover transition-colors;
+  }
+  
+  input[type="range"]::-moz-range-thumb {
+    @apply w-5 h-5 bg-primary rounded-full cursor-pointer hover:bg-primary-hover transition-colors border-0;
+  }
+  
+  input[type="range"]:focus {
+    @apply outline-none ring-2 ring-primary ring-opacity-50;
+  }
+}
+

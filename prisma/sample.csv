@@ -1,0 +1,5 @@
+name,description,heaviness,portionSize,fineDining,priceLevel,spiceLevel,avgPrepTime,cuisines,neighborhood,websiteUrl,gmapsUrl,phone
+The Light Bite Cafe,"Fresh salads, smoothies, and light sandwiches. Perfect for a healthy lunch.",20,40,30,2,10,15,"[""Healthy"", ""Salads"", ""Smoothies""]","Downtown",https://example.com/lightbite,https://maps.google.com/lightbite,+1234567890
+Mama Rosa's Italian Kitchen,"Authentic Italian pasta and pizza. Family-friendly atmosphere.",70,85,45,2,20,25,"[""Italian"", ""Pizza"", ""Pasta""]","Little Italy",https://example.com/mamarosa,https://maps.google.com/mamarosa,+1234567891
+Le Château Fine Dining,"Elegant French cuisine with impeccable service. Perfect for special occasions.",60,70,95,4,15,45,"[""French"", ""Fine Dining""]","Uptown",https://example.com/chateau,https://maps.google.com/chateau,+1234567892
+

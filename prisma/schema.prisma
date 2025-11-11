@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Restaurant {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String   @default("")
+  
+  // Core numbers (0-100)
+  heaviness   Int      @default(50) // how heavy food feels
+  portionSize Int      @default(50) // how filling
+  fineDining  Int      @default(50) // ambience/service
+  
+  // Other fields
+  priceLevel  Int      @default(2) // 1-4
+  spiceLevel  Int      @default(50) // 0-100
+  avgPrepTime Int      @default(30) // minutes
+  
+  cuisines    String   @default("[]") // JSON array of strings
+  neighborhood String  @default("")
+  
+  websiteUrl  String?
+  gmapsUrl    String?
+  phone       String?
+  image       String? // path to uploaded image
+  
+  // Optional location
+  lat         Float?
+  lng         Float?
+  openHours   String? // JSON string or plain text
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([heaviness])
+  @@index([portionSize])
+  @@index([fineDining])
+  @@index([priceLevel])
+}
+

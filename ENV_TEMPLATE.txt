@@ -1,0 +1,58 @@
+# EatFinder Environment Variables Template
+# Copy this file to .env and fill in your values
+
+# ==============================================
+# DATABASE
+# ==============================================
+
+# For local development with SQLite:
+DATABASE_URL="file:./dev.db"
+
+# For production with PostgreSQL:
+# DATABASE_URL="postgresql://user:password@host:5432/database"
+
+# For production with MySQL/MariaDB:
+# DATABASE_URL="mysql://user:password@host:3306/database"
+
+# ==============================================
+# SECURITY
+# ==============================================
+
+# Generate a secure random string (32+ characters)
+# You can use: openssl rand -base64 32
+# Or use an online generator
+SESSION_SECRET="CHANGE-THIS-TO-A-LONG-RANDOM-STRING-AT-LEAST-32-CHARACTERS"
+
+# ==============================================
+# ADMIN CREDENTIALS
+# ==============================================
+
+# These are used to create the admin user in the database
+# Change these before first running db:seed
+ADMIN_EMAIL="admin@example.com"
+ADMIN_PASSWORD="CHANGE-THIS-TO-A-SECURE-PASSWORD"
+
+# ==============================================
+# APPLICATION
+# ==============================================
+
+# Environment mode
+NODE_ENV="development"
+
+# Public URL of your application
+# Development:
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+# Production:
+# NEXT_PUBLIC_APP_URL="https://eat.yourdomain.com"
+
+# ==============================================
+# NOTES
+# ==============================================
+
+# - NEVER commit this file to Git (.gitignore blocks it)
+# - Change ADMIN_PASSWORD immediately in production
+# - SESSION_SECRET should be at least 32 random characters
+# - For Vercel/Railway, add these in their dashboard UI
+# - For self-hosted, put this file in the app root directory
+
