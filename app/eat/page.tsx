@@ -12,6 +12,7 @@ interface Restaurant {
   cuisines: string[]
   image?: string | null
   description: string
+  neighborhood?: string
   websiteUrl?: string | null
   gmapsUrl?: string | null
   phone?: string | null
