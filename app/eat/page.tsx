@@ -297,9 +297,11 @@ export default function EatPage() {
                       </div>
                     )}
 
-                    <p className="text-sm text-text-secondary mb-4 line-clamp-2">
-                      {restaurant.description || 'No description available.'}
-                    </p>
+                    {restaurant.neighborhood && (
+                      <p className="text-sm text-text-secondary mb-4">
+                        📍 {restaurant.neighborhood}
+                      </p>
+                    )}
 
                     {/* Actions */}
                     <div className="flex gap-2 flex-wrap">
