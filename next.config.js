@@ -2,13 +2,17 @@
 const nextConfig = {
   output: 'standalone',
   images: {
-    domains: ['localhost'],
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: 'localhost',
+      },
+    ],
     unoptimized: process.env.NODE_ENV === 'development',
-  },
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '10mb',
-    },
   },
 }
 
