@@ -3,23 +3,47 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+   * Design tokens. The MECHANISM is unchanged from v1 — every colour a
+   * component uses is a CSS variable mapped in tailwind.config.ts — only the
+   * VALUES flipped from the old dark palette to this light one. A dark mode is
+   * therefore a second block of variable assignments here and nothing else.
+   */
   :root {
-    --background: #070707;
-    --surface: #0e0e0e;
-    --surface-hover: #1a1a1a;
-    --border: #1d1d1d;
-    --text: #ececec;
-    --text-secondary: #aaaaaa;
-    --primary: #59aadd;
-    --primary-hover: #4c99c9;
-    --accent: #59aadd;
-    --accent-hover: #4c99c9;
-    --success: #22c55e;
-    --success-hover: #16a34a;
-    --error: #ef4444;
-    --error-hover: #dc2626;
-    --info: #3b82f6;
-    --info-hover: #2563eb;
+    /* Surfaces, lightest content on a slightly cooler page. */
+    --background: #f4f6f8;
+    --surface: #ffffff;
+    --surface-hover: #eef1f5;
+    --surface-muted: #f0f3f7;
+
+    --border: #e3e7ed;
+    --border-strong: #c7d0dc;
+
+    /* 18.4:1 and 6.6:1 on --surface. Body copy never goes lighter than this. */
+    --text: #0b1220;
+    --text-secondary: #55617a;
+
+    /* Actions. 5.4:1 both ways against white, so --on-primary is safe on it. */
+    --primary: #0b6bb0;
+    --primary-hover: #095a95;
+    --primary-soft: #e6f1fa;
+    --on-primary: #ffffff;
+
+    /* Warm counterweight: match score, favourite heart, featured badge. */
+    --accent: #d9480f;
+    --accent-hover: #b83b09;
+    --accent-soft: #fdefe7;
+
+    --success: #157347;
+    --success-hover: #10603a;
+    --error: #c2261d;
+    --error-hover: #9f1d16;
+    --info: #0b6bb0;
+    --info-hover: #095a95;
+
+    --shadow-sm: 0 1px 2px rgb(11 18 32 / 0.06), 0 1px 3px rgb(11 18 32 / 0.04);
+    --shadow-md: 0 2px 6px rgb(11 18 32 / 0.07), 0 8px 20px rgb(11 18 32 / 0.06);
+    --shadow-lg: 0 4px 12px rgb(11 18 32 / 0.08), 0 16px 40px rgb(11 18 32 / 0.10);
   }
 
   * {
@@ -34,6 +58,12 @@
     overflow-x: hidden;
     font-family: var(--font-sans), system-ui, sans-serif;
     @apply bg-background text-text antialiased;
+  }
+
+  body {
+    /* 16px floor and a 1.55 body leading, per the type scale. */
+    font-size: 16px;
+    line-height: 1.55;
   }
 
   a {
@@ -52,39 +82,107 @@
     font-family: inherit;
   }
 
-  /* Custom range slider styling */
-  input[type="range"] {
-    @apply w-full h-2 rounded-lg appearance-none cursor-pointer;
-    background-color: rgba(255, 255, 255, 0.08);
+  /* One visible focus ring for the whole app, keyboard only. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2;
+    --tw-ring-offset-color: var(--surface);
   }
 
-  input[type="range"]::-webkit-slider-thumb {
-    @apply appearance-none w-5 h-5 bg-primary rounded-full cursor-pointer hover:bg-primary-hover transition-colors;
+  input[type='range'] {
+    @apply h-2 w-full cursor-pointer appearance-none rounded-lg;
+    background-color: var(--surface-hover);
   }
 
-  input[type="range"]::-moz-range-thumb {
-    @apply w-5 h-5 bg-primary rounded-full cursor-pointer hover:bg-primary-hover transition-colors border-0;
+  input[type='range']::-webkit-slider-thumb {
+    @apply h-5 w-5 cursor-pointer appearance-none rounded-full bg-primary transition-colors hover:bg-primary-hover;
+    box-shadow: var(--shadow-sm);
   }
 
-  input[type="range"]:focus {
-    @apply outline-none ring-2 ring-primary ring-opacity-50;
+  input[type='range']::-moz-range-thumb {
+    @apply h-5 w-5 cursor-pointer rounded-full border-0 bg-primary transition-colors hover:bg-primary-hover;
   }
 
-  /* Scrollbar styling */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-surface;
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-surface-hover rounded;
+    @apply rounded-full;
+    background: var(--border-strong);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #3a3a3a;
+    background: var(--text-secondary);
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* The three controls the whole search UI is built from. Extracted because
+     they repeat across the top bar, the map overlay and the results header —
+     not as a component library. */
+  .ef-pill {
+    @apply inline-flex h-9 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-surface px-3.5 text-[13px] font-semibold text-text transition-colors duration-200 hover:bg-surface-hover;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .ef-pill--active {
+    @apply border-primary bg-primary text-[color:var(--on-primary)] hover:bg-primary-hover;
+  }
+
+  .ef-chip {
+    @apply inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-full bg-primary-soft pl-2.5 pr-1 text-[12px] font-semibold text-primary;
+  }
+
+  .ef-card {
+    @apply rounded-2xl border border-border bg-surface transition-shadow duration-200;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .ef-card:hover {
+    box-shadow: var(--shadow-md);
+  }
+
+  .ef-label {
+    @apply text-[11px] font-bold uppercase tracking-[0.08em] text-text-secondary;
+  }
+
+  .ef-scroll-fade {
+    /* Horizontal rails fade at the right edge instead of showing a cut-off chip. */
+    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+  }
+}
+
+/* Mapbox GL ships its own popup chrome. Strip it so PopupCard's own card is the
+   only surface, and recolour the tip from the token. Third-party class names,
+   so deliberately outside @layer. */
+.ef-popup .mapboxgl-popup-content {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ef-popup .mapboxgl-popup-tip {
+  border-top-color: var(--surface);
+}
+
+.mapboxgl-ctrl-group {
+  border-radius: 9999px !important;
+  overflow: hidden;
+  box-shadow: var(--shadow-md) !important;
 }

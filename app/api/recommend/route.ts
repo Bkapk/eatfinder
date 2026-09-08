@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { search, SearchFilters } from '@/lib/scoring'
+import { parseFilters } from '@/lib/filters'
+import { passesFilters, search } from '@/lib/scoring'
 import { toDTO } from '@/lib/types'
+import type { RestaurantDTO } from '@/lib/types'
+import type { Facets, RecommendResponse } from '@/components/search/types'
+import { PAGE_SIZE } from '@/components/search/types'
 import { z } from 'zod'
 
 // Rate limiting (simple in-memory store - use Redis in production)
@@ -31,36 +35,12 @@ function checkRateLimit(ip: string): boolean {
   return true
 }
 
-// Comma-separated list -> string[], the shape SearchFilters wants.
-const csv = z
-  .string()
-  .optional()
-  .transform((v) => (v ? v.split(',').map((s) => s.trim()).filter(Boolean) : undefined))
+/** The map never gets more than this many pins, however many rows match. */
+const MAX_POINTS = 500
 
-// z.coerce.boolean() is useless here: Boolean('false') is true. Only the literal
-// string 'true' turns a flag on.
-const flag = z
-  .string()
-  .optional()
-  .transform((v) => (v === 'true' ? true : undefined))
-
-const recommendSchema = z.object({
-  heavy: z.coerce.number().min(0).max(100).default(50),
-  hungry: z.coerce.number().min(0).max(100).default(50),
-  fine: z.coerce.number().min(0).max(100).default(50),
-  cuisines: csv,
-  tags: csv,
-  neighborhoods: csv,
-  query: z.string().optional(),
-  minPrice: z.coerce.number().min(1).max(4).optional(),
-  maxPrice: z.coerce.number().min(1).max(4).optional(),
-  maxPrepTime: z.coerce.number().min(0).optional(),
-  openNow: flag,
-  woltOnly: flag,
-  lat: z.coerce.number().min(-90).max(90).optional(),
-  lng: z.coerce.number().min(-180).max(180).optional(),
-  maxDistanceKm: z.coerce.number().min(0).optional(),
-})
+function tally(values: string[], into: Record<string, number>) {
+  for (const v of values) if (v) into[v] = (into[v] ?? 0) + 1
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,42 +50,62 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
     }
 
-    // Built from the keys actually present: a key that was never sent must stay
-    // undefined so zod's .default() fires. Reading a missing key would give null,
-    // and Number(null) is 0 — every unset axis would score as "as light/small/
-    // casual as possible" rather than neutral.
-    const searchParams = request.nextUrl.searchParams
-    const params = recommendSchema.parse(
-      Object.fromEntries(
-        [...searchParams.keys()].map((k) => [k, searchParams.get(k) ?? undefined])
-      )
-    )
+    // lib/filters.ts is the single parser: the client builds the URL with
+    // toSearchParams() and we read it back with parseFilters(), so a shared
+    // link and this endpoint cannot disagree.
+    const { view: _view, page, ...filters } = parseFilters(request.nextUrl.searchParams)
 
-    // Public endpoint: only ever surface active listings.
-    const restaurants = await prisma.restaurant.findMany({ where: { isActive: true } })
+    // Public endpoint: only ever surface active listings. Exactly one query,
+    // no joins — this is what __tests__/api.test.ts mocks.
+    const rows = await prisma.restaurant.findMany({ where: { isActive: true } })
+    const all: RestaurantDTO[] = rows.map(toDTO)
+    const now = new Date()
 
-    // near/maxDistanceKm only bite as a pair — passesFilters ignores a lone `near`.
-    const { lat, lng, ...rest } = params
-    const filters: SearchFilters = {
-      ...rest,
-      near: lat !== undefined && lng !== undefined ? { lat, lng } : undefined,
+    // Full match set, already sorted. `search` slices at `limit`, so ask for
+    // everything and page here — `total` has to count matches, not the page.
+    const matched = search(all, filters, Number.MAX_SAFE_INTEGER, now)
+
+    const start = (page - 1) * PAGE_SIZE
+    const items = matched.slice(start, start + PAGE_SIZE)
+
+    const points = matched
+      .filter((r) => r.lat != null && r.lng != null)
+      .slice(0, MAX_POINTS)
+      .map((r) => ({
+        id: r.id,
+        slug: r.slug,
+        name: r.name,
+        lat: r.lat as number,
+        lng: r.lng as number,
+        priceLevel: r.priceLevel,
+      }))
+
+    // Facet counts ignore the three list dimensions they describe, so the chip
+    // rail keeps showing what you would get by switching selection rather than
+    // collapsing to zero the moment you pick one.
+    const facetBase = { ...filters, cuisines: undefined, tags: undefined, neighborhoods: undefined }
+    const facets: Facets = { cuisines: {}, tags: {}, neighborhoods: {}, priceLevels: {} }
+    for (const r of all) {
+      if (!passesFilters(r, facetBase, now)) continue
+      tally(r.cuisines, facets.cuisines)
+      tally(r.tags, facets.tags)
+      tally([r.neighborhood], facets.neighborhoods)
+      tally([String(r.priceLevel)], facets.priceLevels)
     }
 
-    const items = search(restaurants.map(toDTO), filters)
-
-    return NextResponse.json({ items })
+    const body: RecommendResponse = { items, points, total: matched.length, facets }
+    return NextResponse.json(body)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ 
-        error: 'Invalid parameters', 
+      return NextResponse.json({
+        error: 'Invalid parameters',
         details: process.env.NODE_ENV === 'development' ? error.errors : undefined
       }, { status: 400 })
     }
     console.error('Recommendation error:', error)
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Internal server error',
       message: process.env.NODE_ENV === 'development' ? String(error) : undefined
     }, { status: 500 })
   }
 }
-

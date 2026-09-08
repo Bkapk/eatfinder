@@ -1,37 +1,37 @@
-import Link from 'next/link'
-import { Utensils } from 'lucide-react'
+import { Suspense } from 'react'
+import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
+import { LOCALE_COOKIE, resolveLocale, t } from '@/lib/i18n'
+import SearchShell from '@/components/search/SearchShell'
 
-export default function Home() {
+// MAPBOX_TOKEN and the lang cookie are both read per request, so this page can
+// never be prerendered with a stale token baked in.
+export const dynamic = 'force-dynamic'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = resolveLocale(null, (await cookies()).get(LOCALE_COOKIE)?.value)
+  return { title: `${t(locale, 'app.name')} — ${t(locale, 'app.tagline')}` }
+}
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const [sp, jar] = await Promise.all([searchParams, cookies()])
+  const langParam = typeof sp.lang === 'string' ? sp.lang : null
+  const locale = resolveLocale(langParam, jar.get(LOCALE_COOKIE)?.value)
+
+  // Deliberately NOT NEXT_PUBLIC_: that would inline the value at build time
+  // into the standalone bundle. It is read here, per request, and handed down
+  // as a prop. Falsy is a supported state — the map pane degrades.
+  const mapboxToken = process.env.MAPBOX_TOKEN || null
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      <div className="text-center space-y-8 max-w-2xl">
-        <div className="flex items-center justify-center gap-3">
-          <Utensils size={48} className="text-primary" />
-          <h1 className="text-6xl font-bold bg-gradient-to-r from-primary to-primary-hover bg-clip-text text-transparent">
-            EatFinder
-          </h1>
-        </div>
-        
-        <p className="text-xl text-text-secondary">
-          Find your perfect meal based on your mood, hunger, and dining preferences
-        </p>
-        
-        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-          <Link
-            href="/eat"
-            className="px-8 py-4 bg-primary hover:bg-primary-hover rounded-lg font-semibold text-lg transition-all shadow-lg shadow-primary/30 hover:shadow-primary/50"
-          >
-            Find a Restaurant
-          </Link>
-          
-          <Link
-            href="/admin"
-            className="px-8 py-4 bg-surface hover:bg-surface-hover border border-border hover:border-primary rounded-lg font-semibold text-lg transition-all"
-          >
-            Admin Panel
-          </Link>
-        </div>
-      </div>
-    </div>
+    <main className="flex h-[100dvh] flex-col overflow-hidden">
+      <Suspense fallback={<div className="h-14 border-b border-border bg-surface" />}>
+        <SearchShell locale={locale} mapboxToken={mapboxToken} />
+      </Suspense>
+    </main>
   )
 }
