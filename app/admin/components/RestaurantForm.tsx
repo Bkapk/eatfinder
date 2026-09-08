@@ -54,7 +54,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
         image: restaurant.image || '',
         lat: restaurant.lat?.toString() || '',
         lng: restaurant.lng?.toString() || '',
-        openHours: restaurant.openHours || '',
+        openHours: restaurant.openHours ? JSON.stringify(restaurant.openHours, null, 2) : '',
       })
     }
   }, [restaurant])
@@ -112,6 +112,17 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
     setSaving(true)
     setError('')
 
+    let openHours: unknown = null
+    if (formData.openHours.trim()) {
+      try {
+        openHours = JSON.parse(formData.openHours)
+      } catch {
+        setError('Open Hours must be valid JSON, e.g. {"mon": ["09:00", "23:00"], "sun": null}')
+        setSaving(false)
+        return
+      }
+    }
+
     try {
       const payload: any = {
         ...formData,
@@ -121,7 +132,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
         image: formData.image || null,
         lat: formData.lat ? parseFloat(formData.lat) : null,
         lng: formData.lng ? parseFloat(formData.lng) : null,
-        openHours: formData.openHours || null,
+        openHours,
       }
 
       const url = restaurant ? `/api/restaurants/${restaurant.id}` : '/api/restaurants'
@@ -486,14 +497,14 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
 
           <div>
             <label htmlFor="openHours" className="block text-sm font-medium mb-2">
-              Open Hours (JSON or text)
+              Open Hours (JSON)
             </label>
             <textarea
               id="openHours"
               value={formData.openHours}
               onChange={(e) => setFormData({ ...formData, openHours: e.target.value })}
-              rows={3}
-              placeholder='{"monday": "9:00-17:00", ...} or plain text'
+              rows={9}
+              placeholder='{"mon": ["09:00", "23:00"], "sun": null}'
               className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono text-sm"
             />
           </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { scoreAndSort, RecommendationParams } from '@/lib/scoring'
+import { search, SearchFilters } from '@/lib/scoring'
+import { toDTO } from '@/lib/types'
 import { z } from 'zod'
 
 // Rate limiting (simple in-memory store - use Redis in production)
@@ -30,13 +31,35 @@ function checkRateLimit(ip: string): boolean {
   return true
 }
 
+// Comma-separated list -> string[], the shape SearchFilters wants.
+const csv = z
+  .string()
+  .optional()
+  .transform((v) => (v ? v.split(',').map((s) => s.trim()).filter(Boolean) : undefined))
+
+// z.coerce.boolean() is useless here: Boolean('false') is true. Only the literal
+// string 'true' turns a flag on.
+const flag = z
+  .string()
+  .optional()
+  .transform((v) => (v === 'true' ? true : undefined))
+
 const recommendSchema = z.object({
   heavy: z.coerce.number().min(0).max(100).default(50),
   hungry: z.coerce.number().min(0).max(100).default(50),
-  finedine: z.coerce.number().min(0).max(100).default(50),
-  cuisine: z.string().optional().nullable(),
-  max_price: z.coerce.number().min(1).max(4).optional().nullable(),
-  fast_only: z.coerce.boolean().optional().nullable(),
+  fine: z.coerce.number().min(0).max(100).default(50),
+  cuisines: csv,
+  tags: csv,
+  neighborhoods: csv,
+  query: z.string().optional(),
+  minPrice: z.coerce.number().min(1).max(4).optional(),
+  maxPrice: z.coerce.number().min(1).max(4).optional(),
+  maxPrepTime: z.coerce.number().min(0).optional(),
+  openNow: flag,
+  woltOnly: flag,
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+  maxDistanceKm: z.coerce.number().min(0).optional(),
 })
 
 export async function GET(request: NextRequest) {
@@ -47,77 +70,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
     }
 
+    // Built from the keys actually present: a key that was never sent must stay
+    // undefined so zod's .default() fires. Reading a missing key would give null,
+    // and Number(null) is 0 — every unset axis would score as "as light/small/
+    // casual as possible" rather than neutral.
     const searchParams = request.nextUrl.searchParams
-    const params = recommendSchema.parse({
-      heavy: searchParams.get('heavy'),
-      hungry: searchParams.get('hungry'),
-      finedine: searchParams.get('finedine'),
-      cuisine: searchParams.get('cuisine'),
-      max_price: searchParams.get('max_price'),
-      fast_only: searchParams.get('fast_only'),
-    })
+    const params = recommendSchema.parse(
+      Object.fromEntries(
+        [...searchParams.keys()].map((k) => [k, searchParams.get(k) ?? undefined])
+      )
+    )
 
-    // Fetch all restaurants
-    const restaurants = await prisma.restaurant.findMany({
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        neighborhood: true,
-        heaviness: true,
-        portionSize: true,
-        fineDining: true,
-        priceLevel: true,
-        cuisines: true,
-        image: true,
-        websiteUrl: true,
-        gmapsUrl: true,
-        phone: true,
-        avgPrepTime: true,
-      },
-    })
+    // Public endpoint: only ever surface active listings.
+    const restaurants = await prisma.restaurant.findMany({ where: { isActive: true } })
 
-    // Parse cuisines and prepare for scoring
-    const restaurantsForScoring = restaurants.map((r) => ({
-      id: r.id,
-      heaviness: r.heaviness,
-      portionSize: r.portionSize,
-      fineDining: r.fineDining,
-      priceLevel: r.priceLevel,
-      cuisines: JSON.parse(r.cuisines || '[]') as string[],
-      avgPrepTime: r.avgPrepTime,
-    }))
-
-    // Score and sort
-    const scoringParams: RecommendationParams = {
-      wantHeavy: params.heavy,
-      wantHungry: params.hungry,
-      wantFinedine: params.finedine,
-      cuisines: params.cuisine ? params.cuisine.split(',').map((c) => c.trim()) : undefined,
-      maxPrice: params.max_price ?? undefined,
-      fastOnly: params.fast_only ?? undefined,
+    // near/maxDistanceKm only bite as a pair — passesFilters ignores a lone `near`.
+    const { lat, lng, ...rest } = params
+    const filters: SearchFilters = {
+      ...rest,
+      near: lat !== undefined && lng !== undefined ? { lat, lng } : undefined,
     }
 
-    const scored = scoreAndSort(restaurantsForScoring, scoringParams)
-
-    // Map back to full restaurant data
-    const restaurantMap = new Map(restaurants.map((r) => [r.id, r]))
-    const items = scored.map((scored) => {
-      const restaurant = restaurantMap.get(scored.id)!
-      return {
-        id: restaurant.id,
-        score: scored.score,
-        name: restaurant.name,
-        priceLevel: restaurant.priceLevel,
-        cuisines: JSON.parse(restaurant.cuisines || '[]') as string[],
-        image: restaurant.image,
-        description: restaurant.description,
-        neighborhood: restaurant.neighborhood,
-        websiteUrl: restaurant.websiteUrl,
-        gmapsUrl: restaurant.gmapsUrl,
-        phone: restaurant.phone,
-      }
-    })
+    const items = search(restaurants.map(toDTO), filters)
 
     return NextResponse.json({ items })
   } catch (error) {

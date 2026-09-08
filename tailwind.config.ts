@@ -27,7 +27,7 @@ const config: Config = {
         'info-hover': 'var(--info-hover)',
       },
       fontFamily: {
-        sans: ['Manrope', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
       },
     },
   },

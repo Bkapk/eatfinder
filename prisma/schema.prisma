@@ -1,57 +1,201 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  // SQLite: single file, trivial backup, plenty for one city of restaurants.
+  // No native array/enum types here — list fields are JSON strings, see lib/types.ts.
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  password  String
+  id       String @id @default(cuid())
+  username String @unique // admin: a handle. community: the lowercased email.
+  password String
+
+  // "admin" | "user". New signups default to "user"; the migration backfills the
+  // pre-existing row to "admin". Checked by requireAdmin(), never by middleware.
+  role String @default("user")
+
+  email       String? @unique
+  displayName String  @default("")
+  isBanned    Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  photos          RestaurantPhoto[] @relation("PhotoSubmitter")
+  photoDecisions  RestaurantPhoto[] @relation("PhotoDecider")
+  proposalReviews AiProposal[]      @relation("ProposalReviewer")
+  favorites       Favorite[]
+
+  @@index([role])
 }
 
 model Restaurant {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String   @default("")
-  
-  // Core numbers (0-100)
-  heaviness   Int      @default(50) // how heavy food feels
-  portionSize Int      @default(50) // how filling
-  fineDining  Int      @default(50) // ambience/service
-  
-  // Other fields
-  priceLevel  Int      @default(2) // 1-4
-  spiceLevel  Int      @default(50) // 0-100
-  avgPrepTime Int      @default(30) // minutes
-  
-  cuisines    String   @default("[]") // JSON array of strings
-  neighborhood String  @default("")
-  
-  websiteUrl  String?
-  gmapsUrl    String?
-  phone       String?
-  image       String? // path to uploaded image
-  
-  // Optional location
-  lat         Float?
-  lng         Float?
-  openHours   String? // JSON string or plain text
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  @@index([heaviness])
-  @@index([portionSize])
-  @@index([fineDining])
+  id          String @id @default(cuid())
+  slug        String @unique
+  name        String @unique
+  description String @default("")
+
+  // Mood axes, 0-100. The three the recommender scores against.
+  heaviness   Int @default(50) // light salad 0 <-> heavy comfort food 100
+  portionSize Int @default(50) // small plates 0 <-> very filling 100
+  fineDining  Int @default(50) // street food 0 <-> white tablecloth 100
+
+  spiceLevel  Int @default(0)  // 0-100
+  priceLevel  Int @default(2)  // 1-4, shown as $..$$$$
+  avgPrepTime Int @default(30) // minutes
+
+  // JSON string arrays (SQLite has no array type)
+  cuisines String @default("[]")
+  tags     String @default("[]") // "vegan-friendly", "outdoor-seating", "late-night", ...
+
+  neighborhood String @default("")
+  address      String @default("")
+  lat          Float?
+  lng          Float?
+
+  // Links
+  woltUrl      String?
+  websiteUrl   String?
+  instagramUrl String?
+  gmapsUrl     String?
+  phone        String?
+
+  // Hero image. Denormalised on purpose: /api/recommend must stay a single
+  // findMany with no joins, and lib/csv.ts round-trips this column.
+  image String?
+
+  // JSON: { "mon": ["09:00","23:00"], ..., "sun": null } — null means closed
+  openHours String?
+
+  rating     Float?  // 0-5, editorial
+  isActive   Boolean @default(true)
+  isFeatured Boolean @default(false)
+
+  // --- v2: Google Places provenance ---
+  // "manual" | "google". Everything that existed before this migration is "manual".
+  source            String    @default("manual")
+  placeId           String?   @unique // Places (New) v1 `places/ChIJ...` resource id
+  placesSyncedAt    DateTime?
+  placesRaw         String? // JSON: the trimmed Places payload we scored from. Audit trail.
+  googleRating      Float?
+  googleRatingCount Int?
+  googlePriceLevel  Int? // 1-4, mapped from PRICE_LEVEL_* enum. Distinct from our editorial priceLevel.
+
+  // --- v2: AI enrichment state ---
+  // "none" | "pending" | "approved" | "rejected" | "failed". Mirrors the newest
+  // AiProposal so the admin list can filter without a join.
+  aiStatus     String    @default("none")
+  aiApprovedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  photos    RestaurantPhoto[]
+  proposals AiProposal[]
+  favorites Favorite[]
+
+  @@index([isActive])
   @@index([priceLevel])
+  @@index([neighborhood])
+  @@index([source])
+  @@index([aiStatus])
 }
 
+/// Every photo we display, whoever produced it. One table, one status field —
+/// a separate "submission" table would just be this with a different name.
+model RestaurantPhoto {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  url     String // always a local /uploads/... path via lib/storage.ts
+  width   Int?
+  height  Int?
+  caption String @default("")
+
+  // "admin" | "community" | "google"
+  source String
+
+  // Google Places photos carry mandatory attribution HTML. JSON string array.
+  attributions String @default("[]")
+
+  submittedById String?
+  submittedBy   User?   @relation("PhotoSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
+
+  // "pending" | "approved" | "rejected"
+  status String @default("pending")
+
+  // --- moderation record. Never mutated after it is written. ---
+  aiVerdict       String? // JSON: the full PhotoModerationResult, exactly as parsed
+  aiConfidence    Float?
+  aiReason        String?
+  wasAutoDecision Boolean @default(false) // true = published/held without a human looking
+
+  // --- human override. Present iff an admin touched it. ---
+  decidedById  String?
+  decidedBy    User?     @relation("PhotoDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedAt    DateTime?
+  decisionNote String    @default("")
+
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([restaurantId, status, sortOrder])
+  @@index([status, createdAt])
+  @@index([submittedById, createdAt]) // powers the per-user rate limit count
+}
+
+/// One Gemini enrichment run against one restaurant, awaiting the owner's verdict.
+/// Nothing here reaches Restaurant until status becomes "approved".
+model AiProposal {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  model  String // resolved from GEMINI_MODEL at call time, recorded for audit
+  // "pending" | "approved" | "rejected" | "failed"
+  status String @default("pending")
+
+  /// JSON: the validated RestaurantScoringResult. Null when status = "failed".
+  payload String?
+  /// Raw model text, kept only when parsing failed, so the owner can see what it said.
+  rawResponse  String?
+  errorMessage String?
+
+  overallConfidence Float?
+  /// JSON string array of the input kinds actually sent: ["photos","reviews","description"].
+  inputsUsed String @default("[]")
+  photoCount Int    @default(0)
+
+  reviewedById String?
+  reviewedBy   User?     @relation("ProposalReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  reviewNote   String    @default("")
+  /// JSON: what was ACTUALLY written to Restaurant on approval, after the owner's
+  /// edits. Diff this against `payload` to see where the human disagreed.
+  appliedFields String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt]) // queue listing + the hourly spend counter
+  @@index([restaurantId, createdAt])
+}
+
+/// Cheap enough to include. A named-lists feature is not (see Out of scope).
+model Favorite {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([userId, restaurantId])
+  @@index([userId, createdAt])
+}

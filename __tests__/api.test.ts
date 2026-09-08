@@ -1,3 +1,7 @@
+/**
+ * @jest-environment node
+ */
+// next/server needs the Node fetch globals (Request/Response); jsdom doesn't have them.
 import { NextRequest } from 'next/server'
 import { GET as recommendGET } from '../app/api/recommend/route'
 
@@ -10,6 +14,35 @@ jest.mock('../lib/prisma', () => ({
   },
 }))
 
+const mockRow = {
+  id: '1',
+  slug: 'test-restaurant',
+  name: 'Test Restaurant',
+  description: 'Test',
+  heaviness: 50,
+  portionSize: 50,
+  fineDining: 50,
+  spiceLevel: 0,
+  priceLevel: 2,
+  avgPrepTime: 30,
+  cuisines: JSON.stringify(['Italian']),
+  tags: JSON.stringify([]),
+  neighborhood: '',
+  address: '',
+  lat: null,
+  lng: null,
+  woltUrl: null,
+  websiteUrl: null,
+  instagramUrl: null,
+  gmapsUrl: null,
+  phone: null,
+  image: null,
+  openHours: null,
+  rating: null,
+  isActive: true,
+  isFeatured: false,
+}
+
 describe('Recommendation API', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -18,25 +51,9 @@ describe('Recommendation API', () => {
   it('should return restaurants sorted by score', async () => {
     const { prisma } = require('../lib/prisma')
 
-    prisma.restaurant.findMany.mockResolvedValue([
-      {
-        id: '1',
-        name: 'Test Restaurant',
-        description: 'Test',
-        heaviness: 50,
-        portionSize: 50,
-        fineDining: 50,
-        priceLevel: 2,
-        cuisines: JSON.stringify(['Italian']),
-        image: null,
-        websiteUrl: null,
-        gmapsUrl: null,
-        phone: null,
-        avgPrepTime: 30,
-      },
-    ])
+    prisma.restaurant.findMany.mockResolvedValue([mockRow])
 
-    const url = new URL('http://localhost/api/recommend?heavy=50&hungry=50&finedine=50')
+    const url = new URL('http://localhost/api/recommend?heavy=50&hungry=50&fine=50')
     const request = new NextRequest(url)
 
     const response = await recommendGET(request)
@@ -60,4 +77,3 @@ describe('Recommendation API', () => {
     expect([200, 400]).toContain(response.status)
   })
 })
-

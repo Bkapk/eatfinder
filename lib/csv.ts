@@ -1,6 +1,7 @@
 import { parse } from 'csv-parse/sync'
 import { stringify } from 'csv-stringify/sync'
 import { Restaurant } from '@prisma/client'
+import { slugify, openHoursSchema } from './types'
 
 export interface CSVRow {
   name: string
@@ -12,14 +13,19 @@ export interface CSVRow {
   spiceLevel?: string
   avgPrepTime?: string
   cuisines?: string
+  tags?: string
   neighborhood?: string
+  address?: string
   websiteUrl?: string
   gmapsUrl?: string
+  woltUrl?: string
+  instagramUrl?: string
   phone?: string
   image?: string
   lat?: string
   lng?: string
   openHours?: string
+  rating?: string
 }
 
 export interface CSVImportResult {
@@ -46,6 +52,15 @@ export function parseCSV(csvContent: string): CSVRow[] {
 export function validateCSVRow(row: CSVRow, rowIndex: number): string | null {
   if (!row.name || row.name.trim() === '') {
     return `Row ${rowIndex + 1}: name is required`
+  }
+
+  // Same gate as the API: unparseable hours would read as "confirmed closed".
+  if (row.openHours?.trim()) {
+    try {
+      openHoursSchema.parse(JSON.parse(row.openHours))
+    } catch {
+      return `Row ${rowIndex + 1}: openHours must be JSON like {"mon":["09:00","23:00"],"sun":null}`
+    }
   }
 
   const heaviness = parseInt(row.heaviness)
@@ -82,6 +97,13 @@ export function validateCSVRow(row: CSVRow, rowIndex: number): string | null {
     }
   }
 
+  if (row.rating) {
+    const rating = parseFloat(row.rating)
+    if (isNaN(rating) || rating < 0 || rating > 5) {
+      return `Row ${rowIndex + 1}: rating must be 0-5`
+    }
+  }
+
   return null
 }
 
@@ -100,24 +122,41 @@ export function csvRowToRestaurant(row: CSVRow): Partial<Restaurant> {
     }
   }
 
+  let tags: string[] = []
+  if (row.tags) {
+    try {
+      tags = JSON.parse(row.tags.replace(/'/g, '"'))
+    } catch {
+      tags = row.tags.split(',').map((t) => t.trim()).filter(Boolean)
+    }
+  }
+
+  const name = row.name.trim()
+
   return {
-    name: row.name.trim(),
+    slug: slugify(name),
+    name,
     description: row.description || '',
     heaviness: parseInt(row.heaviness),
     portionSize: parseInt(row.portionSize),
     fineDining: parseInt(row.fineDining),
     priceLevel: parseInt(row.priceLevel),
-    spiceLevel: row.spiceLevel ? parseInt(row.spiceLevel) : 50,
+    spiceLevel: row.spiceLevel ? parseInt(row.spiceLevel) : 0,
     avgPrepTime: row.avgPrepTime ? parseInt(row.avgPrepTime) : 30,
     cuisines: JSON.stringify(cuisines),
+    tags: JSON.stringify(tags),
     neighborhood: row.neighborhood || '',
+    address: row.address || '',
     websiteUrl: row.websiteUrl || null,
     gmapsUrl: row.gmapsUrl || null,
+    woltUrl: row.woltUrl || null,
+    instagramUrl: row.instagramUrl || null,
     phone: row.phone || null,
     image: row.image || null,
     lat: row.lat ? parseFloat(row.lat) : null,
     lng: row.lng ? parseFloat(row.lng) : null,
     openHours: row.openHours || null,
+    rating: row.rating ? parseFloat(row.rating) : null,
   }
 }
 
@@ -127,6 +166,7 @@ export function csvRowToRestaurant(row: CSVRow): Partial<Restaurant> {
 export function exportToCSV(restaurants: Restaurant[]): string {
   const rows = restaurants.map((r) => {
     const cuisines = JSON.parse(r.cuisines || '[]')
+    const tags = JSON.parse(r.tags || '[]')
     return {
       name: r.name,
       description: r.description,
@@ -137,14 +177,19 @@ export function exportToCSV(restaurants: Restaurant[]): string {
       spiceLevel: r.spiceLevel.toString(),
       avgPrepTime: r.avgPrepTime.toString(),
       cuisines: JSON.stringify(cuisines),
+      tags: JSON.stringify(tags),
       neighborhood: r.neighborhood,
+      address: r.address,
       websiteUrl: r.websiteUrl || '',
       gmapsUrl: r.gmapsUrl || '',
+      woltUrl: r.woltUrl || '',
+      instagramUrl: r.instagramUrl || '',
       phone: r.phone || '',
       image: r.image || '',
       lat: r.lat?.toString() || '',
       lng: r.lng?.toString() || '',
       openHours: r.openHours || '',
+      rating: r.rating?.toString() || '',
     }
   })
 
@@ -160,14 +205,19 @@ export function exportToCSV(restaurants: Restaurant[]): string {
       'spiceLevel',
       'avgPrepTime',
       'cuisines',
+      'tags',
       'neighborhood',
+      'address',
       'websiteUrl',
       'gmapsUrl',
+      'woltUrl',
+      'instagramUrl',
       'phone',
       'image',
       'lat',
       'lng',
       'openHours',
+      'rating',
     ],
   })
 }

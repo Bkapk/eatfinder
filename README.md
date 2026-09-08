@@ -1,250 +1,172 @@
-# 🍽️ EatFinder
+# EatFinder
 
-A personal web app that helps you decide where to eat based on your mood, hunger level, and dining preferences.
+Pick a restaurant in Prishtina by mood rather than by category. You set three
+sliders — how heavy, how hungry, how fancy — and the app ranks what fits.
 
-## 🎯 Features
+## Stack
 
-- **Public Recommendation Page** (`/eat`): Interactive sliders for heaviness, hunger level, and fine-dining preference
-- **Smart Top-3 Display**: Shows the most relevant restaurants first with optional "Show More" button
-- **Cuisine & Price Filters**: Multi-select cuisines and set max price level
-- **Admin Dashboard**: Full CRUD interface for managing restaurants
-- **CSV Import/Export**: Bulk import/export restaurants from CSV files
-- **Intelligent Scoring Algorithm**: Matches restaurants to your preferences with customizable weights
-- **Image Uploads**: Upload and display restaurant cover images
-- **Search & Sort**: Find restaurants by name, cuisine, or neighborhood
-- **Modern Dark UI**: Beautiful, responsive design with custom cyan accent color
+TypeScript · Next.js 16 (App Router, Turbopack) · React 19 · Prisma 5 · SQLite · Tailwind 3
 
-## 🛠 Tech Stack
+SQLite is a deliberate choice: one file, trivial backup, and plenty for a single
+city of restaurants. Swap the `provider` in `prisma/schema.prisma` to `postgresql`
+if that stops being true.
 
-**TypeScript + Next.js 14 + Prisma + SQLite/PostgreSQL + Tailwind CSS**
+## Setup
 
-### Why this stack?
-
-- **Next.js 14**: Excellent DX with App Router, API routes, and server components. Easy deployment to Vercel/Railway/Render.
-- **Prisma**: Type-safe database access, automatic migrations, and easy schema management.
-- **SQLite**: Perfect for single-user apps, zero configuration, easy backups. **Can easily switch to PostgreSQL for production.**
-- **TypeScript**: End-to-end type safety reduces bugs and improves developer experience.
-- **Tailwind CSS**: Utility-first CSS for rapid UI development with consistent design system.
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Node.js 18+ 
-- npm or yarn
-
-### Setup
-
-1. **Clone and install dependencies:**
+Requires Node 18+ (developed on 24).
 
 ```bash
 npm install
-```
-
-2. **Set up environment variables:**
-
-Create a `.env` file in the root directory:
-
-```env
-DATABASE_URL="file:./dev.db"
-ADMIN_USERNAME="admin"
-ADMIN_PASSWORD="changeme"
-NEXTAUTH_SECRET="change-this-in-production"
-NEXTAUTH_URL="http://localhost:3000"
-```
-
-3. **Initialize database:**
-
-```bash
+cp .env.example .env          # then fill in SESSION_SECRET and ADMIN_PASSWORD
 npm run db:migrate
-```
-
-4. **Seed sample data:**
-
-```bash
-npm run db:seed
-```
-
-5. **Start development server:**
-
-```bash
+npm run create-admin          # creates/updates the admin from .env
+npm run db:seed               # 10 sample restaurants
 npm run dev
 ```
 
-Visit:
-- **Public page**: http://localhost:3000/eat
-- **Admin**: http://localhost:3000/admin (login: admin / changeme)
+- Public page: http://localhost:3000/eat
+- Admin: http://localhost:3000/admin
 
-## 📦 Scripts
+`SESSION_SECRET` must be at least 32 characters. Generate one with:
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run db:migrate` - Run database migrations
-- `npm run db:seed` - Seed sample data
-- `npm run db:studio` - Open Prisma Studio (database GUI)
-- `npm test` - Run tests
-
-## 🏗 Project Structure
-
-```
-├── app/
-│   ├── api/              # API routes
-│   │   ├── recommend/    # Recommendation endpoint
-│   │   ├── restaurants/  # CRUD endpoints
-│   │   └── auth/         # Authentication
-│   ├── admin/            # Admin pages
-│   ├── eat/              # Public recommendation page
-│   └── globals.css       # Global styles
-├── lib/
-│   ├── prisma.ts         # Prisma client
-│   ├── scoring.ts        # Scoring algorithm
-│   ├── auth.ts           # Authentication helpers
-│   ├── storage.ts        # File upload adapter
-│   └── csv.ts            # CSV import/export
-├── prisma/
-│   ├── schema.prisma     # Database schema
-│   └── seed.ts           # Seed script
-└── __tests__/            # Tests
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-## 🎨 Scoring Algorithm
+## Scripts
 
-The recommendation score is calculated as:
+| Script | Does |
+| --- | --- |
+| `npm run dev` | Dev server |
+| `npm run build` | `prisma generate` then `next build` |
+| `npm start` | Production server |
+| `npm run lint` | ESLint (flat config, `eslint.config.mjs`) |
+| `npm test` | Jest |
+| `npm run db:migrate` | Apply migrations |
+| `npm run db:seed` | Admin user + 10 sample restaurants |
+| `npm run db:studio` | Prisma Studio |
+| `npm run create-admin` | Upsert the admin user from `.env` |
 
-```typescript
-score = 
-  (100 - |wantHeavy - heaviness|) +
-  (100 - |wantHungry - portionSize|) +
-  (100 - |wantFinedine - fineDining|) +
-  bonuses/penalties
+## Layout
+
+```
+app/
+  api/
+    auth/          login (throttled), logout, me
+    recommend/     public scoring endpoint
+    restaurants/   CRUD, import, export, seed
+    upload/        image upload, magic-byte sniffed
+  admin/           dashboard, add, edit, CSV import
+  eat/             public slider page
+lib/
+  types.ts         RestaurantDTO, toDTO, slugify, isOpenAt, openHoursSchema
+  scoring.ts       SearchFilters, passesFilters, calculateScore, search
+  auth.ts          HMAC session, bcrypt, requireAuth
+  csv.ts           import/export
+  storage.ts       local disk uploads
+  prisma.ts        client singleton
+middleware.ts      gates /admin/* on the session cookie
+prisma/
+  schema.prisma
+  sample-restaurants.ts   shared by db:seed and the admin seed button
+  sample.csv              example import, current column set
 ```
 
-**Bonuses:**
-- `+50` if at least one selected cuisine matches (highly impactful)
-- `+5` if `priceLevel <= maxPrice` (when provided)
+## How ranking works
 
-**Penalties:**
-- `-50` if no cuisine match when cuisines selected (highly impactful)
-- `-10` if `priceLevel > maxPrice` (when maxPrice provided)
-- `-avgPrepTime/2` if `fastOnly` is true and prep time > 20 minutes
+Two separate passes, in `lib/scoring.ts`.
 
-### Customizing Weights
+**`passesFilters`** — hard filters. Failing one means "not a result", not "a worse
+result": price range, prep time, cuisines, tags, neighbourhoods, free-text query,
+Wolt availability, distance, and open-now. A restaurant with *unknown* hours is
+never excluded by `openNow` — only a confirmed-closed one is.
 
-Edit `lib/scoring.ts` to adjust:
-- Base score weights (currently equal)
-- Cuisine bonus/penalty (currently +50/-50)
-- Price bonus/penalty (currently +5/-10)
-- Fast food penalty multiplier
+**`calculateScore`** — soft score, higher is better:
 
-## 📊 CSV Format
+```
+  axis match on heaviness    0..100
++ axis match on portionSize  0..100    each: 100 * (1 - |want - actual| / 100)
++ axis match on fineDining   0..100
++ rating / 5 * 25                      editorial rating
++ 10                                   if featured
++ 30 * max(0, 1 - km / 5)              if a location was supplied
++ 15                                   if open right now
++ 5                                    if orderable on Wolt
+```
 
-### Required Columns
+Mood match dominates (max 300) so a great match still beats a mediocre one that
+happens to be well rated. Tune the constants in `lib/scoring.ts`.
 
-- `name` (string, required, unique)
-- `heaviness` (0-100)
-- `portionSize` (0-100)
-- `fineDining` (0-100)
-- `priceLevel` (1-4)
+## `GET /api/recommend`
 
-### Optional Columns
+Public, returns `{ items: ScoredRestaurant[] }` over active restaurants only.
 
-- `description` (string)
-- `spiceLevel` (0-100, default: 50)
-- `avgPrepTime` (minutes, default: 30)
-- `cuisines` (JSON array, e.g., `["Italian", "Pizza"]`)
-- `neighborhood` (string)
-- `websiteUrl` (URL)
-- `gmapsUrl` (URL)
-- `phone` (string)
-- `image` (URL or path)
-- `lat` (number)
-- `lng` (number)
-- `openHours` (string or JSON)
+| Param | Type | Default |
+| --- | --- | --- |
+| `heavy` `hungry` `fine` | 0-100 | 50 |
+| `cuisines` `tags` `neighborhoods` | comma-separated | — |
+| `query` | free text over name/description/neighbourhood/cuisines/tags | — |
+| `minPrice` `maxPrice` | 1-4 | — |
+| `maxPrepTime` | minutes | — |
+| `openNow` `woltOnly` | `true` (any other value is off) | off |
+| `lat` `lng` `maxDistanceKm` | distance filter, needs all three | — |
 
-### Sample CSV
+## CSV
 
-See `prisma/sample.csv` for an example file.
+`prisma/sample.csv` is a working example of the current column set. Export from
+the admin panel to get the exact same shape back — export and import round-trip.
 
-## 🚢 Deployment
+**Required:** `name`, `heaviness`, `portionSize`, `fineDining`, `priceLevel`.
 
-**📖 For complete deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)**
+**Optional:** `description`, `spiceLevel` (0-100, default 0), `avgPrepTime`
+(default 30), `cuisines` and `tags` (JSON array or comma-separated),
+`neighborhood`, `address`, `websiteUrl`, `gmapsUrl`, `woltUrl`, `instagramUrl`,
+`phone`, `image`, `lat`, `lng`, `rating` (0-5), `openHours`.
 
-### Quick Options:
+`slug` is derived from `name` — never put it in the CSV.
 
-**Option 1: Vercel (Recommended - Easiest)**
-- ✅ Free tier
-- ✅ Auto-deploys on git push
-- ✅ Custom domain support (`eat.yourdomain.com`)
-- ✅ Built-in SSL
-- ✅ No server maintenance
+`openHours` is validated JSON keyed by `mon`–`sun`, with `null` for a closed day:
 
-**Option 2: Self-Hosted (Your Virtualmin Server)**
-- ✅ Full control
-- ✅ Use existing infrastructure
-- ✅ Nginx + PM2 setup
-- ⚠️ Requires server management
+```json
+{"mon": ["09:00", "23:00"], "fri": ["09:00", "01:00"], "sun": null}
+```
 
-**Option 3: Railway / Render**
-- ✅ Good balance between ease and control
-- ✅ Built-in PostgreSQL
-- ✅ Git integration
+A closing time earlier than the opening time means past midnight. A day that is
+absent means *unknown*, which is treated differently from closed. Anything that
+does not parse is rejected at import rather than silently read as closed.
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for step-by-step guides for each option.
+## Security
 
-## 🔒 Security Features
+- Sessions are a signed HMAC token (`<userId>.<expiry>.<hmac>`), verified with
+  `timingSafeEqual`, in an httpOnly cookie. `secure` is on in production.
+- Passwords are bcrypt, cost 10.
+- Login is throttled: 10 failures per username per 15 minutes. A wrong username
+  and a wrong password cost the same and return the same response.
+- Every mutating API route calls `requireAuth()`. `middleware.ts` additionally
+  keeps the admin shell away from unauthenticated visitors.
+- Uploads are sniffed by magic bytes, not by `Content-Type` or filename, and are
+  stored under a random name. `public/uploads` is served from our own origin, so
+  a mislabelled `.html` would otherwise be stored XSS.
 
-- ✅ HTTP security headers via middleware
-- ✅ Content Security Policy (CSP) in production
-- ✅ Password hashing with bcrypt
-- ✅ Session-based authentication
-- ✅ Rate limiting on public API
-- ✅ Input validation with Zod
-- ✅ SQL injection protection via Prisma
-- ✅ XSS protection headers
-- ⚠️ **Change default admin credentials in production!**
+Not yet done: security headers and a CSP. Add them at the reverse proxy or in
+`next.config.js` before this faces the public internet.
 
-## 🧪 Testing
-
-Run tests:
+## Testing
 
 ```bash
 npm test
 ```
 
-Current test coverage:
-- Scoring algorithm unit tests
-- API endpoint integration tests
+Covers the scoring pass (`__tests__/scoring.test.ts`) and the recommend route
+(`__tests__/api.test.ts`). The API suite runs under the `node` environment —
+`next/server` needs a real global `Request`, which jsdom does not provide.
 
-## 📝 Database Migrations
+## Deployment
 
-Create a new migration:
+`next.config.js` sets `output: 'standalone'`, so the target is a Node process
+behind a reverse proxy (Nginx + PM2 on a VPS). Set `DATABASE_URL`,
+`SESSION_SECRET` and `NODE_ENV=production`, run `npm run build`, then
+`npm start`.
 
-```bash
-npx prisma migrate dev --name your_migration_name
-```
-
-Apply migrations in production:
-
-```bash
-npx prisma migrate deploy
-```
-
-## 🎯 Future Enhancements
-
-- [ ] PWA support with offline caching
-- [ ] Distance-based sorting when lat/lng available
-- [ ] User favorites/bookmarks
-- [ ] Restaurant reviews/ratings
-- [ ] Advanced filtering (dietary restrictions, etc.)
-- [ ] S3/cloud storage adapter for images
-- [ ] Redis for session management and rate limiting
-
-## 📄 License
-
-MIT
-
-## 🙏 Acknowledgments
-
-Built with Next.js, Prisma, and TypeScript.
-
+If you deploy somewhere with an ephemeral filesystem, `lib/storage.ts` writes
+uploads to local disk — swap its two functions for object storage first.

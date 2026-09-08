@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
+import { toDTO, slugify, openHoursSchema } from '@/lib/types'
 import { z } from 'zod'
 
 const restaurantSchema = z.object({
@@ -10,27 +11,39 @@ const restaurantSchema = z.object({
   portionSize: z.coerce.number().min(0).max(100),
   fineDining: z.coerce.number().min(0).max(100),
   priceLevel: z.coerce.number().min(1).max(4),
-  spiceLevel: z.coerce.number().min(0).max(100).optional().default(50),
+  spiceLevel: z.coerce.number().min(0).max(100).optional().default(0),
   avgPrepTime: z.coerce.number().min(0).optional().default(30),
   cuisines: z.array(z.string()).optional().default([]),
+  tags: z.array(z.string()).optional().default([]),
   neighborhood: z.string().optional().default(''),
+  address: z.string().optional().default(''),
   websiteUrl: z.string().url().optional().nullable(),
   gmapsUrl: z.string().url().optional().nullable(),
+  woltUrl: z.string().url().optional().nullable(),
+  instagramUrl: z.string().url().optional().nullable(),
   phone: z.string().optional().nullable(),
   image: z.string().optional().nullable(),
   lat: z.coerce.number().optional().nullable(),
   lng: z.coerce.number().optional().nullable(),
-  openHours: z.string().optional().nullable(),
+  openHours: openHoursSchema.optional().nullable(),
+  rating: z.coerce.number().min(0).max(5).optional().nullable(),
+  isActive: z.coerce.boolean().optional().default(true),
+  isFeatured: z.coerce.boolean().optional().default(false),
 })
 
 export async function GET(request: NextRequest) {
   try {
     await requireAuth()
 
+    // Whitelisted: orderBy is interpolated straight into the Prisma query, so an
+    // unknown column or direction is a reachable 500 on an authenticated endpoint.
+    const SORTABLE = ['name', 'priceLevel', 'rating', 'neighborhood', 'createdAt', 'updatedAt']
+
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
-    const sortBy = searchParams.get('sortBy') || 'updatedAt'
-    const sortOrder = searchParams.get('sortOrder') || 'desc'
+    const requestedSort = searchParams.get('sortBy') || 'updatedAt'
+    const sortBy = SORTABLE.includes(requestedSort) ? requestedSort : 'updatedAt'
+    const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc'
 
     const where: any = {}
     if (search) {
@@ -46,12 +59,7 @@ export async function GET(request: NextRequest) {
       orderBy: { [sortBy]: sortOrder },
     })
 
-    const restaurantsWithParsedCuisines = restaurants.map((r) => ({
-      ...r,
-      cuisines: JSON.parse(r.cuisines || '[]') as string[],
-    }))
-
-    return NextResponse.json({ restaurants: restaurantsWithParsedCuisines })
+    return NextResponse.json({ restaurants: restaurants.map(toDTO) })
   } catch (error: any) {
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -71,16 +79,14 @@ export async function POST(request: NextRequest) {
     const restaurant = await prisma.restaurant.create({
       data: {
         ...data,
+        slug: slugify(data.name),
         cuisines: JSON.stringify(data.cuisines || []),
+        tags: JSON.stringify(data.tags || []),
+        openHours: data.openHours ? JSON.stringify(data.openHours) : null,
       },
     })
 
-    return NextResponse.json({
-      restaurant: {
-        ...restaurant,
-        cuisines: JSON.parse(restaurant.cuisines || '[]') as string[],
-      },
-    })
+    return NextResponse.json({ restaurant: toDTO(restaurant) })
   } catch (error: any) {
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

@@ -12,11 +12,6 @@ export default function EditRestaurantPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!id || id === 'new') {
-      setLoading(false)
-      return
-    }
-
     fetch(`/api/restaurants/${id}`)
       .then((res) => res.json())
       .then((data) => {
@@ -42,9 +37,7 @@ export default function EditRestaurantPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold text-text mb-8">
-        {id === 'new' ? 'Add Restaurant' : 'Edit Restaurant'}
-      </h1>
+      <h1 className="text-3xl font-bold text-text mb-8">Edit Restaurant</h1>
       <RestaurantForm
         restaurant={restaurant}
         onSuccess={() => router.push('/admin')}

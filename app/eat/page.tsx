@@ -52,15 +52,15 @@ export default function EatPage() {
       const params = new URLSearchParams({
         heavy: wantHeavy.toString(),
         hungry: wantHungry.toString(),
-        finedine: wantFinedine.toString(),
+        fine: wantFinedine.toString(),
       })
 
       if (selectedCuisines.length > 0) {
-        params.append('cuisine', selectedCuisines.join(','))
+        params.append('cuisines', selectedCuisines.join(','))
       }
 
       if (maxPrice !== undefined) {
-        params.append('max_price', maxPrice.toString())
+        params.append('maxPrice', maxPrice.toString())
       }
 
       const res = await fetch(`/api/recommend?${params}`)

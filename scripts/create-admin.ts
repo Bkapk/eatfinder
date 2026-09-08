@@ -17,22 +17,16 @@ async function createAdmin() {
   }
 
   try {
-    // Delete existing admin users
-    await prisma.user.deleteMany({});
-    console.log('🗑️  Deleted existing users');
-
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new admin user
-    const admin = await prisma.user.create({
-      data: {
-        username: email,
-        password: hashedPassword,
-      },
+    // Upsert, never deleteMany: re-running this must not wipe other accounts.
+    await prisma.user.upsert({
+      where: { username: email },
+      update: { password: hashedPassword },
+      create: { username: email, password: hashedPassword },
     });
 
-    console.log('✅ Admin user created successfully!');
+    console.log('✅ Admin user ready!');
     console.log(`📧 Email: ${email}`);
     console.log(`🔒 Password: (hidden for security)`);
     console.log('');

@@ -1,90 +1,69 @@
 import { prisma } from './prisma'
 import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
+import { createHmac, timingSafeEqual } from 'crypto'
 
-const SESSION_COOKIE = 'eatfinder_session'
-const SESSION_SECRET = process.env.NEXTAUTH_SECRET || 'dev-secret-change-in-production'
+export const SESSION_COOKIE = 'eatfinder_session'
+const SESSION_DAYS = 7
 
-/**
- * Hash a password
- */
+// Read lazily, not at module load: a missing secret must fail the request, not the build.
+function secret(): string {
+  const s = process.env.SESSION_SECRET
+  if (!s || s.length < 32) {
+    throw new Error('SESSION_SECRET missing or shorter than 32 chars')
+  }
+  return s
+}
+
+function sign(payload: string): string {
+  return createHmac('sha256', secret()).update(payload).digest('hex')
+}
+
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10)
 }
 
-/**
- * Verify a password
- */
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash)
 }
 
-/**
- * Create a session (simple implementation)
- */
-export async function createSession(userId: string): Promise<string> {
-  // In production, use proper session management (JWT, Redis, etc.)
-  // For now, we'll use a simple cookie-based approach
-  const sessionId = `${userId}-${Date.now()}`
-  return sessionId
+/** Signed, expiring session token: `<userId>.<expiryMs>.<hmac>` */
+export function createSession(userId: string): string {
+  const exp = Date.now() + SESSION_DAYS * 86400_000
+  const payload = `${userId}.${exp}`
+  return `${payload}.${sign(payload)}`
 }
 
-/**
- * Get current user from session
- */
+export const sessionCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  path: '/',
+  maxAge: SESSION_DAYS * 86400,
+}
+
 export async function getCurrentUser(): Promise<{ id: string; username: string } | null> {
-  const cookieStore = await cookies()
-  const session = cookieStore.get(SESSION_COOKIE)
-  
-  if (!session?.value) {
-    return null
-  }
+  const token = (await cookies()).get(SESSION_COOKIE)?.value
+  if (!token) return null
 
-  // Simple session validation (in production, use proper session store)
-  const [userId] = session.value.split('-')
-  if (!userId) {
-    return null
-  }
+  const parts = token.split('.')
+  if (parts.length !== 3) return null
+  const [userId, exp, sig] = parts
 
-  const user = await prisma.user.findUnique({
+  const expected = Buffer.from(sign(`${userId}.${exp}`))
+  const given = Buffer.from(sig)
+  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null
+
+  if (!Number(exp) || Number(exp) < Date.now()) return null
+
+  return prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, username: true },
   })
-
-  return user
 }
 
-/**
- * Check if user is authenticated
- */
 export async function requireAuth(): Promise<{ id: string; username: string }> {
   const user = await getCurrentUser()
-  if (!user) {
-    throw new Error('Unauthorized')
-  }
+  if (!user) throw new Error('Unauthorized')
   return user
 }
-
-/**
- * Initialize admin user if it doesn't exist
- */
-export async function initAdminUser() {
-  const username = process.env.ADMIN_USERNAME || 'admin'
-  const password = process.env.ADMIN_PASSWORD || 'changeme'
-
-  const existing = await prisma.user.findUnique({
-    where: { username },
-  })
-
-  if (!existing) {
-    const hashedPassword = await hashPassword(password)
-    await prisma.user.create({
-      data: {
-        username,
-        password: hashedPassword,
-      },
-    })
-    console.log(`✅ Admin user created: ${username}`)
-  }
-}
-
