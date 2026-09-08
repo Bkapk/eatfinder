@@ -764,3 +764,81 @@ Phase 2 and Phase 3 touch **no file in common**. Phase 2 owns `app/page.tsx`, `a
    or start at 1.0 (nothing auto-publishes) for the first weeks and lower it once the queue shows the
    model is trustworthy? The second is safer and costs only owner attention.
 ```
+---
+
+## Decisions log
+
+Answers to "Needs a call from the owner", recorded 2026-09-09. These override the
+corresponding sections above where they conflict.
+
+### 1. Language — **Albanian + English, from launch** (was: open question 3)
+
+The painful-to-retrofit item, so it is not deferred. Affects every Phase 2 component.
+
+Approach: a plain dictionary module, **no i18n dependency**. `lib/i18n.ts` exports
+`t(locale, key)` over `lib/dictionaries/{sq,en}.ts`. Locale resolves from a `lang`
+cookie, defaulting to `sq`; `?lang=en` sets it. `<html lang>` is set from the resolved
+locale in `app/layout.tsx`.
+
+Deliberately NOT doing `[locale]` route segments in v1: it restructures every route for
+an SEO benefit that only matters once `/r/[slug]` pages are actually ranking. Upgrade
+trigger: the owner wants both languages indexed separately, at which point the
+dictionary module stays and only the routing moves.
+
+Rule for Phase 2: **no user-facing string is hardcoded in a component.** Every one goes
+through `t()`. Restaurant *data* (name, description, address) is not translated — only
+chrome. The AI-generated `description` is generated in Albanian; see 5 below.
+
+### 2. Google Places photos — **re-host, on Cloudflare R2** (was: open question 1)
+
+Re-hosting is confirmed. Storage target changes from local disk to Cloudflare R2
+(S3-compatible), which also replaces local disk for admin and community uploads.
+
+This does not change Phase 1: `lib/storage.ts` stays local-disk there, because it is
+already the correct two-function seam. The R2 swap is a focused follow-up change that
+touches only that file plus `next.config.js` image `remotePatterns` and `.env.example`.
+
+Requirements this places on every other phase:
+- The URL returned by `saveImage()` is **opaque**. No caller may assume a `/uploads/`
+  prefix, parse it, join it to a filesystem path, or rebuild it from an id.
+- All deletion goes through `deleteUpload(url)`.
+- Local disk remains the automatic fallback when the R2 credentials are absent, so the
+  app still runs for development and review with no Cloudflare account.
+
+New env: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`,
+`R2_PUBLIC_URL`. New dependency: `@aws-sdk/client-s3` (the only way to speak S3; R2 has
+no lighter first-party Node client).
+
+Attribution obligation from Risk 1 is unchanged — `RestaurantPhoto.attributions` must
+render on the gallery.
+
+### 3. Git — **checkpointed** (was: Risk 5)
+
+Branch `v2-rebuild`, commit `5a2ee00`, capturing the 49 pre-existing working-tree
+changes. Clean pre-rebuild rollback point is `f1d6bb7`.
+
+### 4. Map first paint — **load immediately**, capped at 500 points (was: open question 2)
+
+Matches the reference portal. No landing state.
+
+### 5. Community photo attribution — **public display name** under the photo
+
+The owner wants engagement, and an anonymous wall of photos does not build a community.
+`displayName` is therefore public by design and must be presented as such at signup.
+Never expose `email` or `username` in any DTO that reaches the client.
+
+Consequence for 1: because the UI ships in Albanian first, `scoreRestaurant()` must be
+instructed to write `description` in **Albanian**, and the English dictionary needs no
+entry for it. If English descriptions are wanted later that is a second AI field, not a
+translation layer.
+
+### 6. Auto-publish threshold — **env-controlled**, `PHOTO_AUTOPUBLISH_CONFIDENCE`, default `0.85`
+
+Settling the 0.85-vs-1.0 argument with a config value rather than a code change. Set it
+to `1` to hold every submission for manual review while the queue shows whether the model
+can be trusted, then lower it. Read at request time like every other key.
+
+### 7. Vocabularies — reviewed by the owner after Phase 1
+
+`CUISINE_VOCAB` / `TAG_VOCAB` are seeded by the Phase 1 agent from real data and reported
+back for review before Phase 4 runs. Unchanged from the plan.

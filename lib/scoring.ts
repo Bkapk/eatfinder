@@ -1,6 +1,7 @@
 import {
   RestaurantDTO,
   ScoredRestaurant,
+  Sort,
   haversineKm,
   isOpenAt,
 } from './types'
@@ -17,6 +18,7 @@ export interface SearchFilters {
   maxPrice?: number // 1-4
   minPrice?: number // 1-4
   maxPrepTime?: number // minutes
+  spiceMax?: number // 0-100
   openNow?: boolean
   woltOnly?: boolean
   query?: string // free-text over name / description / cuisine
@@ -24,6 +26,12 @@ export interface SearchFilters {
   // Distance
   near?: { lat: number; lng: number }
   maxDistanceKm?: number
+
+  // Map viewport: [minLng, minLat, maxLng, maxLat]. A restaurant with no
+  // coordinates never matches a bbox filter.
+  bbox?: [number, number, number, number]
+
+  sort?: Sort
 }
 
 /** Weights per mood axis. Each axis contributes at most this much. */
@@ -49,6 +57,7 @@ export function passesFilters(
   if (f.maxPrice !== undefined && r.priceLevel > f.maxPrice) return false
   if (f.minPrice !== undefined && r.priceLevel < f.minPrice) return false
   if (f.maxPrepTime !== undefined && r.avgPrepTime > f.maxPrepTime) return false
+  if (f.spiceMax !== undefined && r.spiceLevel > f.spiceMax) return false
   if (f.woltOnly && !r.woltUrl) return false
 
   // Unknown hours must not silently vanish under "open now" — only a
@@ -81,6 +90,12 @@ export function passesFilters(
   if (f.near && f.maxDistanceKm !== undefined) {
     if (r.lat == null || r.lng == null) return false
     if (haversineKm(f.near, { lat: r.lat, lng: r.lng }) > f.maxDistanceKm) return false
+  }
+
+  if (f.bbox) {
+    if (r.lat == null || r.lng == null) return false
+    const [minLng, minLat, maxLng, maxLat] = f.bbox
+    if (r.lng < minLng || r.lng > maxLng || r.lat < minLat || r.lat > maxLat) return false
   }
 
   return true
@@ -122,13 +137,21 @@ export function calculateScore(
   return Math.round(score * 100) / 100
 }
 
+/** Comparators for the non-default sorts. `match` (the default) is score descending. */
+const SORT_COMPARATORS: Record<Exclude<Sort, 'match'>, (a: ScoredRestaurant, b: ScoredRestaurant) => number> = {
+  rating: (a, b) => (b.rating ?? -1) - (a.rating ?? -1),
+  distance: (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity),
+  'price-asc': (a, b) => a.priceLevel - b.priceLevel,
+  'price-desc': (a, b) => b.priceLevel - a.priceLevel,
+}
+
 export function search(
   restaurants: RestaurantDTO[],
   filters: SearchFilters,
   limit = 24,
   now: Date = new Date()
 ): ScoredRestaurant[] {
-  return restaurants
+  const scored = restaurants
     .filter((r) => passesFilters(r, filters, now))
     .map((r) => ({
       ...r,
@@ -139,6 +162,9 @@ export function search(
           : null,
       isOpenNow: isOpenAt(r.openHours, now),
     }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
+
+  const comparator =
+    filters.sort && filters.sort !== 'match' ? SORT_COMPARATORS[filters.sort] : (a: ScoredRestaurant, b: ScoredRestaurant) => b.score - a.score
+
+  return scored.sort(comparator).slice(0, limit)
 }

@@ -42,7 +42,14 @@ export const sessionCookieOptions = {
   maxAge: SESSION_DAYS * 86400,
 }
 
-export async function getCurrentUser(): Promise<{ id: string; username: string } | null> {
+export interface CurrentUser {
+  id: string
+  username: string
+  role: string
+  displayName: string
+}
+
+export async function getCurrentUser(): Promise<CurrentUser | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value
   if (!token) return null
 
@@ -56,14 +63,45 @@ export async function getCurrentUser(): Promise<{ id: string; username: string }
 
   if (!Number(exp) || Number(exp) < Date.now()) return null
 
-  return prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, username: true },
+    select: { id: true, username: true, role: true, displayName: true, isBanned: true },
   })
+  if (!user || user.isBanned) return null // a ban takes effect on the next request, no session revocation needed
+
+  return { id: user.id, username: user.username, role: user.role, displayName: user.displayName }
 }
 
-export async function requireAuth(): Promise<{ id: string; username: string }> {
+/** Any signed-in, non-banned user — admin or community. */
+export async function requireAuth(): Promise<CurrentUser> {
   const user = await getCurrentUser()
   if (!user) throw new Error('Unauthorized')
   return user
+}
+
+/** Admin only. Everything that edits the catalogue must call this, not requireAuth(). */
+export async function requireAdmin(): Promise<CurrentUser> {
+  const user = await requireAuth()
+  if (user.role !== 'admin') throw new Error('Forbidden')
+  return user
+}
+
+export async function createUser(input: {
+  username: string
+  password: string
+  role?: 'admin' | 'user'
+  email?: string
+  displayName?: string
+}): Promise<{ id: string; username: string }> {
+  const hashed = await hashPassword(input.password)
+  return prisma.user.create({
+    data: {
+      username: input.username,
+      password: hashed,
+      role: input.role ?? 'user',
+      email: input.email,
+      displayName: input.displayName ?? '',
+    },
+    select: { id: true, username: true },
+  })
 }

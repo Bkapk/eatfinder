@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
 import { toDTO, slugify, openHoursSchema } from '@/lib/types'
 import { deleteUpload } from '@/lib/storage'
 import { z } from 'zod'
@@ -34,7 +34,7 @@ const restaurantSchema = z.object({
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireAuth()
+    await requireAdmin()
 
     const { id } = await params
     const restaurant = await prisma.restaurant.findUnique({
@@ -50,6 +50,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     console.error('Get restaurant error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -57,7 +60,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireAuth()
+    await requireAdmin()
 
     const { id } = await params
     const body = await request.json()
@@ -88,6 +91,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
@@ -98,7 +104,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireAuth()
+    await requireAdmin()
 
     const { id } = await params
     const restaurant = await prisma.restaurant.findUnique({ where: { id } })
@@ -113,6 +119,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   } catch (error: any) {
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     console.error('Delete restaurant error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

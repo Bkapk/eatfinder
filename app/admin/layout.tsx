@@ -25,6 +25,12 @@ export default function AdminLayout({
       const res = await fetch('/api/auth/me')
       if (res.ok) {
         const data = await res.json()
+        if (data.user.role !== 'admin') {
+          // A community account passed the cookie-presence check in
+          // middleware.ts; the real gate is here and on every data route.
+          router.push('/')
+          return
+        }
         setUser(data.user)
       } else {
         if (pathname !== '/admin/login') {

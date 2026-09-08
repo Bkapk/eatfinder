@@ -1,4 +1,4 @@
-import type { Restaurant } from '@prisma/client'
+import type { Restaurant, RestaurantPhoto } from '@prisma/client'
 import { z } from 'zod'
 
 /** Prishtina, Kosovo — map default centre. */
@@ -12,6 +12,83 @@ export const CITY = {
 export const PRICE_LEVELS = [1, 2, 3, 4] as const
 export const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
 export type Day = (typeof DAYS)[number]
+
+/**
+ * Controlled vocabularies. These constrain what the AI may ever propose
+ * (lib/aiSchemas.ts enum) and what filter chips can exist (components/search).
+ * Seeded from what is actually in the database plus prisma/sample-restaurants.ts,
+ * extended with obvious Kosovo/Balkan categories. Review before Phase 4 —
+ * changing this list after enrichment has run means re-running it.
+ */
+export const CUISINE_VOCAB = [
+  'American',
+  'Bakery',
+  'Balkan',
+  'Burgers',
+  'Cafe',
+  'Chinese',
+  'Fast Food',
+  'Fine Dining',
+  'French',
+  'Grill',
+  'Healthy',
+  'Italian',
+  'Japanese',
+  'Kosovan',
+  'Mediterranean',
+  'Mexican',
+  'Modern European',
+  'Organic',
+  'Pasta',
+  'Pizza',
+  'Ramen',
+  'Salads',
+  'Smoothies',
+  'Spicy',
+  'Steakhouse',
+  'Street Food',
+  'Sushi',
+  'Szechuan',
+  'Tacos',
+  'Vegan',
+] as const
+
+export const TAG_VOCAB = [
+  'breakfast',
+  'brunch',
+  'budget-friendly',
+  'date-night',
+  'delivery',
+  'family-friendly',
+  'group-friendly',
+  'halal',
+  'late-night',
+  'live-music',
+  'outdoor-seating',
+  'parking',
+  'pet-friendly',
+  'reservation-recommended',
+  'romantic',
+  'takeout',
+  'vegan-friendly',
+  'wifi',
+] as const
+
+export const SORTS = ['match', 'rating', 'distance', 'price-asc', 'price-desc'] as const
+export type Sort = (typeof SORTS)[number]
+
+export const VIEWS = ['grid', 'list', 'map'] as const
+export type View = (typeof VIEWS)[number]
+
+/** The minimal shape the map layer needs — cheap enough to send up to 500 of. */
+export interface MapPoint {
+  id: string
+  slug: string
+  name: string
+  lat: number
+  lng: number
+  priceLevel: number
+}
 
 /** null = closed that day. Otherwise ["HH:MM open", "HH:MM close"]. */
 export type OpenHours = Partial<Record<Day, [string, string] | null>>
@@ -104,6 +181,37 @@ export function toDTO(r: Restaurant): RestaurantDTO {
     openHours: parseJson<OpenHours | null>(r.openHours, null),
     rating: r.rating,
     isFeatured: r.isFeatured,
+  }
+}
+
+/** A gallery photo with its JSON-string columns parsed. */
+export interface RestaurantPhotoDTO {
+  id: string
+  restaurantId: string
+  url: string
+  width: number | null
+  height: number | null
+  caption: string
+  source: string
+  attributions: string[]
+  status: string
+  sortOrder: number
+  createdAt: string
+}
+
+export function photoToDTO(p: RestaurantPhoto): RestaurantPhotoDTO {
+  return {
+    id: p.id,
+    restaurantId: p.restaurantId,
+    url: p.url,
+    width: p.width,
+    height: p.height,
+    caption: p.caption,
+    source: p.source,
+    attributions: parseJson<string[]>(p.attributions, []),
+    status: p.status,
+    sortOrder: p.sortOrder,
+    createdAt: p.createdAt.toISOString(),
   }
 }
 

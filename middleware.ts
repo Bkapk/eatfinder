@@ -9,6 +9,13 @@ const SESSION_COOKIE = 'eatfinder_session'
 // is unavailable, and every /api route already calls requireAuth() for the real
 // HMAC verification. This exists solely to stop unauthenticated users being
 // served the admin shell and seeing it flash before the client-side redirect.
+//
+// A signed-in community user's cookie also passes this gate — the edge cannot
+// verify the HMAC or read the role. /admin safety rests entirely on
+// requireAdmin() in every route handler plus the role check against
+// /api/auth/me in app/admin/layout.tsx, which redirects a non-admin away from
+// the shell. Matcher stays /admin only; community pages live under /account
+// and are never matched here.
 export function middleware(request: NextRequest) {
   if (request.cookies.has(SESSION_COOKIE)) return NextResponse.next()
 

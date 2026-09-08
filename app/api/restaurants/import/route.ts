@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
 import { parseCSV, validateCSVRow, csvRowToRestaurant, CSVImportResult } from '@/lib/csv'
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth()
+    await requireAdmin()
 
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -53,6 +53,9 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     console.error('CSV import error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

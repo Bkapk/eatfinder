@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
 import { exportToCSV } from '@/lib/csv'
 
 export async function GET() {
   try {
-    await requireAuth()
+    await requireAdmin()
 
     const restaurants = await prisma.restaurant.findMany({
       orderBy: { updatedAt: 'desc' },
@@ -22,6 +22,9 @@ export async function GET() {
   } catch (error: any) {
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     console.error('CSV export error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

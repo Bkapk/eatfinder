@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
 import { toDTO, slugify, openHoursSchema } from '@/lib/types'
 import { z } from 'zod'
 
@@ -33,7 +33,7 @@ const restaurantSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    await requireAuth()
+    await requireAdmin()
 
     // Whitelisted: orderBy is interpolated straight into the Prisma query, so an
     // unknown column or direction is a reachable 500 on an authenticated endpoint.
@@ -64,6 +64,9 @@ export async function GET(request: NextRequest) {
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     console.error('Get restaurants error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -71,7 +74,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth()
+    await requireAdmin()
 
     const body = await request.json()
     const data = restaurantSchema.parse(body)
@@ -90,6 +93,9 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
