@@ -59,7 +59,18 @@ export async function GET(request: NextRequest) {
       orderBy: { [sortBy]: sortOrder },
     })
 
-    return NextResponse.json({ restaurants: restaurants.map(toDTO) })
+    // Admin-only fields toDTO() deliberately omits (it is also the shape the
+    // public recommender returns) — spread on top so the Discover-imported
+    // status columns in app/admin/page.tsx have something to render.
+    return NextResponse.json({
+      restaurants: restaurants.map((r) => ({
+        ...toDTO(r),
+        isActive: r.isActive,
+        source: r.source,
+        placeId: r.placeId,
+        aiStatus: r.aiStatus,
+      })),
+    })
   } catch (error: any) {
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

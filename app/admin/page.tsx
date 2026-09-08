@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, ArrowUpDown } from 'lucide-react'
+import { Plus, Search, ArrowUpDown, Compass } from 'lucide-react'
 
 interface Restaurant {
   id: string
@@ -24,6 +24,11 @@ interface Restaurant {
   lng?: number | null
   openHours?: string | null
   updatedAt: string
+  // Admin-only, added on top of toDTO() by app/api/restaurants/route.ts.
+  isActive: boolean
+  source: string
+  placeId: string | null
+  aiStatus: string
 }
 
 export default function AdminPage() {
@@ -33,6 +38,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('updatedAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'live' | 'draft'>('all')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingValues, setEditingValues] = useState<Partial<Restaurant>>({})
 
@@ -58,6 +64,12 @@ export default function AdminPage() {
       setLoading(false)
     }
   }
+
+  const visibleRestaurants = restaurants.filter((r) => {
+    if (statusFilter === 'live') return r.isActive
+    if (statusFilter === 'draft') return !r.isActive
+    return true
+  })
 
   const handleEdit = (restaurant: Restaurant) => {
     setEditingId(restaurant.id)
@@ -112,13 +124,22 @@ export default function AdminPage() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Restaurants</h1>
-        <button
-          onClick={() => router.push('/admin/new')}
-          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors shadow-lg shadow-primary/30"
-        >
-          <Plus size={20} />
-          Add Restaurant
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => router.push('/admin/discover')}
+            className="flex items-center gap-2 px-4 py-2 bg-surface-hover hover:bg-border border border-border rounded-lg font-semibold transition-colors"
+          >
+            <Compass size={20} />
+            Discover (Google Places)
+          </button>
+          <button
+            onClick={() => router.push('/admin/new')}
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors shadow-lg shadow-primary/30"
+          >
+            <Plus size={20} />
+            Add Restaurant
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -134,6 +155,15 @@ export default function AdminPage() {
           />
         </div>
         <div className="flex gap-2">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'live' | 'draft')}
+            className="px-4 py-2 bg-surface border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="all">All</option>
+            <option value="live">Live only</option>
+            <option value="draft">Drafts only</option>
+          </select>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
@@ -161,7 +191,7 @@ export default function AdminPage() {
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           <p className="mt-4 text-text-secondary">Loading restaurants...</p>
         </div>
-      ) : restaurants.length === 0 ? (
+      ) : visibleRestaurants.length === 0 ? (
         <div className="text-center py-12 bg-surface border border-border rounded-lg">
           <p className="text-text-secondary mb-4">No restaurants found.</p>
           <button
@@ -183,11 +213,13 @@ export default function AdminPage() {
                   <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Fine Dining</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Price</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Cuisines</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Status</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Source</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {restaurants.map((restaurant) => (
+                {visibleRestaurants.map((restaurant) => (
                   <tr key={restaurant.id} className="hover:bg-surface-hover transition-colors">
                     <td className="px-4 py-3">
                       <div className="font-medium">{restaurant.name}</div>
@@ -274,6 +306,23 @@ export default function AdminPage() {
                         )}
                       </div>
                     </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-1 items-start">
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            restaurant.isActive
+                              ? 'bg-green-600/20 text-green-500'
+                              : 'bg-surface-hover text-text-secondary border border-border'
+                          }`}
+                        >
+                          {restaurant.isActive ? 'Live' : 'Draft'}
+                        </span>
+                        {restaurant.aiStatus && restaurant.aiStatus !== 'none' && (
+                          <span className="text-xs text-text-secondary">AI: {restaurant.aiStatus}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-text-secondary capitalize">{restaurant.source}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
                         {editingId === restaurant.id ? (
