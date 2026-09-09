@@ -4,16 +4,25 @@ import { useCallback, useSyncExternalStore } from 'react'
 
 /**
  * Favourites live in the database (Favorite table) behind
- * /api/community/favorites, one per signed-in user. A signed-out visitor
- * simply gets an empty list back (401) — toggling while signed out reverts
- * the optimistic update rather than throwing. The two exported hooks are the
- * whole surface, matching the localStorage version this replaces.
+ * /api/community/favorites, one per signed-in user.
+ *
+ * `signedIn` is part of the snapshot because a signed-out visitor's 401 used
+ * to make the heart a silent no-op: it flipped, reverted ~100 ms later, and
+ * aria-pressed reported a state that was never saved. Callers use it to send
+ * the visitor to sign in instead of lying to them.
  */
-let cache: string[] = []
+interface Snapshot {
+  ids: string[]
+  /** null until the first load resolves, or when the network failed. */
+  signedIn: boolean | null
+}
+
+let snapshot: Snapshot = { ids: [], signedIn: null }
 let loaded = false
 const listeners = new Set<() => void>()
 
-function notify() {
+function setSnapshot(next: Snapshot) {
+  snapshot = next
   listeners.forEach((l) => l())
 }
 
@@ -21,12 +30,15 @@ async function loadFavorites() {
   try {
     const res = await fetch('/api/community/favorites')
     const data = res.ok ? await res.json() : null
-    cache = Array.isArray(data?.restaurantIds) ? data.restaurantIds : []
+    setSnapshot({
+      ids: Array.isArray(data?.restaurantIds) ? data.restaurantIds : [],
+      signedIn: res.status !== 401,
+    })
   } catch {
-    cache = []
+    // Offline is unknown, not signed out, so the control stays a toggle.
+    setSnapshot({ ids: [], signedIn: null })
   } finally {
     loaded = true
-    notify()
   }
 }
 
@@ -37,18 +49,19 @@ function subscribe(fn: () => void) {
 }
 
 // useSyncExternalStore requires a stable snapshot reference or it loops.
-const getSnapshot = () => cache
-const getServerSnapshot = () => cache
+const getSnapshot = () => snapshot
+const getServerSnapshot = () => snapshot
 
 export function useFavorites() {
-  const ids = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  const { ids, signedIn } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   const toggle = useCallback((id: string) => {
-    const wasOn = cache.includes(id)
-    // Optimistic: flip immediately, revert if the request fails (e.g. the
-    // user is not signed in and gets a 401).
-    cache = wasOn ? cache.filter((v) => v !== id) : [...cache, id]
-    notify()
+    const wasOn = snapshot.ids.includes(id)
+    // Optimistic: flip immediately, revert if the request fails.
+    setSnapshot({
+      ids: wasOn ? snapshot.ids.filter((v) => v !== id) : [...snapshot.ids, id],
+      signedIn: snapshot.signedIn,
+    })
 
     fetch('/api/community/favorites', {
       method: wasOn ? 'DELETE' : 'POST',
@@ -56,13 +69,15 @@ export function useFavorites() {
       body: JSON.stringify({ restaurantId: id }),
     })
       .then((res) => {
-        if (!res.ok) throw new Error('failed')
+        if (!res.ok) throw new Error(String(res.status))
       })
       .catch(() => {
-        cache = wasOn ? [...cache, id] : cache.filter((v) => v !== id)
-        notify()
+        setSnapshot({
+          ids: wasOn ? [...snapshot.ids, id] : snapshot.ids.filter((v) => v !== id),
+          signedIn: snapshot.signedIn,
+        })
       })
   }, [])
 
-  return { ids, toggle }
+  return { ids, signedIn, toggle }
 }

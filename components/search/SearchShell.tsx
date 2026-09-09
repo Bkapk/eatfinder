@@ -51,9 +51,15 @@ export default function SearchShell({
     pendingRef.current = null
   }, [spString])
 
+  // Discrete changes (a chip, a pill, sort, view) get their own history entry
+  // so Back undoes exactly one of them, which is the Phase 2 acceptance
+  // criterion. Continuous ones (typing, dragging a slider) replace, or a
+  // ten-character query would bury the previous page under ten entries.
   const write = useCallback(
-    (next: ParsedFilters) => {
-      router.replace(`${pathname}?${toSearchParams(next).toString()}`, { scroll: false })
+    (next: ParsedFilters, mode: 'push' | 'replace') => {
+      const url = `${pathname}?${toSearchParams(next).toString()}`
+      if (mode === 'push') router.push(url, { scroll: false })
+      else router.replace(url, { scroll: false })
     },
     [pathname, router]
   )
@@ -66,14 +72,14 @@ export default function SearchShell({
       pendingRef.current = next
       setOverride(next)
       if (timerRef.current) clearTimeout(timerRef.current)
-      if (opts.debounce) timerRef.current = setTimeout(() => write(next), 300)
-      else write(next)
+      if (opts.debounce) timerRef.current = setTimeout(() => write(next, 'replace'), 300)
+      else write(next, 'push')
     },
     [filters, write]
   )
 
   const clearAll = useCallback(() => {
-    write({ heavy: 50, hungry: 50, fine: 50, view: filters.view, page: 1 })
+    write({ heavy: 50, hungry: 50, fine: 50, view: filters.view, page: 1 }, 'push')
   }, [filters.view, write])
 
   // --- results ---------------------------------------------------------
@@ -128,6 +134,16 @@ export default function SearchShell({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {/* The map is a large non-tabbable canvas sitting before the results;
+          without this a keyboard user tabs through the whole overlay rail to
+          reach the listings. */}
+      <a
+        href="#results"
+        className="sr-only rounded-b-xl bg-primary px-4 py-2 text-[13px] font-bold text-on-primary focus:not-sr-only focus:absolute focus:left-3 focus:top-0 focus:z-modal"
+      >
+        {t(locale, 'app.skipToResults')}
+      </a>
+
       <TopBar locale={locale}>
         <SearchBar
           locale={locale}
@@ -172,7 +188,9 @@ export default function SearchShell({
         {showResults && (
           <section
             id="results"
-            className="flex min-h-0 w-full flex-col border-border bg-background md:w-[40%] md:border-l"
+            tabIndex={-1}
+            aria-label={t(locale, 'view.label')}
+            className="flex min-h-0 w-full flex-col border-border bg-background outline-none md:w-[40%] md:border-l"
           >
             <SortHeader
               locale={locale}

@@ -62,7 +62,7 @@ export default function PhotoGalleryManager({ restaurantId, onSetHero }: PhotoGa
   }
 
   return (
-    <div className="bg-surface border border-border rounded-lg p-6">
+    <div className="ef-panel">
       <div className="flex items-center gap-2 mb-4">
         <ImageIcon size={20} className="text-primary" />
         <h2 className="text-xl font-semibold text-primary">Photo Gallery</h2>
@@ -70,7 +70,7 @@ export default function PhotoGalleryManager({ restaurantId, onSetHero }: PhotoGa
 
       {unavailable && (
         <p className="text-sm text-text-secondary">
-          Photo management isn't available yet — it ships with the community photo moderation queue.
+          Photo management isn&apos;t available yet — it ships with the community photo moderation queue.
         </p>
       )}
       {error && <p className="text-sm text-error mb-3">{error}</p>}
@@ -83,6 +83,9 @@ export default function PhotoGalleryManager({ restaurantId, onSetHero }: PhotoGa
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {photos.map((photo) => (
             <div key={photo.id} className="space-y-2">
+              {/* Opaque URL from the database (local disk today, R2 next), so it
+                  must not be routed through next/image's remotePatterns. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={photo.url}
                 alt={photo.caption || ''}

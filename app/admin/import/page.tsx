@@ -95,10 +95,10 @@ export default function ImportPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Import / Export</h1>
+      <h1 className="text-[26px] font-extrabold tracking-tight text-text mb-6">Import / Export</h1>
 
       {/* CSV Import Section */}
-      <div className="bg-surface border border-border rounded-lg p-6 mb-6">
+      <div className="ef-panel mb-6">
         <div className="flex items-center gap-2 mb-4">
           <Upload size={24} className="text-primary" />
           <h2 className="text-xl font-semibold">CSV Import</h2>
@@ -111,8 +111,9 @@ export default function ImportPage() {
           <input
             type="file"
             accept=".csv"
+            aria-label="Choose a CSV file to import"
             onChange={handleFileChange}
-            className="w-full px-4 py-2 bg-background border border-border rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-primary file:text-white file:cursor-pointer hover:file:bg-primary-hover"
+            className="ef-input file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:font-semibold file:text-on-primary hover:file:bg-primary-hover"
           />
           {file && (
             <div className="px-4 py-2 bg-surface-hover border border-border rounded-lg text-sm text-text-secondary">
@@ -123,7 +124,7 @@ export default function ImportPage() {
           <button
             onClick={handleImport}
             disabled={!file || importing}
-            className="px-6 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {importing ? 'Importing...' : 'Import CSV'}
           </button>
@@ -132,8 +133,8 @@ export default function ImportPage() {
         {result && (
           <div className={`mt-4 px-4 py-3 rounded-lg border ${
             result.success && result.errors?.length === 0
-              ? 'bg-green-500/10 border-green-500/30 text-green-400'
-              : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+              ? 'bg-success-soft border-success/30 text-success'
+              : 'bg-warning-soft border-warning/30 text-warning'
           }`}>
             <h3 className="font-semibold mb-2">Import Results</h3>
             <p>Imported: {result.imported} restaurants</p>
@@ -154,7 +155,7 @@ export default function ImportPage() {
       </div>
 
       {/* CSV Export Section */}
-      <div className="bg-surface border border-border rounded-lg p-6 mb-6">
+      <div className="ef-panel mb-6">
         <div className="flex items-center gap-2 mb-4">
           <Download size={24} className="text-primary" />
           <h2 className="text-xl font-semibold">CSV Export</h2>
@@ -164,14 +165,14 @@ export default function ImportPage() {
         </p>
         <button 
           onClick={handleExport} 
-          className="px-6 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
+          className="px-6 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
         >
           Export CSV
         </button>
       </div>
 
       {/* Seed Sample Data Section */}
-      <div className="bg-surface border border-border rounded-lg p-6 mb-6">
+      <div className="ef-panel mb-6">
         <div className="flex items-center gap-2 mb-4">
           <Database size={24} className="text-primary" />
           <h2 className="text-xl font-semibold">Seed Sample Data</h2>
@@ -182,14 +183,14 @@ export default function ImportPage() {
         <button 
           onClick={handleSeed} 
           disabled={importing} 
-          className="px-6 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {importing ? 'Creating...' : 'Create Sample Data'}
         </button>
       </div>
 
       {/* CSV Format Documentation */}
-      <div className="bg-surface border border-border rounded-lg p-6">
+      <div className="ef-panel">
         <div className="flex items-center gap-2 mb-4">
           <FileText size={24} className="text-primary" />
           <h2 className="text-xl font-semibold">CSV Format</h2>
@@ -227,7 +228,7 @@ export default function ImportPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="mt-6 px-4 py-3 bg-error/10 border border-error rounded-lg text-error">
+        <div className="mt-6 px-4 py-3 bg-error-soft border border-error rounded-lg text-error">
           {error}
         </div>
       )}

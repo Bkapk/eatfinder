@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Search, ArrowUpDown, Compass } from 'lucide-react'
+import Spinner from '@/components/Spinner'
 
 interface Restaurant {
   id: string
@@ -123,7 +124,7 @@ export default function AdminPage() {
     <div>
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Restaurants</h1>
+        <h1 className="text-[26px] font-extrabold tracking-tight text-text">Restaurants</h1>
         <div className="flex gap-2">
           <button
             onClick={() => router.push('/admin/discover')}
@@ -134,7 +135,7 @@ export default function AdminPage() {
           </button>
           <button
             onClick={() => router.push('/admin/new')}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors shadow-lg shadow-primary/30"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors shadow-md"
           >
             <Plus size={20} />
             Add Restaurant
@@ -158,7 +159,7 @@ export default function AdminPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as 'all' | 'live' | 'draft')}
-            className="px-4 py-2 bg-surface border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            className="ef-input"
           >
             <option value="all">All</option>
             <option value="live">Live only</option>
@@ -167,7 +168,7 @@ export default function AdminPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 bg-surface border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            className="ef-input"
           >
             <option value="updatedAt">Last Updated</option>
             <option value="name">Name</option>
@@ -188,7 +189,7 @@ export default function AdminPage() {
       {/* Content */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <Spinner size={32} label="Loading restaurants" />
           <p className="mt-4 text-text-secondary">Loading restaurants...</p>
         </div>
       ) : visibleRestaurants.length === 0 ? (
@@ -196,7 +197,7 @@ export default function AdminPage() {
           <p className="text-text-secondary mb-4">No restaurants found.</p>
           <button
             onClick={() => router.push('/admin/new')}
-            className="px-6 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
+            className="px-6 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
           >
             Add Your First Restaurant
           </button>
@@ -242,7 +243,7 @@ export default function AdminPage() {
                               heaviness: Number(e.target.value),
                             })
                           }
-                          className="w-16 px-2 py-1 bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="ef-input w-16 px-2 py-1"
                         />
                       ) : (
                         restaurant.heaviness
@@ -261,7 +262,7 @@ export default function AdminPage() {
                               portionSize: Number(e.target.value),
                             })
                           }
-                          className="w-16 px-2 py-1 bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="ef-input w-16 px-2 py-1"
                         />
                       ) : (
                         restaurant.portionSize
@@ -280,7 +281,7 @@ export default function AdminPage() {
                               fineDining: Number(e.target.value),
                             })
                           }
-                          className="w-16 px-2 py-1 bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="ef-input w-16 px-2 py-1"
                         />
                       ) : (
                         restaurant.fineDining
@@ -311,7 +312,7 @@ export default function AdminPage() {
                         <span
                           className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                             restaurant.isActive
-                              ? 'bg-green-600/20 text-green-500'
+                              ? 'bg-success-soft text-success'
                               : 'bg-surface-hover text-text-secondary border border-border'
                           }`}
                         >
@@ -329,7 +330,7 @@ export default function AdminPage() {
                           <>
                             <button
                               onClick={() => handleSaveEdit(restaurant.id)}
-                              className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition-colors"
+                              className="px-3 py-1 bg-success text-on-primary hover:bg-success-hover rounded text-sm transition-colors"
                             >
                               Save
                             </button>
@@ -344,7 +345,7 @@ export default function AdminPage() {
                           <>
                             <button
                               onClick={() => handleEdit(restaurant)}
-                              className="px-3 py-1 bg-primary hover:bg-primary-hover text-white rounded text-sm transition-colors"
+                              className="px-3 py-1 bg-primary text-on-primary hover:bg-primary-hover text-on-primary rounded text-sm transition-colors"
                             >
                               Edit
                             </button>

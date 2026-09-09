@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef } from 'react'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { priceGlyphs, t, tVocab, type Locale } from '@/lib/i18n'
 import type { ParsedFilters } from '@/lib/filters'
@@ -87,6 +88,14 @@ export default function SearchBar({
   filterCount: number
 }) {
   const chips = activeChips(filters, locale)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Removing a chip unmounts the button that had focus, which drops focus to
+  // <body> and loses the keyboard user's place. Hand it to the search input.
+  const remove = (patch: Patch) => {
+    onPatch(patch)
+    inputRef.current?.focus()
+  }
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -103,7 +112,7 @@ export default function SearchBar({
               {c.label}
               <button
                 type="button"
-                onClick={() => onPatch(c.patch)}
+                onClick={() => remove(c.patch)}
                 aria-label={t(locale, 'search.remove', { label: c.label })}
                 className="grid h-5 w-5 place-items-center rounded-full text-primary transition-colors duration-200 hover:bg-primary hover:text-[color:var(--on-primary)]"
               >
@@ -113,6 +122,7 @@ export default function SearchBar({
           ))}
 
           <input
+            ref={inputRef}
             type="search"
             value={query}
             onChange={(e) => onQuery(e.target.value)}

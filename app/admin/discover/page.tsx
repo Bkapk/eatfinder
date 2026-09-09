@@ -126,7 +126,7 @@ export default function DiscoverPage() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-text">Discover on Google Places</h1>
+        <h1 className="text-[26px] font-extrabold tracking-tight text-text">Discover on Google Places</h1>
         <button
           onClick={() => router.push('/admin')}
           className="px-4 py-2 bg-surface-hover hover:bg-border border border-border rounded-lg text-sm transition-colors"
@@ -136,23 +136,23 @@ export default function DiscoverPage() {
       </div>
 
       {disabled && (
-        <div className="mb-6 px-4 py-3 bg-error/10 border border-error rounded-lg text-error">
+        <div role="alert" className="mb-6 px-4 py-3 bg-error-soft border border-error rounded-lg text-error">
           Google Places is disabled: {error || 'GOOGLE_PLACES_API_KEY is not set.'} Add the key to your
           environment and restart the app to use Discover.
         </div>
       )}
 
       {!disabled && error && (
-        <div className="mb-6 px-4 py-3 bg-error/10 border border-error rounded-lg text-error">{error}</div>
+        <div role="alert" className="mb-6 px-4 py-3 bg-error-soft border border-error rounded-lg text-error">{error}</div>
       )}
 
-      <form onSubmit={runSearch} className="bg-surface border border-border rounded-lg p-6 mb-6 space-y-4">
+      <form onSubmit={runSearch} className="ef-panel mb-6 space-y-4">
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => setMode('text')}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              mode === 'text' ? 'bg-primary text-white' : 'bg-surface-hover border border-border text-text-secondary'
+              mode === 'text' ? 'bg-primary text-on-primary' : 'bg-surface-hover border border-border text-text-secondary'
             }`}
           >
             Text search
@@ -161,7 +161,7 @@ export default function DiscoverPage() {
             type="button"
             onClick={() => setMode('nearby')}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              mode === 'nearby' ? 'bg-primary text-white' : 'bg-surface-hover border border-border text-text-secondary'
+              mode === 'nearby' ? 'bg-primary text-on-primary' : 'bg-surface-hover border border-border text-text-secondary'
             }`}
           >
             Nearby (Prishtina centre, 3km)
@@ -185,7 +185,7 @@ export default function DiscoverPage() {
         <button
           type="submit"
           disabled={searching}
-          className="flex items-center gap-2 px-6 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50"
         >
           {searching ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
           {searching ? 'Searching...' : 'Search'}
@@ -193,7 +193,7 @@ export default function DiscoverPage() {
       </form>
 
       {results.length > 0 && (
-        <div className="bg-surface border border-border rounded-lg p-6 mb-6">
+        <div className="ef-panel mb-6">
           <h2 className="text-lg font-semibold mb-3">Import results</h2>
           <ul className="space-y-1 text-sm">
             {results.map((r) => (
@@ -201,7 +201,7 @@ export default function DiscoverPage() {
                 <span
                   className={
                     r.status === 'ok'
-                      ? 'text-green-500 font-medium'
+                      ? 'text-success font-medium'
                       : r.status === 'skipped'
                         ? 'text-text-secondary font-medium'
                         : 'text-error font-medium'
@@ -226,7 +226,7 @@ export default function DiscoverPage() {
             <button
               onClick={importSelected}
               disabled={selected.size === 0 || importing}
-              className="flex items-center gap-2 px-6 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {importing ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
               {importing ? 'Importing...' : `Import selected (${selected.size})`}

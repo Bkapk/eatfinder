@@ -37,9 +37,12 @@ export default function LoginForm({ locale, next }: { locale: Locale; next: stri
   }
 
   return (
-    <form onSubmit={submit} className="ef-card flex flex-col gap-4 p-6">
+    <form onSubmit={submit} aria-busy={loading} className="ef-card flex flex-col gap-4 p-6">
       {error && (
-        <div className="rounded-xl border border-error bg-error/10 px-4 py-3 text-[13px] font-semibold text-error">
+        <div
+          role="alert"
+          className="rounded-xl border border-error bg-error-soft px-4 py-3 text-[13px] font-semibold text-error"
+        >
           {error}
         </div>
       )}
@@ -55,7 +58,7 @@ export default function LoginForm({ locale, next }: { locale: Locale; next: stri
           onChange={(e) => setUsername(e.target.value)}
           required
           autoComplete="username"
-          className="h-11 w-full rounded-xl border border-border bg-background px-3 text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary"
+          className="ef-input h-11"
         />
       </div>
 
@@ -70,7 +73,7 @@ export default function LoginForm({ locale, next }: { locale: Locale; next: stri
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="current-password"
-          className="h-11 w-full rounded-xl border border-border bg-background px-3 text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary"
+          className="ef-input h-11"
         />
       </div>
 

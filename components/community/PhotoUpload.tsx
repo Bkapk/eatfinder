@@ -69,7 +69,7 @@ export default function PhotoUpload({
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
+    <form onSubmit={submit} aria-busy={busy} className="flex flex-col gap-3">
       <input
         ref={inputRef}
         type="file"
@@ -84,13 +84,13 @@ export default function PhotoUpload({
         onChange={(e) => setCaption(e.target.value)}
         maxLength={140}
         placeholder={t(locale, 'photoUpload.captionPlaceholder')}
-        className="h-10 rounded-xl border border-border bg-background px-3 text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary"
+        className="ef-input h-10"
         aria-label={t(locale, 'photoUpload.caption')}
       />
       {message && (
         <p
           className={`text-[13px] font-semibold ${message.kind === 'success' ? 'text-success' : 'text-error'}`}
-          role="status"
+          role={message.kind === 'error' ? 'alert' : 'status'}
         >
           {message.text}
         </p>

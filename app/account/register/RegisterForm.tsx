@@ -40,9 +40,12 @@ export default function RegisterForm({ locale, next }: { locale: Locale; next: s
   }
 
   return (
-    <form onSubmit={submit} className="ef-card flex flex-col gap-4 p-6">
+    <form onSubmit={submit} aria-busy={loading} className="ef-card flex flex-col gap-4 p-6">
       {error && (
-        <div className="rounded-xl border border-error bg-error/10 px-4 py-3 text-[13px] font-semibold text-error">
+        <div
+          role="alert"
+          className="rounded-xl border border-error bg-error-soft px-4 py-3 text-[13px] font-semibold text-error"
+        >
           {error}
         </div>
       )}
@@ -58,7 +61,7 @@ export default function RegisterForm({ locale, next }: { locale: Locale; next: s
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
-          className="h-11 w-full rounded-xl border border-border bg-background px-3 text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary"
+          className="ef-input h-11"
         />
       </div>
 
@@ -74,7 +77,7 @@ export default function RegisterForm({ locale, next }: { locale: Locale; next: s
           required
           maxLength={60}
           autoComplete="nickname"
-          className="h-11 w-full rounded-xl border border-border bg-background px-3 text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary"
+          className="ef-input h-11"
         />
         <p className="mt-1 text-[12px] text-text-secondary">{t(locale, 'auth.displayNameHint')}</p>
       </div>
@@ -91,7 +94,7 @@ export default function RegisterForm({ locale, next }: { locale: Locale; next: s
           required
           minLength={8}
           autoComplete="new-password"
-          className="h-11 w-full rounded-xl border border-border bg-background px-3 text-[14px] text-text focus:outline-none focus:ring-2 focus:ring-primary"
+          className="ef-input h-11"
         />
         <p className="mt-1 text-[12px] text-text-secondary">{t(locale, 'auth.passwordHint')}</p>
       </div>

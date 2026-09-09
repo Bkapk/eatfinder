@@ -223,13 +223,13 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="px-4 py-3 bg-error/10 border border-error rounded-lg text-error">
+        <div className="px-4 py-3 bg-error-soft border border-error rounded-lg text-error">
           {error}
         </div>
       )}
 
       {/* Basic Information */}
-      <div className="bg-surface border border-border rounded-lg p-6">
+      <div className="ef-panel">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-primary">Basic Information</h2>
           {restaurant?.id && (
@@ -247,7 +247,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
         {aiStatus && <p className="text-sm text-text-secondary mb-4">{aiStatus}</p>}
         <div className="space-y-4">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-2">
+            <label htmlFor="name" className="ef-field-label">
               Name <span className="text-error">*</span>
             </label>
             <input
@@ -255,13 +255,13 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="ef-input"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium mb-2">
+            <label htmlFor="description" className="ef-field-label">
               Description
             </label>
             <textarea
@@ -269,13 +269,13 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={4}
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              className="ef-input resize-none"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="neighborhood" className="block text-sm font-medium mb-2">
+              <label htmlFor="neighborhood" className="ef-field-label">
                 Neighborhood
               </label>
               <input
@@ -283,11 +283,11 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
                 type="text"
                 value={formData.neighborhood}
                 onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
-                className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="ef-input"
               />
             </div>
             <div>
-              <label htmlFor="address" className="block text-sm font-medium mb-2">
+              <label htmlFor="address" className="ef-field-label">
                 Address
               </label>
               <input
@@ -295,7 +295,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
                 type="text"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="ef-input"
               />
             </div>
           </div>
@@ -303,7 +303,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
       </div>
 
       {/* Core Scores */}
-      <div className="bg-surface border border-border rounded-lg p-6">
+      <div className="ef-panel">
         <h2 className="text-xl font-semibold text-primary mb-4">Core Scores (0-100)</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
@@ -369,11 +369,11 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
       </div>
 
       {/* Additional Details */}
-      <div className="bg-surface border border-border rounded-lg p-6">
+      <div className="ef-panel">
         <h2 className="text-xl font-semibold text-primary mb-4">Additional Details</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label htmlFor="priceLevel" className="block text-sm font-medium mb-2">
+            <label htmlFor="priceLevel" className="ef-field-label">
               Price Level (1-4)
             </label>
             <select
@@ -382,7 +382,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               onChange={(e) =>
                 setFormData({ ...formData, priceLevel: Number(e.target.value) })
               }
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="ef-input"
             >
               <option value="1">$</option>
               <option value="2">$$</option>
@@ -412,7 +412,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
           </div>
 
           <div>
-            <label htmlFor="avgPrepTime" className="block text-sm font-medium mb-2">
+            <label htmlFor="avgPrepTime" className="ef-field-label">
               Avg Prep Time (minutes)
             </label>
             <input
@@ -423,14 +423,14 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               onChange={(e) =>
                 setFormData({ ...formData, avgPrepTime: Number(e.target.value) })
               }
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="ef-input"
             />
           </div>
         </div>
       </div>
 
       {/* Cuisines */}
-      <div className="bg-surface border border-border rounded-lg p-6">
+      <div className="ef-panel">
         <h2 className="text-xl font-semibold text-primary mb-4">Cuisines</h2>
         <div className="space-y-3">
           <div className="flex gap-2">
@@ -446,7 +446,8 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
                 }
               }}
               placeholder="Add cuisine tag"
-              className="flex-1 px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              aria-label="Add cuisine tag"
+              className="ef-input flex-1"
             />
             {/* ponytail: native <datalist> autocomplete, not a combobox component — the API
                 still accepts free text, this just nudges toward CUISINE_VOCAB. */}
@@ -458,7 +459,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
             <button
               type="button"
               onClick={addCuisine}
-              className="px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
+              className="px-4 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
             >
               Add
             </button>
@@ -486,7 +487,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
       </div>
 
       {/* Tags */}
-      <div className="bg-surface border border-border rounded-lg p-6">
+      <div className="ef-panel">
         <h2 className="text-xl font-semibold text-primary mb-4">Tags</h2>
         <div className="space-y-3">
           <div className="flex gap-2">
@@ -502,7 +503,8 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
                 }
               }}
               placeholder="Add tag, e.g. outdoor-seating"
-              className="flex-1 px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              aria-label="Add tag"
+              className="ef-input flex-1"
             />
             <datalist id="tag-vocab">
               {TAG_VOCAB.map((t) => (
@@ -512,7 +514,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
             <button
               type="button"
               onClick={addTag}
-              className="px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
+              className="px-4 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
             >
               Add
             </button>
@@ -540,11 +542,11 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
       </div>
 
       {/* Contact & Links */}
-      <div className="bg-surface border border-border rounded-lg p-6">
+      <div className="ef-panel">
         <h2 className="text-xl font-semibold text-primary mb-4">Contact & Links</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label htmlFor="websiteUrl" className="block text-sm font-medium mb-2">
+            <label htmlFor="websiteUrl" className="ef-field-label">
               Website URL
             </label>
             <input
@@ -552,12 +554,12 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               type="url"
               value={formData.websiteUrl}
               onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="ef-input"
             />
           </div>
 
           <div>
-            <label htmlFor="gmapsUrl" className="block text-sm font-medium mb-2">
+            <label htmlFor="gmapsUrl" className="ef-field-label">
               Google Maps URL
             </label>
             <input
@@ -565,12 +567,12 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               type="url"
               value={formData.gmapsUrl}
               onChange={(e) => setFormData({ ...formData, gmapsUrl: e.target.value })}
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="ef-input"
             />
           </div>
 
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium mb-2">
+            <label htmlFor="phone" className="ef-field-label">
               Phone
             </label>
             <input
@@ -578,12 +580,12 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               type="tel"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="ef-input"
             />
           </div>
 
           <div>
-            <label htmlFor="woltUrl" className="block text-sm font-medium mb-2">
+            <label htmlFor="woltUrl" className="ef-field-label">
               Wolt URL
             </label>
             <input
@@ -591,12 +593,12 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               type="url"
               value={formData.woltUrl}
               onChange={(e) => setFormData({ ...formData, woltUrl: e.target.value })}
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="ef-input"
             />
           </div>
 
           <div>
-            <label htmlFor="instagramUrl" className="block text-sm font-medium mb-2">
+            <label htmlFor="instagramUrl" className="ef-field-label">
               Instagram URL
             </label>
             <input
@@ -604,12 +606,12 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               type="url"
               value={formData.instagramUrl}
               onChange={(e) => setFormData({ ...formData, instagramUrl: e.target.value })}
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="ef-input"
             />
           </div>
 
           <div>
-            <label htmlFor="rating" className="block text-sm font-medium mb-2">
+            <label htmlFor="rating" className="ef-field-label">
               Editorial Rating (0-5)
             </label>
             <input
@@ -620,7 +622,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               step="0.1"
               value={formData.rating}
               onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="ef-input"
             />
           </div>
         </div>
@@ -637,7 +639,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
       </div>
 
       {/* Image */}
-      <div className="bg-surface border border-border rounded-lg p-6">
+      <div className="ef-panel">
         <div className="flex items-center gap-2 mb-4">
           <Upload size={20} className="text-primary" />
           <h2 className="text-xl font-semibold text-primary">Image</h2>
@@ -646,15 +648,18 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
           <input
             type="file"
             accept="image/*"
+            aria-label="Upload hero image"
             onChange={handleImageUpload}
             disabled={uploading}
-            className="w-full px-4 py-2 bg-background border border-border rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-primary file:text-white file:cursor-pointer hover:file:bg-primary-hover disabled:opacity-50"
+            className="ef-input file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:font-semibold file:text-on-primary hover:file:bg-primary-hover disabled:opacity-50"
           />
           {uploading && (
             <div className="text-sm text-text-secondary">Uploading...</div>
           )}
           {formData.image && (
             <div className="max-w-xs">
+              {/* Opaque URL from lib/storage saveImage(); never reconstructed. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={formData.image}
                 alt="Preview"
@@ -666,12 +671,12 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
       </div>
 
       {/* Location */}
-      <div className="bg-surface border border-border rounded-lg p-6">
+      <div className="ef-panel">
         <h2 className="text-xl font-semibold text-primary mb-4">Location (Optional)</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="lat" className="block text-sm font-medium mb-2">
+              <label htmlFor="lat" className="ef-field-label">
                 Latitude
               </label>
               <input
@@ -680,12 +685,12 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
                 step="any"
                 value={formData.lat}
                 onChange={(e) => setFormData({ ...formData, lat: e.target.value })}
-                className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="ef-input"
               />
             </div>
 
             <div>
-              <label htmlFor="lng" className="block text-sm font-medium mb-2">
+              <label htmlFor="lng" className="ef-field-label">
                 Longitude
               </label>
               <input
@@ -694,13 +699,13 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
                 step="any"
                 value={formData.lng}
                 onChange={(e) => setFormData({ ...formData, lng: e.target.value })}
-                className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="ef-input"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="openHours" className="block text-sm font-medium mb-2">
+            <label htmlFor="openHours" className="ef-field-label">
               Open Hours (JSON)
             </label>
             <textarea
@@ -709,7 +714,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               onChange={(e) => setFormData({ ...formData, openHours: e.target.value })}
               rows={9}
               placeholder='{"mon": ["09:00", "23:00"], "sun": null}'
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono text-sm"
+              className="ef-input resize-none font-mono text-sm"
             />
           </div>
         </div>
@@ -730,7 +735,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
         <button
           type="submit"
           disabled={saving}
-          className="flex items-center gap-2 px-6 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/30"
+          className="flex items-center gap-2 px-6 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
         >
           <Save size={20} />
           {saving ? 'Saving...' : 'Save Restaurant'}

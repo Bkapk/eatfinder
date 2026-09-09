@@ -25,21 +25,24 @@ export default function AccountView({ locale }: { locale: Locale }) {
 
   useEffect(() => {
     ;(async () => {
-      const meRes = await fetch('/api/auth/me')
-      if (!meRes.ok) {
-        setLoading(false)
-        return
-      }
-      const meData = await meRes.json()
-      setMe(meData.user)
+      try {
+        const meRes = await fetch('/api/auth/me')
+        if (!meRes.ok) return
+        const meData = await meRes.json()
+        setMe(meData.user)
 
-      const [favRes, photoRes] = await Promise.all([
-        fetch('/api/community/favorites'),
-        fetch('/api/community/photos'),
-      ])
-      if (favRes.ok) setFavorites((await favRes.json()).restaurants)
-      if (photoRes.ok) setPhotos((await photoRes.json()).photos)
-      setLoading(false)
+        const [favRes, photoRes] = await Promise.all([
+          fetch('/api/community/favorites'),
+          fetch('/api/community/photos'),
+        ])
+        if (favRes.ok) setFavorites((await favRes.json()).restaurants)
+        if (photoRes.ok) setPhotos((await photoRes.json()).photos)
+      } catch {
+        // Offline or a 5xx: fall through to the signed-out card rather than
+        // sitting on the loading line forever.
+      } finally {
+        setLoading(false)
+      }
     })()
   }, [])
 
@@ -145,9 +148,9 @@ function PhotoStatusBadge({ status, locale }: { status: string; locale: Locale }
   const key = STATUS_KEY[status] ?? STATUS_KEY.pending
   const cls =
     status === 'approved'
-      ? 'bg-success/10 text-success'
+      ? 'bg-success-soft text-success'
       : status === 'rejected'
-        ? 'bg-error/10 text-error'
-        : 'bg-info/10 text-info'
+        ? 'bg-error-soft text-error'
+        : 'bg-primary-soft text-primary'
   return <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-semibold ${cls}`}>{t(locale, key)}</span>
 }

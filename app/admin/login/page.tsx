@@ -44,20 +44,20 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Utensils size={32} className="text-primary" />
-            <h1 className="text-3xl font-bold">EatFinder Admin</h1>
+            <h1 className="text-[26px] font-extrabold tracking-tight text-text">EatFinder Admin</h1>
           </div>
           <p className="text-text-secondary">Sign in to manage restaurants</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-lg p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="ef-panel space-y-4">
           {error && (
-            <div className="px-4 py-3 bg-error/10 border border-error rounded text-error text-sm">
+            <div className="px-4 py-3 bg-error-soft border border-error rounded text-error text-sm">
               {error}
             </div>
           )}
 
           <div>
-            <label htmlFor="username" className="block text-sm font-medium mb-2">
+            <label htmlFor="username" className="ef-field-label">
               Username
             </label>
             <input
@@ -65,14 +65,14 @@ export default function LoginPage() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+              className="ef-input"
               required
               autoComplete="username"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-2">
+            <label htmlFor="password" className="ef-field-label">
               Password
             </label>
             <input
@@ -80,7 +80,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+              className="ef-input"
               required
               autoComplete="current-password"
             />
@@ -89,7 +89,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-4 py-3 bg-primary hover:bg-primary-hover rounded font-semibold transition-colors disabled:opacity-50 shadow-lg shadow-primary/30"
+            className="w-full px-4 py-3 bg-primary text-on-primary hover:bg-primary-hover rounded font-semibold transition-colors disabled:opacity-50 shadow-md"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>

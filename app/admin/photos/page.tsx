@@ -88,15 +88,16 @@ export default function AdminPhotosPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-text mb-6">Photo Moderation</h1>
+      <h1 className="text-[26px] font-extrabold tracking-tight text-text mb-6">Photo Moderation</h1>
 
-      <div className="flex gap-2 mb-6">
+      <div role="group" aria-label="Filter" className="ef-scroll-fade -mx-1 mb-6 flex gap-2 overflow-x-auto px-1 pb-1">
         {TABS.map((s) => (
           <button
             key={s}
             onClick={() => setTab(s)}
-            className={`px-3 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
-              tab === s ? 'bg-primary text-white' : 'bg-surface-hover text-text-secondary hover:text-text'
+            aria-pressed={tab === s}
+            className={`shrink-0 px-3 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
+              tab === s ? 'bg-primary text-on-primary' : 'bg-surface-hover text-text-secondary hover:text-text'
             }`}
           >
             {s}
@@ -105,11 +106,11 @@ export default function AdminPhotosPage() {
       </div>
 
       {error && (
-        <div className="px-4 py-3 mb-6 bg-error/10 border border-error rounded-lg text-error">{error}</div>
+        <div role="alert" className="px-4 py-3 mb-6 bg-error-soft border border-error rounded-lg text-error">{error}</div>
       )}
 
       {loading ? (
-        <div className="text-text-secondary">Loading...</div>
+        <div role="status" className="text-text-secondary">Loading...</div>
       ) : photos.length === 0 ? (
         <div className="text-text-secondary">No {tab === 'all' ? '' : tab} photos.</div>
       ) : (
@@ -126,10 +127,10 @@ export default function AdminPhotosPage() {
 function StatusBadge({ status }: { status: AdminPhoto['status'] }) {
   const cls =
     status === 'approved'
-      ? 'bg-success/10 text-success'
+      ? 'bg-success-soft text-success'
       : status === 'rejected'
-        ? 'bg-error/10 text-error'
-        : 'bg-info/10 text-info'
+        ? 'bg-error-soft text-error'
+        : 'bg-primary-soft text-primary'
   return <span className={`px-2 py-0.5 rounded text-xs font-semibold capitalize ${cls}`}>{status}</span>
 }
 
@@ -143,7 +144,7 @@ function PhotoCard({
   onDecide: (action: 'approve' | 'reject' | 'delete') => void
 }) {
   return (
-    <div className="bg-surface border border-border rounded-lg overflow-hidden flex flex-col">
+    <div className="ef-card overflow-hidden flex flex-col">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={photo.url} alt={photo.caption || photo.restaurantName} className="aspect-square w-full object-cover" />
 
@@ -185,7 +186,7 @@ function PhotoCard({
             <button
               onClick={() => onDecide('approve')}
               disabled={busy}
-              className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-success/10 text-success rounded font-medium text-sm disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-success-soft text-success rounded font-medium text-sm disabled:opacity-50"
             >
               <Check size={14} /> Approve
             </button>
@@ -194,7 +195,7 @@ function PhotoCard({
             <button
               onClick={() => onDecide('reject')}
               disabled={busy}
-              className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-error/10 text-error rounded font-medium text-sm disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-error-soft text-error rounded font-medium text-sm disabled:opacity-50"
             >
               <X size={14} /> Reject
             </button>

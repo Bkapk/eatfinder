@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import RestaurantForm from '../components/RestaurantForm'
+import Spinner from '@/components/Spinner'
 
 export default function EditRestaurantPage() {
   const router = useRouter()
@@ -28,7 +29,7 @@ export default function EditRestaurantPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+          <Spinner size={44} className="mb-4" />
           <p className="text-text-secondary">Loading...</p>
         </div>
       </div>
@@ -37,7 +38,7 @@ export default function EditRestaurantPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold text-text mb-8">Edit Restaurant</h1>
+      <h1 className="text-[26px] font-extrabold tracking-tight text-text mb-8">Edit Restaurant</h1>
       <RestaurantForm
         restaurant={restaurant}
         onSuccess={() => router.push('/admin')}

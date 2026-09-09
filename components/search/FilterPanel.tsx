@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 import { priceGlyphs, t, tVocab, type Locale } from '@/lib/i18n'
 import type { ParsedFilters } from '@/lib/filters'
@@ -84,24 +85,37 @@ export default function FilterPanel({
   onClearAll: () => void
   onClose: () => void
 }) {
-  if (!open) return null
+  const ref = useRef<HTMLDialogElement>(null)
+
+  // A native <dialog> opened with showModal() brings the focus trap, Escape to
+  // close, ::backdrop, inert background and focus restoration with it. Every
+  // one of those was hand-rolled work on the previous div-with-role="dialog",
+  // and three of the four were simply missing.
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (open && !el.open) el.showModal()
+    if (!open && el.open) el.close()
+  }, [open])
 
   const priceOptions = [1, 2, 3, 4]
 
   return (
-    <div className="fixed inset-0 z-drawer flex justify-end">
-      <button
-        type="button"
-        aria-label={t(locale, 'filters.close')}
-        onClick={onClose}
-        className="absolute inset-0 bg-text/30 backdrop-blur-[2px]"
-      />
-
+    <dialog
+      ref={ref}
+      aria-label={t(locale, 'filters.title')}
+      onClose={onClose}
+      // Escape fires `close`; a click on the backdrop lands on the dialog
+      // element itself rather than any child, which is the standard test for
+      // "outside the panel".
+      onClick={(e) => {
+        if (e.target === ref.current) onClose()
+      }}
+      className="ef-drawer"
+    >
       <aside
-        role="dialog"
-        aria-modal="true"
-        aria-label={t(locale, 'filters.title')}
-        className="relative flex h-full w-full max-w-md flex-col bg-surface shadow-lg"
+        className="flex h-full w-full max-w-md flex-col bg-surface shadow-lg"
+        onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="text-[17px] font-extrabold tracking-tight text-text">
@@ -333,6 +347,6 @@ export default function FilterPanel({
           </Section>
         </div>
       </aside>
-    </div>
+    </dialog>
   )
 }

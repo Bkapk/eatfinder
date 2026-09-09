@@ -107,24 +107,25 @@ export default function QueuePage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-text">AI Review Queue</h1>
+        <h1 className="text-[26px] font-extrabold tracking-tight text-text">AI Review Queue</h1>
         {status === 'pending' && proposals.length > 0 && (
           <button
             onClick={approveAll}
-            className="px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
+            className="px-4 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
           >
             Approve All
           </button>
         )}
       </div>
 
-      <div className="flex gap-2 mb-6">
+      <div role="group" aria-label="Filter" className="ef-scroll-fade -mx-1 mb-6 flex gap-2 overflow-x-auto px-1 pb-1">
         {STATUS_TABS.map((s) => (
           <button
             key={s}
             onClick={() => setStatus(s)}
-            className={`px-3 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
-              status === s ? 'bg-primary text-white' : 'bg-surface-hover text-text-secondary hover:text-text'
+            aria-pressed={status === s}
+            className={`shrink-0 px-3 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
+              status === s ? 'bg-primary text-on-primary' : 'bg-surface-hover text-text-secondary hover:text-text'
             }`}
           >
             {s}
@@ -133,11 +134,11 @@ export default function QueuePage() {
       </div>
 
       {error && (
-        <div className="px-4 py-3 mb-6 bg-error/10 border border-error rounded-lg text-error">{error}</div>
+        <div role="alert" className="px-4 py-3 mb-6 bg-error-soft border border-error rounded-lg text-error">{error}</div>
       )}
 
       {loading ? (
-        <div className="text-text-secondary">Loading...</div>
+        <div role="status" className="text-text-secondary">Loading...</div>
       ) : proposals.length === 0 ? (
         <div className="text-text-secondary">No {status} proposals.</div>
       ) : (
@@ -209,7 +210,7 @@ function ProposalCard({
   if (!payload) return null
 
   return (
-    <div className="bg-surface border border-border rounded-lg p-6">
+    <div className="ef-panel">
       <div className="flex items-center justify-between mb-4">
         <div>
           <Link href={`/admin/${restaurant.id}`} className="text-lg font-semibold text-primary hover:underline">
@@ -220,7 +221,7 @@ function ProposalCard({
           </div>
         </div>
         {lowSignal && (
-          <span className="flex items-center gap-1 px-2 py-1 text-xs bg-error/10 text-error rounded">
+          <span className="flex items-center gap-1 px-2 py-1 text-xs bg-error-soft text-error rounded">
             <AlertTriangle size={14} /> Low signal — not auto-filled
           </span>
         )}
@@ -264,7 +265,7 @@ function ProposalCard({
           <select
             value={fields.priceLevel}
             onChange={(e) => setFields((f) => ({ ...f, priceLevel: Number(e.target.value) }))}
-            className="w-full px-3 py-2 bg-background border border-border rounded-lg"
+            className="ef-input"
           >
             {[1, 2, 3, 4].map((n) => (
               <option key={n} value={n}>
@@ -281,7 +282,7 @@ function ProposalCard({
             type="text"
             value={fields.neighborhood}
             onChange={(e) => setFields((f) => ({ ...f, neighborhood: e.target.value }))}
-            className="w-full px-3 py-2 bg-background border border-border rounded-lg"
+            className="ef-input"
           />
         </div>
       </div>
@@ -306,7 +307,7 @@ function ProposalCard({
           onChange={(e) => setFields((f) => ({ ...f, description: e.target.value }))}
           rows={3}
           maxLength={280}
-          className="w-full px-3 py-2 bg-background border border-border rounded-lg resize-none"
+          className="ef-input resize-none"
         />
       </div>
 
@@ -321,7 +322,7 @@ function ProposalCard({
         <button
           onClick={() => onApprove(fields)}
           disabled={busy}
-          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50"
         >
           <Check size={18} /> Approve
         </button>
@@ -412,7 +413,7 @@ function VocabPicker({
           onClick={() => toggle(v)}
           className={`px-2 py-1 text-xs rounded-full border transition-colors ${
             selected.includes(v)
-              ? 'bg-primary text-white border-primary'
+              ? 'bg-primary text-on-primary border-primary'
               : 'bg-background border-border text-text-secondary hover:text-text'
           }`}
         >

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Map, {
   GeolocateControl,
   NavigationControl,
@@ -140,6 +140,17 @@ export default function MapPane({
       lng,
     })
   }, [])
+
+  // Mapbox's own popup has no keyboard dismissal once closeButton is off, and
+  // the markers are canvas-drawn so there is nothing to Shift+Tab back to.
+  useEffect(() => {
+    if (!selected) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelected(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selected])
 
   const pills = (
     <div className="ef-scroll-fade pointer-events-auto flex max-w-[calc(100%-1rem)] items-center gap-2 overflow-x-auto pb-1">

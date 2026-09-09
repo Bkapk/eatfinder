@@ -99,12 +99,16 @@ export default function RestaurantCard({
               <span className="truncate">{tVocab(locale, 'cuisine', item.cuisines[0])}</span>
             </li>
           )}
-          <li
-            className="flex items-center gap-1"
-            aria-label={t(locale, 'card.priceLevel', { n: item.priceLevel })}
-          >
-            <span aria-hidden>{priceGlyphs(item.priceLevel)}</span>
-          </li>
+          {/* The bottom row already carries the price as the listing anchor. In
+              the 236px popup the two sit a line apart and read as a mistake. */}
+          {!popup && (
+            <li
+              className="flex items-center gap-1"
+              aria-label={t(locale, 'card.priceLevel', { n: item.priceLevel })}
+            >
+              <span aria-hidden>{priceGlyphs(item.priceLevel)}</span>
+            </li>
+          )}
           {item.distanceKm != null && (
             <li className="flex items-center gap-1">
               <Navigation size={13} aria-hidden className="shrink-0" />

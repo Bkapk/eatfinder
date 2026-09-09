@@ -36,8 +36,14 @@
 
     --success: #157347;
     --success-hover: #10603a;
+    --success-soft: #e7f4ed;
     --error: #c2261d;
     --error-hover: #9f1d16;
+    --error-soft: #fdeceb;
+    /* Amber reads as a warning but amber-400 is 1.8:1 on white, so the token is
+       the darkened text colour and the tint is separate. */
+    --warning: #a16207;
+    --warning-soft: #fdf5e3;
     --info: #0b6bb0;
     --info-hover: #095a95;
 
@@ -158,8 +164,53 @@
     box-shadow: var(--shadow-md);
   }
 
+  /* Admin shares this vocabulary. Adding it here rather than restyling ~3200
+     lines of admin markup in place: one definition, and the contrast fix
+     (text-on-primary) cannot be forgotten at a call site. */
+  .ef-btn {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-transparent px-4 py-2 text-[14px] font-semibold transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .ef-btn--primary {
+    @apply bg-primary text-on-primary hover:bg-primary-hover;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .ef-btn--ghost {
+    @apply border-border bg-surface text-text hover:bg-surface-hover;
+  }
+
+  .ef-btn--danger {
+    @apply bg-error text-on-primary hover:bg-error-hover;
+  }
+
+  .ef-panel {
+    @apply rounded-2xl border border-border bg-surface p-6;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .ef-input {
+    @apply w-full rounded-xl border border-border bg-surface px-4 py-2 text-[14px] text-text transition-colors duration-200 placeholder:text-text-secondary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary;
+  }
+
+  .ef-field-label {
+    @apply mb-2 block text-[13px] font-semibold text-text;
+  }
+
   .ef-label {
     @apply text-[11px] font-bold uppercase tracking-[0.08em] text-text-secondary;
+  }
+
+  /* A <dialog> in the top layer, laid out as a right-hand sheet. Sizing has to
+     be explicit because the UA stylesheet centres and shrink-wraps it. */
+  .ef-drawer {
+    @apply m-0 h-full max-h-none w-full max-w-none justify-end bg-transparent p-0 text-text;
+  }
+
+  /* A closed <dialog> is display:none from the UA stylesheet; putting `flex` on
+     the base class would override that and leave the panel permanently open. */
+  .ef-drawer[open] {
+    @apply flex;
   }
 
   .ef-scroll-fade {
@@ -179,6 +230,11 @@
 
 .ef-popup .mapboxgl-popup-tip {
   border-top-color: var(--surface);
+}
+
+.ef-drawer::backdrop {
+  background: rgb(11 18 32 / 0.35);
+  backdrop-filter: blur(2px);
 }
 
 .mapboxgl-ctrl-group {
