@@ -17,7 +17,10 @@ function r2Pattern() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  // 'standalone' was removed: Next warns that `next start` does not support it,
+  // and it additionally requires hand-copying public/ and .next/static into
+  // .next/standalone. Nothing consumes it here: the Dockerfile is gone and PM2
+  // runs `next start` against a normal build with node_modules present.
   images: {
     remotePatterns: [
       {

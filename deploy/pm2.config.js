@@ -8,7 +8,7 @@ module.exports = {
       name: 'eatfinder',
       cwd: APP_DIR,
       script: 'node_modules/next/dist/bin/next',
-      args: 'start -p 3010', // keep in sync with PROD_PORT in deploy/config.sh and nginx-prod.conf
+      args: 'start -p 3010 -H 127.0.0.1', // bind loopback only — nginx is the public door
       instances: 1,
       // See pm2-dev.config.js — in-process rate limiters and SQLite both require
       // exactly one process.
