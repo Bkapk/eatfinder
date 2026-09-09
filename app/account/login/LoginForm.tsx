@@ -27,7 +27,9 @@ export default function LoginForm({ locale, next }: { locale: Locale; next: stri
         router.push(next)
         router.refresh()
       } else {
-        setError(res.status === 429 ? t(locale, 'login.error.locked') : t(locale, 'login.error.generic'))
+        setError(
+          res.status === 429 ? t(locale, 'login.error.locked') : t(locale, 'login.error.generic')
+        )
       }
     } catch {
       setError(t(locale, 'login.error.generic'))
@@ -37,7 +39,7 @@ export default function LoginForm({ locale, next }: { locale: Locale; next: stri
   }
 
   return (
-    <form onSubmit={submit} aria-busy={loading} className="ef-card flex flex-col gap-4 p-6">
+    <form onSubmit={submit} aria-busy={loading} className="ef-panel flex flex-col gap-5 p-6 sm:p-8">
       {error && (
         <div
           role="alert"
@@ -48,7 +50,7 @@ export default function LoginForm({ locale, next }: { locale: Locale; next: stri
       )}
 
       <div>
-        <label htmlFor="identifier" className="ef-label mb-1.5 block">
+        <label htmlFor="identifier" className="ef-field-label">
           {t(locale, 'auth.identifier')}
         </label>
         <input
@@ -63,7 +65,7 @@ export default function LoginForm({ locale, next }: { locale: Locale; next: stri
       </div>
 
       <div>
-        <label htmlFor="password" className="ef-label mb-1.5 block">
+        <label htmlFor="password" className="ef-field-label">
           {t(locale, 'auth.password')}
         </label>
         <input
@@ -77,7 +79,7 @@ export default function LoginForm({ locale, next }: { locale: Locale; next: stri
         />
       </div>
 
-      <button type="submit" disabled={loading} className="ef-pill ef-pill--active h-11 justify-center disabled:opacity-50">
+      <button type="submit" disabled={loading} className="ef-btn ef-btn--primary h-12">
         {loading ? t(locale, 'login.submitting') : t(locale, 'login.submit')}
       </button>
 

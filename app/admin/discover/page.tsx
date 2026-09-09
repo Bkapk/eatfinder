@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Search, MapPin, CheckCircle2, Loader2 } from 'lucide-react'
+import { Search, MapPin, CheckCircle2, Loader2, Compass } from 'lucide-react'
+
+import { PageHeader, EmptyState } from '../components/AdminUI'
 
 interface Candidate {
   placeId: string
@@ -23,7 +24,6 @@ type ImportResult =
   | { placeId: string; status: 'failed'; reason: string }
 
 export default function DiscoverPage() {
-  const router = useRouter()
   const [mode, setMode] = useState<'text' | 'nearby'>('text')
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
@@ -113,8 +113,14 @@ export default function DiscoverPage() {
       }
 
       setResults(data.results || [])
-      const ok = new Set<string>((data.results || []).filter((r: ImportResult) => r.status === 'ok').map((r: ImportResult) => r.placeId))
-      setCandidates((prev) => prev.map((c) => (ok.has(c.placeId) ? { ...c, alreadyImported: true } : c)))
+      const ok = new Set<string>(
+        (data.results || [])
+          .filter((r: ImportResult) => r.status === 'ok')
+          .map((r: ImportResult) => r.placeId)
+      )
+      setCandidates((prev) =>
+        prev.map((c) => (ok.has(c.placeId) ? { ...c, alreadyImported: true } : c))
+      )
       setSelected(new Set())
     } catch (err) {
       setError('An error occurred while importing.')
@@ -124,35 +130,42 @@ export default function DiscoverPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-[26px] font-extrabold tracking-tight text-text">Discover on Google Places</h1>
-        <button
-          onClick={() => router.push('/admin')}
-          className="ef-btn ef-btn--ghost"
-        >
-          Back to Restaurants
-        </button>
-      </div>
+    <div>
+      <PageHeader
+        eyebrow="Grow your catalogue"
+        title="Discover places"
+        description="Find local favorites on Google Places and bring them into EatFinder as drafts, ready for your review."
+      />
 
       {disabled && (
-        <div role="alert" className="mb-6 px-4 py-3 bg-error-soft border border-error rounded-lg text-error">
-          Google Places is disabled: {error || 'GOOGLE_PLACES_API_KEY is not set.'} Add the key to your
-          environment and restart the app to use Discover.
+        <div
+          role="alert"
+          className="mb-6 px-4 py-3 bg-error-soft border border-error rounded-lg text-error"
+        >
+          Google Places is disabled: {error || 'GOOGLE_PLACES_API_KEY is not set.'} Add the key to
+          your environment and restart the app to use Discover.
         </div>
       )}
 
       {!disabled && error && (
-        <div role="alert" className="mb-6 px-4 py-3 bg-error-soft border border-error rounded-lg text-error">{error}</div>
+        <div
+          role="alert"
+          className="mb-6 px-4 py-3 bg-error-soft border border-error rounded-lg text-error"
+        >
+          {error}
+        </div>
       )}
 
       <form onSubmit={runSearch} className="ef-panel mb-6 space-y-4">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setMode('text')}
+            aria-pressed={mode === 'text'}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              mode === 'text' ? 'bg-primary text-on-primary' : 'bg-surface-hover border border-border text-text-secondary'
+              mode === 'text'
+                ? 'bg-primary text-on-primary'
+                : 'bg-surface-hover border border-border text-text-secondary'
             }`}
           >
             Text search
@@ -160,37 +173,48 @@ export default function DiscoverPage() {
           <button
             type="button"
             onClick={() => setMode('nearby')}
+            aria-pressed={mode === 'nearby'}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              mode === 'nearby' ? 'bg-primary text-on-primary' : 'bg-surface-hover border border-border text-text-secondary'
+              mode === 'nearby'
+                ? 'bg-primary text-on-primary'
+                : 'bg-surface-hover border border-border text-text-secondary'
             }`}
           >
-            Nearby (Prishtina centre, 3km)
+            Nearby · Prishtina, 3 km
           </button>
         </div>
 
         {mode === 'text' && (
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={20} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
+              size={20}
+            />
             <input
+              aria-label="Search Google Places"
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder='e.g. "restaurants in Prishtina" or a specific business name'
-              className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="ef-input pl-10"
               required
             />
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={searching}
-          className="ef-btn ef-btn--primary"
-        >
+        <button type="submit" disabled={searching} className="ef-btn ef-btn--primary">
           {searching ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
           {searching ? 'Searching...' : 'Search'}
         </button>
       </form>
+
+      {!searching && !error && candidates.length === 0 && results.length === 0 && (
+        <EmptyState
+          icon={Compass}
+          title="Find the next local favorite"
+          description="Search by restaurant name or explore places within 3 km of Prishtina centre. Selected places are imported as drafts."
+        />
+      )}
 
       {results.length > 0 && (
         <div className="ef-panel mb-6">
@@ -219,29 +243,34 @@ export default function DiscoverPage() {
 
       {candidates.length > 0 && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-wrap justify-between items-center gap-3">
             <p className="text-text-secondary text-sm">
-              {candidates.length} result{candidates.length === 1 ? '' : 's'}, {selected.size} selected
+              {candidates.length} result{candidates.length === 1 ? '' : 's'}, {selected.size}{' '}
+              selected
             </p>
             <button
               onClick={importSelected}
               disabled={selected.size === 0 || importing}
               className="ef-btn ef-btn--primary"
             >
-              {importing ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
+              {importing ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <CheckCircle2 size={18} />
+              )}
               {importing ? 'Importing...' : `Import selected (${selected.size})`}
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
             {candidates.map((c) => (
               <label
                 key={c.placeId}
-                className={`block bg-surface border rounded-lg p-4 cursor-pointer transition-colors ${
+                className={`block bg-surface border rounded-2xl p-5 cursor-pointer transition-colors ${
                   c.alreadyImported
                     ? 'border-border opacity-60 cursor-not-allowed'
                     : selected.has(c.placeId)
-                      ? 'border-primary'
+                      ? 'border-primary bg-primary-soft'
                       : 'border-border hover:border-primary/50'
                 }`}
               >
@@ -254,8 +283,8 @@ export default function DiscoverPage() {
                     className="mt-1"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium truncate">{c.name}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold">{c.name}</span>
                       {c.alreadyImported && (
                         <span className="text-xs px-2 py-0.5 bg-surface-hover rounded-full text-text-secondary shrink-0">
                           Already imported

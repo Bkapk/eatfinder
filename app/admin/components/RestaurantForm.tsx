@@ -221,530 +221,523 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div role="alert" className="px-4 py-3 bg-error-soft border border-error rounded-lg text-error">
-          {error}
-        </div>
-      )}
-
-      {/* Basic Information */}
-      <div className="ef-panel">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-primary">Basic Information</h2>
-          {restaurant?.id && (
-            <button
-              type="button"
-              onClick={askAi}
-              disabled={asking}
-              className="ef-btn ef-btn--ghost"
-            >
-              <Sparkles size={16} />
-              {asking ? 'Asking AI...' : 'Ask AI'}
-            </button>
-          )}
-        </div>
-        {aiStatus && <p className="text-sm text-text-secondary mb-4">{aiStatus}</p>}
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="name" className="ef-field-label">
-              Name <span className="text-error">*</span>
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="ef-input"
-              required
-            />
+    <form onSubmit={handleSubmit} className="admin-form" aria-busy={saving}>
+      <div className="admin-form-grid">
+        <nav aria-label="Restaurant form sections" className="admin-form-jumps admin-form-wide">
+          {[
+            ['basic', 'Overview'],
+            ['scores', 'Profile scores'],
+            ['contact', 'Contact'],
+            ['image', 'Images'],
+            ['location', 'Location & hours'],
+          ].map(([id, label]) => (
+            <a key={id} href={'#' + id}>
+              {label}
+            </a>
+          ))}
+        </nav>
+        {error && (
+          <div
+            role="alert"
+            className="admin-form-wide px-4 py-3 bg-error-soft border border-error rounded-lg text-error"
+          >
+            {error}
           </div>
+        )}
 
-          <div>
-            <label htmlFor="description" className="ef-field-label">
-              Description
-            </label>
-            <textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={4}
-              className="ef-input resize-none"
-            />
+        {/* Basic Information */}
+        <div id="basic" className="ef-panel admin-form-section admin-form-wide">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h2 className="text-xl font-semibold text-primary">Basic Information</h2>
+            {restaurant?.id && (
+              <button
+                type="button"
+                onClick={askAi}
+                disabled={asking}
+                className="ef-btn ef-btn--ghost"
+              >
+                <Sparkles size={16} />
+                {asking ? 'Asking AI...' : 'Ask AI'}
+              </button>
+            )}
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {aiStatus && <p className="text-sm text-text-secondary mb-4">{aiStatus}</p>}
+          <div className="space-y-4">
             <div>
-              <label htmlFor="neighborhood" className="ef-field-label">
-                Neighborhood
+              <label htmlFor="name" className="ef-field-label">
+                Name <span className="text-error">*</span>
               </label>
               <input
-                id="neighborhood"
+                id="name"
                 type="text"
-                value={formData.neighborhood}
-                onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="ef-input"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="description" className="ef-field-label">
+                Description
+              </label>
+              <textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={4}
                 className="ef-input"
               />
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="neighborhood" className="ef-field-label">
+                  Neighborhood
+                </label>
+                <input
+                  id="neighborhood"
+                  type="text"
+                  value={formData.neighborhood}
+                  onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
+                  className="ef-input"
+                />
+              </div>
+              <div>
+                <label htmlFor="address" className="ef-field-label">
+                  Address
+                </label>
+                <input
+                  id="address"
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  className="ef-input"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Core Scores */}
+        <div id="scores" className="ef-panel admin-form-section admin-form-wide">
+          <h2 className="text-xl font-semibold text-primary mb-4">Profile scores</h2>
+          <p className="admin-form-hint">
+            Describe the dining experience on a scale from 0 to 100.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label htmlFor="address" className="ef-field-label">
-                Address
+              <div className="flex justify-between items-center mb-2">
+                <label htmlFor="heaviness" className="text-sm font-medium">
+                  Heaviness
+                </label>
+                <span className="text-primary font-mono">{formData.heaviness}</span>
+              </div>
+              <input
+                id="heaviness"
+                type="range"
+                min="0"
+                max="100"
+                value={formData.heaviness}
+                onChange={(e) => setFormData({ ...formData, heaviness: Number(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label htmlFor="portionSize" className="text-sm font-medium">
+                  Portion Size
+                </label>
+                <span className="text-primary font-mono">{formData.portionSize}</span>
+              </div>
+              <input
+                id="portionSize"
+                type="range"
+                min="0"
+                max="100"
+                value={formData.portionSize}
+                onChange={(e) => setFormData({ ...formData, portionSize: Number(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label htmlFor="fineDining" className="text-sm font-medium">
+                  Fine Dining
+                </label>
+                <span className="text-primary font-mono">{formData.fineDining}</span>
+              </div>
+              <input
+                id="fineDining"
+                type="range"
+                min="0"
+                max="100"
+                value={formData.fineDining}
+                onChange={(e) => setFormData({ ...formData, fineDining: Number(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Details */}
+        <div id="details" className="ef-panel admin-form-section admin-form-wide">
+          <h2 className="text-xl font-semibold text-primary mb-4">Additional Details</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="priceLevel" className="ef-field-label">
+                Price Level (1-4)
+              </label>
+              <select
+                id="priceLevel"
+                value={formData.priceLevel}
+                onChange={(e) => setFormData({ ...formData, priceLevel: Number(e.target.value) })}
+                className="ef-input"
+              >
+                <option value="1">$</option>
+                <option value="2">$$</option>
+                <option value="3">$$$</option>
+                <option value="4">$$$$</option>
+              </select>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label htmlFor="spiceLevel" className="text-sm font-medium">
+                  Spice Level
+                </label>
+                <span className="text-primary font-mono">{formData.spiceLevel}</span>
+              </div>
+              <input
+                id="spiceLevel"
+                type="range"
+                min="0"
+                max="100"
+                value={formData.spiceLevel}
+                onChange={(e) => setFormData({ ...formData, spiceLevel: Number(e.target.value) })}
+                className="w-full"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="avgPrepTime" className="ef-field-label">
+                Avg Prep Time (minutes)
               </label>
               <input
-                id="address"
-                type="text"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                id="avgPrepTime"
+                type="number"
+                min="0"
+                value={formData.avgPrepTime}
+                onChange={(e) => setFormData({ ...formData, avgPrepTime: Number(e.target.value) })}
                 className="ef-input"
               />
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Core Scores */}
-      <div className="ef-panel">
-        <h2 className="text-xl font-semibold text-primary mb-4">Core Scores (0-100)</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label htmlFor="heaviness" className="text-sm font-medium">
-                Heaviness
-              </label>
-              <span className="text-primary font-mono">{formData.heaviness}</span>
-            </div>
-            <input
-              id="heaviness"
-              type="range"
-              min="0"
-              max="100"
-              value={formData.heaviness}
-              onChange={(e) =>
-                setFormData({ ...formData, heaviness: Number(e.target.value) })
-              }
-              className="w-full"
-            />
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label htmlFor="portionSize" className="text-sm font-medium">
-                Portion Size
-              </label>
-              <span className="text-primary font-mono">{formData.portionSize}</span>
-            </div>
-            <input
-              id="portionSize"
-              type="range"
-              min="0"
-              max="100"
-              value={formData.portionSize}
-              onChange={(e) =>
-                setFormData({ ...formData, portionSize: Number(e.target.value) })
-              }
-              className="w-full"
-            />
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label htmlFor="fineDining" className="text-sm font-medium">
-                Fine Dining
-              </label>
-              <span className="text-primary font-mono">{formData.fineDining}</span>
-            </div>
-            <input
-              id="fineDining"
-              type="range"
-              min="0"
-              max="100"
-              value={formData.fineDining}
-              onChange={(e) =>
-                setFormData({ ...formData, fineDining: Number(e.target.value) })
-              }
-              className="w-full"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Additional Details */}
-      <div className="ef-panel">
-        <h2 className="text-xl font-semibold text-primary mb-4">Additional Details</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label htmlFor="priceLevel" className="ef-field-label">
-              Price Level (1-4)
-            </label>
-            <select
-              id="priceLevel"
-              value={formData.priceLevel}
-              onChange={(e) =>
-                setFormData({ ...formData, priceLevel: Number(e.target.value) })
-              }
-              className="ef-input"
-            >
-              <option value="1">$</option>
-              <option value="2">$$</option>
-              <option value="3">$$$</option>
-              <option value="4">$$$$</option>
-            </select>
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label htmlFor="spiceLevel" className="text-sm font-medium">
-                Spice Level
-              </label>
-              <span className="text-primary font-mono">{formData.spiceLevel}</span>
-            </div>
-            <input
-              id="spiceLevel"
-              type="range"
-              min="0"
-              max="100"
-              value={formData.spiceLevel}
-              onChange={(e) =>
-                setFormData({ ...formData, spiceLevel: Number(e.target.value) })
-              }
-              className="w-full"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="avgPrepTime" className="ef-field-label">
-              Avg Prep Time (minutes)
-            </label>
-            <input
-              id="avgPrepTime"
-              type="number"
-              min="0"
-              value={formData.avgPrepTime}
-              onChange={(e) =>
-                setFormData({ ...formData, avgPrepTime: Number(e.target.value) })
-              }
-              className="ef-input"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Cuisines */}
-      <div className="ef-panel">
-        <h2 className="text-xl font-semibold text-primary mb-4">Cuisines</h2>
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              list="cuisine-vocab"
-              value={cuisineInput}
-              onChange={(e) => setCuisineInput(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  addCuisine()
-                }
-              }}
-              placeholder="Add cuisine tag"
-              aria-label="Add cuisine tag"
-              className="ef-input flex-1"
-            />
-            {/* ponytail: native <datalist> autocomplete, not a combobox component — the API
+        {/* Cuisines */}
+        <div id="cuisines" className="ef-panel admin-form-section">
+          <h2 className="text-xl font-semibold text-primary mb-4">Cuisines</h2>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                list="cuisine-vocab"
+                value={cuisineInput}
+                onChange={(e) => setCuisineInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addCuisine()
+                  }
+                }}
+                placeholder="Add cuisine tag"
+                aria-label="Add cuisine tag"
+                className="ef-input flex-1"
+              />
+              {/* ponytail: native <datalist> autocomplete, not a combobox component — the API
                 still accepts free text, this just nudges toward CUISINE_VOCAB. */}
-            <datalist id="cuisine-vocab">
-              {CUISINE_VOCAB.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
-            <button
-              type="button"
-              onClick={addCuisine}
-              className="ef-btn ef-btn--primary"
-            >
-              Add
-            </button>
-          </div>
-          {formData.cuisines.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {formData.cuisines.map((cuisine) => (
-                <span
-                  key={cuisine}
-                  className="inline-flex items-center gap-2 px-3 py-1 bg-surface-hover border border-border rounded-full text-sm"
-                >
-                  {cuisine}
-                  <button
-                    type="button"
-                    onClick={() => removeCuisine(cuisine)}
-                    aria-label={`Remove ${cuisine}`}
-                    className="grid h-6 w-6 place-items-center rounded hover:text-error transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
-                </span>
-              ))}
+              <datalist id="cuisine-vocab">
+                {CUISINE_VOCAB.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+              <button type="button" onClick={addCuisine} className="ef-btn ef-btn--primary">
+                Add
+              </button>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Tags */}
-      <div className="ef-panel">
-        <h2 className="text-xl font-semibold text-primary mb-4">Tags</h2>
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              list="tag-vocab"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  addTag()
-                }
-              }}
-              placeholder="Add tag, e.g. outdoor-seating"
-              aria-label="Add tag"
-              className="ef-input flex-1"
-            />
-            <datalist id="tag-vocab">
-              {TAG_VOCAB.map((t) => (
-                <option key={t} value={t} />
-              ))}
-            </datalist>
-            <button
-              type="button"
-              onClick={addTag}
-              className="ef-btn ef-btn--primary"
-            >
-              Add
-            </button>
-          </div>
-          {formData.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {formData.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center gap-2 px-3 py-1 bg-surface-hover border border-border rounded-full text-sm"
-                >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    aria-label={`Remove ${tag}`}
-                    className="grid h-6 w-6 place-items-center rounded hover:text-error transition-colors"
+            {formData.cuisines.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {formData.cuisines.map((cuisine) => (
+                  <span
+                    key={cuisine}
+                    className="inline-flex items-center gap-2 px-3 py-1 bg-surface-hover border border-border rounded-full text-sm"
                   >
-                    <X size={14} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Contact & Links */}
-      <div className="ef-panel">
-        <h2 className="text-xl font-semibold text-primary mb-4">Contact & Links</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label htmlFor="websiteUrl" className="ef-field-label">
-              Website URL
-            </label>
-            <input
-              id="websiteUrl"
-              type="url"
-              value={formData.websiteUrl}
-              onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
-              className="ef-input"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="gmapsUrl" className="ef-field-label">
-              Google Maps URL
-            </label>
-            <input
-              id="gmapsUrl"
-              type="url"
-              value={formData.gmapsUrl}
-              onChange={(e) => setFormData({ ...formData, gmapsUrl: e.target.value })}
-              className="ef-input"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="phone" className="ef-field-label">
-              Phone
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="ef-input"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="woltUrl" className="ef-field-label">
-              Wolt URL
-            </label>
-            <input
-              id="woltUrl"
-              type="url"
-              value={formData.woltUrl}
-              onChange={(e) => setFormData({ ...formData, woltUrl: e.target.value })}
-              className="ef-input"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="instagramUrl" className="ef-field-label">
-              Instagram URL
-            </label>
-            <input
-              id="instagramUrl"
-              type="url"
-              value={formData.instagramUrl}
-              onChange={(e) => setFormData({ ...formData, instagramUrl: e.target.value })}
-              className="ef-input"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="rating" className="ef-field-label">
-              Editorial Rating (0-5)
-            </label>
-            <input
-              id="rating"
-              type="number"
-              min="0"
-              max="5"
-              step="0.1"
-              value={formData.rating}
-              onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
-              className="ef-input"
-            />
+                    {cuisine}
+                    <button
+                      type="button"
+                      onClick={() => removeCuisine(cuisine)}
+                      aria-label={`Remove ${cuisine}`}
+                      className="grid h-6 w-6 place-items-center rounded hover:text-error transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        <label className="flex items-center gap-2 mt-4 text-sm font-medium">
-          <input
-            type="checkbox"
-            checked={formData.isFeatured}
-            onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
-            className="w-4 h-4"
-          />
-          Featured
-        </label>
-      </div>
-
-      {/* Image */}
-      <div className="ef-panel">
-        <div className="flex items-center gap-2 mb-4">
-          <Upload size={20} className="text-primary" />
-          <h2 className="text-xl font-semibold text-primary">Image</h2>
-        </div>
-        <div className="space-y-3">
-          <input
-            type="file"
-            accept="image/*"
-            aria-label="Upload hero image"
-            onChange={handleImageUpload}
-            disabled={uploading}
-            className="ef-input file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:font-semibold file:text-on-primary hover:file:bg-primary-hover disabled:opacity-50"
-          />
-          {uploading && (
-            <div className="text-sm text-text-secondary">Uploading...</div>
-          )}
-          {formData.image && (
-            <div className="max-w-xs aspect-[16/9] overflow-hidden rounded-lg border border-border">
-              {/* Opaque URL from lib/storage saveImage(); never reconstructed. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={formData.image}
-                alt="Preview"
-                className="h-full w-full object-cover"
+        {/* Tags */}
+        <div id="tags" className="ef-panel admin-form-section">
+          <h2 className="text-xl font-semibold text-primary mb-4">Tags</h2>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                list="tag-vocab"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addTag()
+                  }
+                }}
+                placeholder="Add tag, e.g. outdoor-seating"
+                aria-label="Add tag"
+                className="ef-input flex-1"
               />
+              <datalist id="tag-vocab">
+                {TAG_VOCAB.map((t) => (
+                  <option key={t} value={t} />
+                ))}
+              </datalist>
+              <button type="button" onClick={addTag} className="ef-btn ef-btn--primary">
+                Add
+              </button>
             </div>
-          )}
+            {formData.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {formData.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-2 px-3 py-1 bg-surface-hover border border-border rounded-full text-sm"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      aria-label={`Remove ${tag}`}
+                      className="grid h-6 w-6 place-items-center rounded hover:text-error transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Location */}
-      <div className="ef-panel">
-        <h2 className="text-xl font-semibold text-primary mb-4">Location (Optional)</h2>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Contact & Links */}
+        <div id="contact" className="ef-panel admin-form-section admin-form-wide">
+          <h2 className="text-xl font-semibold text-primary mb-4">Contact & links</h2>
+          <p className="admin-form-hint">Give guests a direct route to the restaurant.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label htmlFor="lat" className="ef-field-label">
-                Latitude
+              <label htmlFor="websiteUrl" className="ef-field-label">
+                Website URL
               </label>
               <input
-                id="lat"
-                type="number"
-                step="any"
-                value={formData.lat}
-                onChange={(e) => setFormData({ ...formData, lat: e.target.value })}
+                id="websiteUrl"
+                type="url"
+                value={formData.websiteUrl}
+                onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
                 className="ef-input"
               />
             </div>
 
             <div>
-              <label htmlFor="lng" className="ef-field-label">
-                Longitude
+              <label htmlFor="gmapsUrl" className="ef-field-label">
+                Google Maps URL
               </label>
               <input
-                id="lng"
+                id="gmapsUrl"
+                type="url"
+                value={formData.gmapsUrl}
+                onChange={(e) => setFormData({ ...formData, gmapsUrl: e.target.value })}
+                className="ef-input"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="phone" className="ef-field-label">
+                Phone
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="ef-input"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="woltUrl" className="ef-field-label">
+                Wolt URL
+              </label>
+              <input
+                id="woltUrl"
+                type="url"
+                value={formData.woltUrl}
+                onChange={(e) => setFormData({ ...formData, woltUrl: e.target.value })}
+                className="ef-input"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="instagramUrl" className="ef-field-label">
+                Instagram URL
+              </label>
+              <input
+                id="instagramUrl"
+                type="url"
+                value={formData.instagramUrl}
+                onChange={(e) => setFormData({ ...formData, instagramUrl: e.target.value })}
+                className="ef-input"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="rating" className="ef-field-label">
+                Editorial Rating (0-5)
+              </label>
+              <input
+                id="rating"
                 type="number"
-                step="any"
-                value={formData.lng}
-                onChange={(e) => setFormData({ ...formData, lng: e.target.value })}
+                min="0"
+                max="5"
+                step="0.1"
+                value={formData.rating}
+                onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
                 className="ef-input"
               />
             </div>
           </div>
 
-          <div>
-            <label htmlFor="openHours" className="ef-field-label">
-              Open Hours (JSON)
-            </label>
-            <textarea
-              id="openHours"
-              value={formData.openHours}
-              onChange={(e) => setFormData({ ...formData, openHours: e.target.value })}
-              rows={9}
-              placeholder='{"mon": ["09:00", "23:00"], "sun": null}'
-              className="ef-input resize-none font-mono text-sm"
+          <label className="flex items-center gap-2 mt-4 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={formData.isFeatured}
+              onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+              className="w-4 h-4"
             />
+            Featured
+          </label>
+        </div>
+
+        {/* Image */}
+        <div id="image" className="ef-panel admin-form-section admin-form-wide">
+          <div className="flex items-center gap-2 mb-4">
+            <Upload size={20} className="text-primary" />
+            <h2 className="text-xl font-semibold text-primary">Image</h2>
+          </div>
+          <div className="space-y-3">
+            <input
+              type="file"
+              accept="image/*"
+              aria-label="Upload hero image"
+              onChange={handleImageUpload}
+              disabled={uploading}
+              className="ef-input !p-4 file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:font-semibold file:text-on-primary hover:file:bg-primary-hover disabled:opacity-50"
+            />
+            {uploading && <div className="text-sm text-text-secondary">Uploading...</div>}
+            {formData.image && (
+              <div className="max-w-xs aspect-[16/9] overflow-hidden rounded-lg border border-border">
+                {/* Opaque URL from lib/storage saveImage(); never reconstructed. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={formData.image} alt="Preview" className="h-full w-full object-cover" />
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Location */}
+        <div id="location" className="ef-panel admin-form-section admin-form-wide">
+          <h2 className="text-xl font-semibold text-primary mb-4">Location & opening hours</h2>
+          <p className="admin-form-hint">
+            Optional coordinates and the restaurant’s weekly schedule.
+          </p>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="lat" className="ef-field-label">
+                  Latitude
+                </label>
+                <input
+                  id="lat"
+                  type="number"
+                  step="any"
+                  value={formData.lat}
+                  onChange={(e) => setFormData({ ...formData, lat: e.target.value })}
+                  className="ef-input"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="lng" className="ef-field-label">
+                  Longitude
+                </label>
+                <input
+                  id="lng"
+                  type="number"
+                  step="any"
+                  value={formData.lng}
+                  onChange={(e) => setFormData({ ...formData, lng: e.target.value })}
+                  className="ef-input"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="openHours" className="ef-field-label">
+                Open Hours (JSON)
+              </label>
+              <textarea
+                id="openHours"
+                value={formData.openHours}
+                onChange={(e) => setFormData({ ...formData, openHours: e.target.value })}
+                rows={9}
+                placeholder='{"mon": ["09:00", "23:00"], "sun": null}'
+                className="ef-input resize-none font-mono text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Photo gallery */}
+        {restaurant?.id && (
+          <PhotoGalleryManager
+            restaurantId={restaurant.id}
+            restaurantName={formData.name}
+            onSetHero={(url) => setFormData((f) => ({ ...f, image: url }))}
+          />
+        )}
       </div>
-
-      {/* Photo gallery */}
-      {restaurant?.id && (
-        <PhotoGalleryManager
-          restaurantId={restaurant.id}
-          restaurantName={formData.name}
-          onSetHero={(url) => setFormData((f) => ({ ...f, image: url }))}
-        />
-      )}
-
       {/* Actions */}
-      <div className="flex justify-end gap-4 pt-4 border-t border-border">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="ef-btn ef-btn--ghost"
-        >
+      <div className="admin-form-actions">
+        <span className="mr-auto hidden text-xs text-text-secondary sm:block">
+          Review your changes before saving.
+        </span>
+        <button type="button" onClick={onCancel} className="ef-btn ef-btn--ghost">
           Cancel
         </button>
-        <button
-          type="submit"
-          disabled={saving}
-          className="ef-btn ef-btn--primary"
-        >
+        <button type="submit" disabled={saving} className="ef-btn ef-btn--primary">
           <Save size={20} />
           {saving ? 'Saving...' : 'Save Restaurant'}
         </button>

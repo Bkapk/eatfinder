@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Utensils } from 'lucide-react'
+import { UtensilsCrossed, ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -39,61 +40,95 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Utensils size={32} className="text-primary" />
-            <h1 className="text-[26px] font-extrabold tracking-tight text-text">EatFinder Admin</h1>
+    <div className="admin-login">
+      <div className="grid w-full max-w-4xl overflow-hidden rounded-3xl border border-border bg-surface shadow-md md:grid-cols-2">
+        <aside className="relative hidden flex-col justify-between overflow-hidden bg-primary p-10 text-on-primary md:flex">
+          <div className="flex items-center gap-3 text-lg font-extrabold">
+            <UtensilsCrossed size={24} aria-hidden />
+            EatFinder.
           </div>
-          <p className="text-text-secondary">Sign in to manage restaurants</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="ef-panel space-y-4">
-          {error && (
-            <div role="alert" className="px-4 py-3 bg-error-soft border border-error rounded text-error text-sm">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="username" className="ef-field-label">
-              Username
-            </label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="ef-input"
-              required
-              autoComplete="username"
-            />
+          <div className="py-16">
+            <p className="mb-4 text-xs font-semibold uppercase tracking-widest">
+              Behind every great discovery
+            </p>
+            <h2 className="text-4xl font-extrabold leading-tight tracking-tight">
+              A city full of flavor.
+              <br />
+              Curated by you.
+            </h2>
+            <p className="mt-6 text-sm leading-relaxed">
+              Your workspace for the places, people, and photos that make EatFinder.
+            </p>
           </div>
-
-          <div>
-            <label htmlFor="password" className="ef-field-label">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="ef-input"
-              required
-              autoComplete="current-password"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="ef-btn ef-btn--primary w-full"
+          <p className="text-xs">Prishtina, one restaurant at a time.</p>
+        </aside>
+        <div className="p-6 sm:p-10">
+          <Link
+            href="/"
+            className="mb-10 inline-flex items-center gap-2 text-xs font-semibold text-text-secondary hover:text-primary"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+            <ArrowLeft size={15} aria-hidden />
+            Back to EatFinder
+          </Link>
+          <div className="mb-8">
+            <div className="mb-3">
+              <span className="mb-5 grid h-11 w-11 place-items-center rounded-xl bg-primary-soft text-primary">
+                <ShieldCheck size={23} aria-hidden />
+              </span>
+              <h1 className="text-[26px] font-extrabold tracking-tight text-text">Welcome back</h1>
+            </div>
+            <p className="text-text-secondary">Sign in to your admin workspace.</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5" aria-busy={loading}>
+            {error && (
+              <div
+                role="alert"
+                className="px-4 py-3 bg-error-soft border border-error rounded text-error text-sm"
+              >
+                {error}
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="username" className="ef-field-label">
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="ef-input h-12"
+                required
+                autoComplete="username"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="ef-field-label">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="ef-input"
+                required
+                autoComplete="current-password"
+              />
+            </div>
+
+            <button type="submit" disabled={loading} className="ef-btn ef-btn--primary h-12 w-full">
+              {loading ? 'Signing in...' : 'Sign in'}
+              <ArrowRight size={16} aria-hidden />
+            </button>
+          </form>
+          <p className="mt-6 text-center text-xs text-text-secondary">
+            Restaurant management · Admin access
+          </p>
+        </div>
       </div>
     </div>
   )

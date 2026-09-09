@@ -35,7 +35,9 @@ export default function ResultsPane({
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
         <p className="text-[16px] font-extrabold text-text">{t(locale, 'results.error.title')}</p>
-        <p className="max-w-xs text-[14px] text-text-secondary">{t(locale, 'results.error.body')}</p>
+        <p className="max-w-xs text-[14px] text-text-secondary">
+          {t(locale, 'results.error.body')}
+        </p>
         <button type="button" onClick={onRetry} className="ef-pill ef-pill--active mt-1">
           {t(locale, 'results.error.retry')}
         </button>
@@ -48,7 +50,9 @@ export default function ResultsPane({
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
         <SearchX size={28} aria-hidden className="text-text-secondary" />
         <p className="text-[16px] font-extrabold text-text">{t(locale, 'results.empty.title')}</p>
-        <p className="max-w-xs text-[14px] text-text-secondary">{t(locale, 'results.empty.body')}</p>
+        <p className="max-w-xs text-[14px] text-text-secondary">
+          {t(locale, 'results.empty.body')}
+        </p>
         <button type="button" onClick={onClearAll} className="ef-pill mt-1">
           {t(locale, 'results.empty.reset')}
         </button>
@@ -59,14 +63,8 @@ export default function ResultsPane({
   return (
     // pb-24 below md: the floating map/list pill is fixed at bottom-5 and
     // centred, exactly over "Load more" and the last row's bottom edge.
-    <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-24 pt-4 sm:px-5 md:pb-4">
-      <ul
-        className={
-          view === 'list'
-            ? 'flex flex-col gap-3'
-            : 'grid grid-cols-2 gap-3 sm:gap-4 2xl:grid-cols-3'
-        }
-      >
+    <div className="ef-results-container flex-1 overflow-y-auto overscroll-contain px-4 pb-24 pt-4 sm:px-5 md:pb-4">
+      <ul className={view === 'list' ? 'flex flex-col gap-3' : 'ef-results-grid'}>
         {items.map((item) => (
           <li key={item.id}>
             <RestaurantCard

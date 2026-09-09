@@ -1,9 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Plus, Search, ArrowUpDown, Compass } from 'lucide-react'
-import Spinner from '@/components/Spinner'
+import {
+  Plus,
+  Search,
+  ArrowUpDown,
+  Compass,
+  Store,
+  CircleCheck,
+  FilePenLine,
+  Trash2,
+  SlidersHorizontal,
+} from 'lucide-react'
+import Link from 'next/link'
+import { PageHeader, EmptyState, LoadingState, ScoreMeter } from './components/AdminUI'
 
 interface Restaurant {
   id: string
@@ -33,7 +43,6 @@ interface Restaurant {
 }
 
 export default function AdminPage() {
-  const router = useRouter()
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -122,221 +131,270 @@ export default function AdminPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-[26px] font-extrabold tracking-tight text-text">Restaurants</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => router.push('/admin/discover')}
-            className="ef-btn ef-btn--ghost"
-          >
-            <Compass size={20} />
-            Discover (Google Places)
-          </button>
-          <button
-            onClick={() => router.push('/admin/new')}
-            className="ef-btn ef-btn--primary"
-          >
-            <Plus size={20} />
-            Add Restaurant
-          </button>
-        </div>
+      <PageHeader
+        eyebrow="Your catalogue"
+        title="Restaurants"
+        description="Keep your city's food scene fresh. Manage listings, refine profiles, and make every discovery count."
+        actions={
+          <>
+            <Link href="/admin/discover" className="ef-btn ef-btn--ghost">
+              <Compass size={17} aria-hidden />
+              Discover places
+            </Link>
+            <Link href="/admin/new" className="ef-btn ef-btn--primary">
+              <Plus size={18} aria-hidden />
+              Add restaurant
+            </Link>
+          </>
+        }
+      />
+
+      <div
+        className="admin-stats"
+        aria-label={search ? 'Search result summary' : 'Catalogue summary'}
+      >
+        {[
+          {
+            label: search ? 'Matching restaurants' : 'Total restaurants',
+            count: restaurants.length,
+            icon: Store,
+            color: 'bg-primary-soft text-primary',
+          },
+          {
+            label: search ? 'Matching live listings' : 'Live on EatFinder',
+            count: restaurants.filter((r) => r.isActive).length,
+            icon: CircleCheck,
+            color: 'bg-success-soft text-success',
+          },
+          {
+            label: search ? 'Matching drafts' : 'Draft listings',
+            count: restaurants.filter((r) => !r.isActive).length,
+            icon: FilePenLine,
+            color: 'bg-warning-soft text-warning',
+          },
+        ].map(({ label, count, icon: Icon, color }) => (
+          <div className="admin-stat" key={label}>
+            <span className={'grid h-11 w-11 shrink-0 place-items-center rounded-xl ' + color}>
+              <Icon size={21} aria-hidden />
+            </span>
+            <div>
+              <p className="text-xs font-medium text-text-secondary">{label}</p>
+              <p className="mt-1 text-2xl font-extrabold tracking-tight tabular-nums">
+                {loading ? '—' : count}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary" size={20} />
+      <div className="admin-toolbar">
+        <div className="relative flex-1">
+          <Search
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary"
+            size={18}
+            aria-hidden
+          />
           <input
-            type="text"
-            placeholder="Search by name, cuisine, or neighborhood..."
+            type="search"
+            aria-label="Search restaurants"
+            placeholder="Search name, cuisine, or neighborhood…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-surface border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            className="ef-input pl-11"
           />
         </div>
         <div className="flex gap-2">
-          <label className="flex items-center">
-            <span className="sr-only">Filter by status</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'live' | 'draft')}
-              className="ef-input"
-            >
-              <option value="all">All</option>
-              <option value="live">Live only</option>
-              <option value="draft">Drafts only</option>
-            </select>
-          </label>
-          <label className="flex items-center">
-            <span className="sr-only">Sort by</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="ef-input"
-            >
-              <option value="updatedAt">Last Updated</option>
-              <option value="name">Name</option>
-              <option value="heaviness">Heaviness</option>
-              <option value="portionSize">Portion Size</option>
-              <option value="fineDining">Fine Dining</option>
-            </select>
-          </label>
+          <select
+            aria-label="Filter by status"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'live' | 'draft')}
+            className="ef-input flex-1 sm:w-auto"
+          >
+            <option value="all">All statuses</option>
+            <option value="live">Live only</option>
+            <option value="draft">Drafts only</option>
+          </select>
+          <select
+            aria-label="Sort by"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="ef-input flex-1 sm:w-auto"
+          >
+            <option value="updatedAt">Last updated</option>
+            <option value="name">Name</option>
+            <option value="heaviness">Heaviness</option>
+            <option value="portionSize">Portion size</option>
+            <option value="fineDining">Fine dining</option>
+          </select>
           <button
             onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            className="px-3 py-2 bg-surface border border-border rounded-lg hover:bg-surface-hover transition-colors"
+            className="admin-icon-button !h-11 !w-11"
+            aria-label={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
             title={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
           >
-            <ArrowUpDown size={20} className={sortOrder === 'desc' ? 'rotate-180' : ''} />
+            <ArrowUpDown size={17} aria-hidden />
           </button>
         </div>
       </div>
 
-      {/* Content */}
       {loading ? (
-        <div className="text-center py-12">
-          <Spinner size={32} label="Loading restaurants" />
-          <p className="mt-4 text-text-secondary">Loading restaurants...</p>
-        </div>
+        <LoadingState label="Loading restaurants" />
       ) : visibleRestaurants.length === 0 ? (
-        <div className="text-center py-12 bg-surface border border-border rounded-lg">
-          <p className="text-text-secondary mb-4">No restaurants found.</p>
-          <button
-            onClick={() => router.push('/admin/new')}
-            className="ef-btn ef-btn--primary"
-          >
-            Add Your First Restaurant
-          </button>
-        </div>
+        <EmptyState
+          icon={Store}
+          title={
+            search || statusFilter !== 'all'
+              ? 'No matching restaurants'
+              : 'Your catalogue starts here'
+          }
+          description={
+            search || statusFilter !== 'all'
+              ? 'Try another search or status filter to find the listing you need.'
+              : 'Add your first restaurant or discover local places to start building your catalogue.'
+          }
+        >
+          {search || statusFilter !== 'all' ? (
+            <button
+              onClick={() => {
+                setSearch('')
+                setStatusFilter('all')
+              }}
+              className="ef-btn ef-btn--ghost"
+            >
+              Clear filters
+            </button>
+          ) : (
+            <Link href="/admin/new" className="ef-btn ef-btn--primary">
+              <Plus size={17} aria-hidden />
+              Add restaurant
+            </Link>
+          )}
+        </EmptyState>
       ) : (
-        <div className="bg-surface border border-border rounded-lg overflow-hidden">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+          <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
+            <h2 className="text-sm font-bold">Restaurant directory</h2>
+            <span className="text-xs text-text-secondary">
+              {visibleRestaurants.length} listing{visibleRestaurants.length === 1 ? '' : 's'}
+            </span>
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-surface-hover border-b border-border">
+            <table className="admin-table">
+              <caption className="sr-only">
+                Restaurant listings and profile scores from 0 to 100
+              </caption>
+              <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Name</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Heaviness</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Portion</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Fine Dining</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Price</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Cuisines</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Status</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Source</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Actions</th>
+                  <th scope="col">Restaurant</th>
+                  <th scope="col">Profile · 0–100</th>
+                  <th scope="col">Price</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody>
                 {visibleRestaurants.map((restaurant) => (
-                  <tr key={restaurant.id} className="hover:bg-surface-hover transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{restaurant.name}</div>
-                      {restaurant.neighborhood && (
-                        <div className="text-xs text-text-secondary mt-1">
-                          {restaurant.neighborhood}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editingId === restaurant.id ? (
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={editingValues.heaviness}
-                          onChange={(e) =>
-                            setEditingValues({
-                              ...editingValues,
-                              heaviness: Number(e.target.value),
-                            })
-                          }
-                          className="ef-input w-16 px-2 py-1"
-                        />
-                      ) : (
-                        restaurant.heaviness
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editingId === restaurant.id ? (
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={editingValues.portionSize}
-                          onChange={(e) =>
-                            setEditingValues({
-                              ...editingValues,
-                              portionSize: Number(e.target.value),
-                            })
-                          }
-                          className="ef-input w-16 px-2 py-1"
-                        />
-                      ) : (
-                        restaurant.portionSize
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editingId === restaurant.id ? (
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={editingValues.fineDining}
-                          onChange={(e) =>
-                            setEditingValues({
-                              ...editingValues,
-                              fineDining: Number(e.target.value),
-                            })
-                          }
-                          className="ef-input w-16 px-2 py-1"
-                        />
-                      ) : (
-                        restaurant.fineDining
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-primary font-semibold">
-                      {'$'.repeat(restaurant.priceLevel)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {restaurant.cuisines.slice(0, 2).map((c) => (
-                          <span
-                            key={c}
-                            className="text-xs px-2 py-1 bg-surface-hover rounded-full text-text-secondary"
+                  <tr key={restaurant.id}>
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-surface-muted text-primary">
+                          {restaurant.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={restaurant.image}
+                              alt=""
+                              loading="lazy"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <Store size={20} aria-hidden />
+                          )}
+                        </span>
+                        <div className="min-w-0">
+                          <Link
+                            href={'/admin/' + restaurant.id}
+                            className="block font-bold leading-snug hover:text-primary"
                           >
-                            {c}
-                          </span>
-                        ))}
-                        {restaurant.cuisines.length > 2 && (
-                          <span className="text-xs text-text-secondary">
-                            +{restaurant.cuisines.length - 2}
-                          </span>
+                            {restaurant.name}
+                          </Link>
+                          <p className="mt-1 text-xs text-text-secondary">
+                            {restaurant.neighborhood || 'No neighborhood'}
+                          </p>
+                          <p className="mt-1 text-xs text-text-secondary">
+                            {restaurant.cuisines.slice(0, 2).join(' · ')}
+                            {restaurant.cuisines.length > 2 &&
+                              ' +' + (restaurant.cuisines.length - 2)}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td data-label="Profile">
+                      <div className="flex flex-wrap gap-x-4 gap-y-2 md:flex-col">
+                        {(['heaviness', 'portionSize', 'fineDining'] as const).map(
+                          (axis, index) => (
+                            <label
+                              key={axis}
+                              className="flex items-center justify-between gap-3 text-xs text-text-secondary"
+                            >
+                              <span>{['Heaviness', 'Portion', 'Fine dining'][index]}</span>
+                              {editingId === restaurant.id ? (
+                                <input
+                                  aria-label={restaurant.name + ' ' + axis}
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={editingValues[axis]}
+                                  onChange={(e) =>
+                                    setEditingValues({
+                                      ...editingValues,
+                                      [axis]: Number(e.target.value),
+                                    })
+                                  }
+                                  className="ef-input !min-h-8 w-16 px-2 py-1"
+                                />
+                              ) : (
+                                <ScoreMeter value={restaurant[axis]} />
+                              )}
+                            </label>
+                          )
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1 items-start">
+                    <td data-label="Price">
+                      <span className="font-bold tracking-wider">
+                        {'$'.repeat(restaurant.priceLevel)}
+                      </span>
+                    </td>
+                    <td data-label="Status">
+                      <div className="flex flex-col items-start gap-2">
                         <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            restaurant.isActive
+                          className={
+                            'admin-badge ' +
+                            (restaurant.isActive
                               ? 'bg-success-soft text-success'
-                              : 'bg-surface-hover text-text-secondary border border-border'
-                          }`}
+                              : 'bg-warning-soft text-warning')
+                          }
                         >
+                          <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
                           {restaurant.isActive ? 'Live' : 'Draft'}
                         </span>
+                        <span className="text-xs capitalize text-text-secondary">
+                          {restaurant.source}
+                        </span>
                         {restaurant.aiStatus && restaurant.aiStatus !== 'none' && (
-                          <span className="text-xs text-text-secondary">AI: {restaurant.aiStatus}</span>
+                          <span className="text-[11px] text-text-secondary">
+                            AI: {restaurant.aiStatus}
+                          </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-text-secondary capitalize">{restaurant.source}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
+                    <td>
+                      <div className="flex flex-wrap gap-2">
                         {editingId === restaurant.id ? (
                           <>
                             <button
                               onClick={() => handleSaveEdit(restaurant.id)}
-                              className="px-3 py-1 bg-success text-on-primary hover:bg-success-hover rounded text-sm transition-colors"
+                              className="ef-btn ef-btn--primary"
                             >
                               Save
                             </button>
@@ -349,23 +407,24 @@ export default function AdminPage() {
                           </>
                         ) : (
                           <>
+                            <Link href={'/admin/' + restaurant.id} className="ef-btn ef-btn--ghost">
+                              Edit details
+                            </Link>
                             <button
                               onClick={() => handleEdit(restaurant)}
-                              className="ef-btn ef-btn--primary"
+                              className="admin-icon-button"
+                              aria-label={'Quick edit scores for ' + restaurant.name}
+                              title="Quick edit scores"
                             >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => router.push(`/admin/${restaurant.id}`)}
-                              className="ef-btn ef-btn--ghost"
-                            >
-                              View
+                              <SlidersHorizontal size={16} aria-hidden />
                             </button>
                             <button
                               onClick={() => handleDelete(restaurant.id)}
-                              className="px-3 py-1 bg-error/20 hover:bg-error/30 text-error rounded text-sm transition-colors"
+                              className="admin-icon-button hover:!bg-error-soft hover:!text-error"
+                              aria-label={'Delete ' + restaurant.name}
+                              title="Delete restaurant"
                             >
-                              Delete
+                              <Trash2 size={16} aria-hidden />
                             </button>
                           </>
                         )}

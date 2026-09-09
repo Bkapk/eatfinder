@@ -17,7 +17,11 @@ interface PhotoGalleryManagerProps {
  * ownership. Until that phase lands this degrades to a clear "not available
  * yet" message instead of crashing the form — see 404 handling below.
  */
-export default function PhotoGalleryManager({ restaurantId, restaurantName, onSetHero }: PhotoGalleryManagerProps) {
+export default function PhotoGalleryManager({
+  restaurantId,
+  restaurantName,
+  onSetHero,
+}: PhotoGalleryManagerProps) {
   const [photos, setPhotos] = useState<RestaurantPhotoDTO[] | null>(null)
   const [unavailable, setUnavailable] = useState(false)
   const [error, setError] = useState('')
@@ -63,7 +67,7 @@ export default function PhotoGalleryManager({ restaurantId, restaurantName, onSe
   }
 
   return (
-    <div className="ef-panel">
+    <div className="ef-panel admin-form-wide">
       <div className="flex items-center gap-2 mb-4">
         <ImageIcon size={20} className="text-primary" />
         <h2 className="text-xl font-semibold text-primary">Photo Gallery</h2>
@@ -71,17 +75,20 @@ export default function PhotoGalleryManager({ restaurantId, restaurantName, onSe
 
       {unavailable && (
         <p className="text-sm text-text-secondary">
-          Photo management isn&apos;t available yet — it ships with the community photo moderation queue.
+          Photo management isn&apos;t available yet — it ships with the community photo moderation
+          queue.
         </p>
       )}
       {error && <p className="text-sm text-error mb-3">{error}</p>}
 
       {photos && photos.length === 0 && !unavailable && (
-        <p className="text-sm text-text-secondary">No gallery photos yet.</p>
+        <p className="rounded-xl border border-dashed border-border-control bg-background p-8 text-center text-sm text-text-secondary">
+          No gallery photos yet.
+        </p>
       )}
 
       {photos && photos.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {photos.map((photo) => (
             <div key={photo.id} className="space-y-2">
               {/* Opaque URL from the database (local disk today, R2 next), so it
@@ -112,7 +119,8 @@ export default function PhotoGalleryManager({ restaurantId, restaurantName, onSe
                   onClick={() => deletePhoto(photo.id)}
                   disabled={busyId === photo.id}
                   title="Delete photo"
-                  className="grid min-h-[24px] min-w-[24px] place-items-center rounded border border-border bg-surface-hover text-xs transition-colors hover:bg-error/20 hover:text-error disabled:opacity-50"
+                  aria-label="Delete gallery photo"
+                  className="admin-icon-button hover:!bg-error-soft hover:!text-error"
                 >
                   <Trash2 size={12} />
                 </button>

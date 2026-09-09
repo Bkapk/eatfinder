@@ -53,7 +53,11 @@ export default function AccountView({ locale }: { locale: Locale }) {
   }
 
   if (loading) {
-    return <p className="text-[14px] text-text-secondary">{t(locale, 'account.loading')}</p>
+    return (
+      <p className="rounded-xl bg-background px-4 py-8 text-center text-[14px] text-text-secondary">
+        {t(locale, 'account.loading')}
+      </p>
+    )
   }
 
   if (!me) {
@@ -69,9 +73,11 @@ export default function AccountView({ locale }: { locale: Locale }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex items-center justify-between">
+      <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface p-5">
         <div>
-          <h1 className="text-[22px] font-extrabold tracking-tight text-text">{t(locale, 'account.title')}</h1>
+          <h1 className="text-[22px] font-extrabold tracking-tight text-text">
+            {t(locale, 'account.title')}
+          </h1>
           <p className="text-[13px] text-text-secondary">
             {t(locale, 'account.signedInAs', { name: me.displayName || me.username })}
           </p>
@@ -81,12 +87,14 @@ export default function AccountView({ locale }: { locale: Locale }) {
         </button>
       </header>
 
-      <section>
+      <section className="ef-panel">
         <h2 className="ef-label mb-3">{t(locale, 'account.favorites.title')}</h2>
         {favorites.length === 0 ? (
-          <p className="text-[14px] text-text-secondary">{t(locale, 'account.favorites.empty')}</p>
+          <p className="rounded-xl bg-background px-4 py-8 text-center text-[14px] text-text-secondary">
+            {t(locale, 'account.favorites.empty')}
+          </p>
         ) : (
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 sm:grid-cols-3">
             {favorites.map((r) => (
               <li key={r.id}>
                 <Link href={`/r/${r.slug}`} className="ef-card block overflow-hidden">
@@ -115,12 +123,14 @@ export default function AccountView({ locale }: { locale: Locale }) {
         )}
       </section>
 
-      <section>
+      <section className="ef-panel">
         <h2 className="ef-label mb-3">{t(locale, 'account.photos.title')}</h2>
         {photos.length === 0 ? (
-          <p className="text-[14px] text-text-secondary">{t(locale, 'account.photos.empty')}</p>
+          <p className="rounded-xl bg-background px-4 py-8 text-center text-[14px] text-text-secondary">
+            {t(locale, 'account.photos.empty')}
+          </p>
         ) : (
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 sm:grid-cols-3">
             {photos.map((p) => (
               <li key={p.id} className="ef-card overflow-hidden">
                 <Link href={`/r/${p.restaurantSlug}`}>
@@ -160,5 +170,9 @@ function PhotoStatusBadge({ status, locale }: { status: string; locale: Locale }
       : status === 'rejected'
         ? 'bg-error-soft text-error'
         : 'bg-primary-soft text-primary'
-  return <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-semibold ${cls}`}>{t(locale, key)}</span>
+  return (
+    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-semibold ${cls}`}>
+      {t(locale, key)}
+    </span>
+  )
 }

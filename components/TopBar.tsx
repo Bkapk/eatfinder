@@ -51,7 +51,7 @@ export default function TopBar({
 
       {children}
 
-      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
         <Link
           href={`${pathname}?${toggleParams.toString()}`}
           className="ef-pill"
@@ -78,10 +78,7 @@ export default function TopBar({
         >
           {t(locale, 'nav.signIn')}
         </Link>
-        <Link
-          href="/account/register"
-          className="ef-pill ef-pill--active hidden sm:inline-flex"
-        >
+        <Link href="/account/register" className="ef-pill ef-pill--active hidden sm:inline-flex">
           {t(locale, 'nav.register')}
         </Link>
       </div>

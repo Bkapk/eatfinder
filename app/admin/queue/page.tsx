@@ -2,9 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Check, X, AlertTriangle } from 'lucide-react'
+import { Check, X, AlertTriangle, Sparkles } from 'lucide-react'
 import { CUISINE_VOCAB, TAG_VOCAB, type RestaurantDTO } from '@/lib/types'
-import { flattenScoringResult, type RestaurantScoringResult, type RestaurantProposalFields } from '@/lib/aiSchemas'
+import {
+  flattenScoringResult,
+  type RestaurantScoringResult,
+  type RestaurantProposalFields,
+} from '@/lib/aiSchemas'
 
 interface Proposal {
   id: string
@@ -18,6 +22,8 @@ interface Proposal {
   overallConfidence: number | null
   createdAt: string
 }
+
+import { PageHeader, EmptyState, LoadingState } from '../components/AdminUI'
 
 const STATUS_TABS = ['pending', 'approved', 'rejected', 'failed'] as const
 
@@ -106,27 +112,28 @@ export default function QueuePage() {
 
   return (
     <div>
-      <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-[26px] font-extrabold tracking-tight text-text">AI Review Queue</h1>
-        {status === 'pending' && proposals.length > 0 && (
-          <button
-            onClick={approveAll}
-            className="ef-btn ef-btn--primary"
-          >
-            Approve All
-          </button>
-        )}
-      </div>
+      <PageHeader
+        eyebrow="Content review"
+        title="AI review queue"
+        description="Review suggested profiles with confidence. Refine the details before they reach your catalogue."
+        actions={
+          <>
+            {status === 'pending' && proposals.length > 0 && (
+              <button onClick={approveAll} className="ef-btn ef-btn--primary">
+                Approve All
+              </button>
+            )}
+          </>
+        }
+      />
 
-      <div role="group" aria-label="Filter" className="ef-scroll-fade -mx-1 mb-6 flex gap-2 overflow-x-auto px-1 pb-1">
+      <div role="group" aria-label="Filter" className="admin-tabs">
         {STATUS_TABS.map((s) => (
           <button
             key={s}
             onClick={() => setStatus(s)}
             aria-pressed={status === s}
-            className={`shrink-0 px-3 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
-              status === s ? 'bg-primary text-on-primary' : 'bg-surface-hover text-text-secondary hover:text-text'
-            }`}
+            className="admin-tab"
           >
             {s}
           </button>
@@ -134,13 +141,26 @@ export default function QueuePage() {
       </div>
 
       {error && (
-        <div role="alert" className="px-4 py-3 mb-6 bg-error-soft border border-error rounded-lg text-error">{error}</div>
+        <div
+          role="alert"
+          className="px-4 py-3 mb-6 bg-error-soft border border-error rounded-lg text-error"
+        >
+          {error}
+        </div>
       )}
 
       {loading ? (
-        <div role="status" className="text-text-secondary">Loading...</div>
+        <LoadingState label="Loading review queue" />
       ) : proposals.length === 0 ? (
-        <div className="text-text-secondary">No {status} proposals.</div>
+        <EmptyState
+          icon={Sparkles}
+          title={status === 'pending' ? 'All caught up' : `No ${status} proposals`}
+          description={
+            status === 'pending'
+              ? 'New AI suggestions will appear here. Open a restaurant and choose “Ask AI” to request a profile review.'
+              : 'Proposals with this status will appear here after review.'
+          }
+        />
       ) : (
         <div className="space-y-6">
           {proposals.map((p) => (
@@ -213,14 +233,18 @@ function ProposalCard({
   if (!payload) return null
 
   return (
-    <div className="ef-panel">
-      <div className="flex items-center justify-between mb-4">
+    <div className="ef-panel admin-proposal">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-5 mb-5">
         <div>
-          <Link href={`/admin/${restaurant.id}`} className="text-lg font-semibold text-primary hover:underline">
+          <Link
+            href={`/admin/${restaurant.id}`}
+            className="text-lg font-semibold text-primary hover:underline"
+          >
             {restaurant.name}
           </Link>
           <div className="text-xs text-text-secondary">
-            {proposal.model} · overall confidence {Math.round((proposal.overallConfidence ?? 0) * 100)}%
+            {proposal.model} · overall confidence{' '}
+            {Math.round((proposal.overallConfidence ?? 0) * 100)}%
           </div>
         </div>
         {lowSignal && (
@@ -230,7 +254,7 @@ function ProposalCard({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-4 mb-4">
         <AxisField
           id={`${proposal.id}-heaviness`}
           label="Heaviness"
@@ -267,8 +291,15 @@ function ProposalCard({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
-          <FieldLabel htmlFor={`${proposal.id}-priceLevel`} label="Price Level" confidence={payload.priceLevel.confidence} rationale={payload.priceLevel.rationale} />
-          <div className="text-xs text-text-secondary mb-1">Current: {'$'.repeat(restaurant.priceLevel)}</div>
+          <FieldLabel
+            htmlFor={`${proposal.id}-priceLevel`}
+            label="Price Level"
+            confidence={payload.priceLevel.confidence}
+            rationale={payload.priceLevel.rationale}
+          />
+          <div className="text-xs text-text-secondary mb-1">
+            Current: {'$'.repeat(restaurant.priceLevel)}
+          </div>
           <select
             id={`${proposal.id}-priceLevel`}
             value={fields.priceLevel}
@@ -284,8 +315,15 @@ function ProposalCard({
         </div>
 
         <div>
-          <FieldLabel htmlFor={`${proposal.id}-neighborhood`} label="Neighborhood" confidence={payload.neighborhood.confidence} rationale={payload.neighborhood.rationale} />
-          <div className="text-xs text-text-secondary mb-1">Current: {restaurant.neighborhood || '(none)'}</div>
+          <FieldLabel
+            htmlFor={`${proposal.id}-neighborhood`}
+            label="Neighborhood"
+            confidence={payload.neighborhood.confidence}
+            rationale={payload.neighborhood.rationale}
+          />
+          <div className="text-xs text-text-secondary mb-1">
+            Current: {restaurant.neighborhood || '(none)'}
+          </div>
           <input
             id={`${proposal.id}-neighborhood`}
             type="text"
@@ -297,20 +335,47 @@ function ProposalCard({
       </div>
 
       <div className="mb-4">
-        <FieldLabel label="Cuisines" confidence={payload.cuisines.confidence} rationale={payload.cuisines.rationale} />
-        <div className="text-xs text-text-secondary mb-1">Current: {restaurant.cuisines.join(', ') || '(none)'}</div>
-        <VocabPicker vocab={CUISINE_VOCAB} selected={fields.cuisines} onChange={(v) => setFields((f) => ({ ...f, cuisines: v }))} />
+        <FieldLabel
+          label="Cuisines"
+          confidence={payload.cuisines.confidence}
+          rationale={payload.cuisines.rationale}
+        />
+        <div className="text-xs text-text-secondary mb-1">
+          Current: {restaurant.cuisines.join(', ') || '(none)'}
+        </div>
+        <VocabPicker
+          vocab={CUISINE_VOCAB}
+          selected={fields.cuisines}
+          onChange={(v) => setFields((f) => ({ ...f, cuisines: v }))}
+        />
       </div>
 
       <div className="mb-4">
-        <FieldLabel label="Tags" confidence={payload.tags.confidence} rationale={payload.tags.rationale} />
-        <div className="text-xs text-text-secondary mb-1">Current: {restaurant.tags.join(', ') || '(none)'}</div>
-        <VocabPicker vocab={TAG_VOCAB} selected={fields.tags} onChange={(v) => setFields((f) => ({ ...f, tags: v }))} />
+        <FieldLabel
+          label="Tags"
+          confidence={payload.tags.confidence}
+          rationale={payload.tags.rationale}
+        />
+        <div className="text-xs text-text-secondary mb-1">
+          Current: {restaurant.tags.join(', ') || '(none)'}
+        </div>
+        <VocabPicker
+          vocab={TAG_VOCAB}
+          selected={fields.tags}
+          onChange={(v) => setFields((f) => ({ ...f, tags: v }))}
+        />
       </div>
 
       <div className="mb-4">
-        <FieldLabel htmlFor={`${proposal.id}-description`} label="Description (Albanian)" confidence={payload.description.confidence} rationale={payload.description.rationale} />
-        <div className="text-xs text-text-secondary mb-1">Current: {restaurant.description || '(none)'}</div>
+        <FieldLabel
+          htmlFor={`${proposal.id}-description`}
+          label="Description (Albanian)"
+          confidence={payload.description.confidence}
+          rationale={payload.description.rationale}
+        />
+        <div className="text-xs text-text-secondary mb-1">
+          Current: {restaurant.description || '(none)'}
+        </div>
         <textarea
           id={`${proposal.id}-description`}
           value={fields.description}
@@ -322,11 +387,7 @@ function ProposalCard({
       </div>
 
       <div className="flex justify-end gap-3 pt-4 border-t border-border">
-        <button
-          onClick={onReject}
-          disabled={busy}
-          className="ef-btn ef-btn--ghost"
-        >
+        <button onClick={onReject} disabled={busy} className="ef-btn ef-btn--ghost">
           <X size={18} /> Reject
         </button>
         <button
@@ -368,10 +429,7 @@ function ConfidenceBar({ confidence }: { confidence: number }) {
   return (
     <span className="flex items-center gap-2 text-xs text-text-secondary">
       <span className="w-16 h-1.5 bg-border rounded-full overflow-hidden">
-        <span
-          className="block h-full bg-primary"
-          style={{ width: `${pct}%` }}
-        />
+        <span className="block h-full bg-primary" style={{ width: `${pct}%` }} />
       </span>
       {pct}%
     </span>
@@ -394,8 +452,13 @@ function AxisField({
   onChange: (v: number) => void
 }) {
   return (
-    <div>
-      <FieldLabel htmlFor={id} label={label} confidence={field.confidence} rationale={field.rationale} />
+    <div className="rounded-xl border border-border bg-background p-4">
+      <FieldLabel
+        htmlFor={id}
+        label={label}
+        confidence={field.confidence}
+        rationale={field.rationale}
+      />
       <div className="text-xs text-text-secondary mb-1">
         Current: {current} · Proposed: {field.value}
       </div>
@@ -434,6 +497,7 @@ function VocabPicker({
           key={v}
           type="button"
           onClick={() => toggle(v)}
+          aria-pressed={selected.includes(v)}
           className={`min-h-[24px] px-2 py-1 text-xs rounded-full border transition-colors ${
             selected.includes(v)
               ? 'bg-primary text-on-primary border-primary'

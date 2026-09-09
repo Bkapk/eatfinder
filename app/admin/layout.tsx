@@ -3,8 +3,19 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Compass, Images, LayoutList, LogOut, Sparkles, Store, Utensils } from 'lucide-react'
+import {
+  ArrowUpRight,
+  ChevronRight,
+  Compass,
+  Images,
+  LayoutList,
+  LogOut,
+  Sparkles,
+  Store,
+  UtensilsCrossed,
+} from 'lucide-react'
 import Spinner from '@/components/Spinner'
+import './admin.css'
 
 /**
  * Every admin surface, in one list. /admin/discover, /admin/queue and
@@ -19,39 +30,33 @@ const NAV = [
   { href: '/admin/import', label: 'Import/Export', icon: LayoutList },
 ] as const
 
-function NavLink({
-  item,
-  pathname,
-}: {
-  item: (typeof NAV)[number]
-  pathname: string
-}) {
+function NavLink({ item, pathname }: { item: (typeof NAV)[number]; pathname: string }) {
   const Icon = item.icon
   // Every admin path starts with /admin, so the index needs an exact match
   // or it would light up on every page.
   const active =
-    item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href)
+    item.href === '/admin'
+      ? pathname === '/admin' ||
+        pathname === '/admin/new' ||
+        !NAV.some((n) => n.href !== '/admin' && pathname.startsWith(n.href))
+      : pathname.startsWith(item.href)
   return (
     <Link
       href={item.href}
       aria-current={active ? 'page' : undefined}
-      className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold transition-colors duration-200 ${
+      className={`admin-nav-link ${
         active
           ? 'bg-primary-soft text-primary'
           : 'text-text-secondary hover:bg-surface-hover hover:text-text'
       }`}
     >
-      <Icon size={15} aria-hidden />
+      <Icon size={18} aria-hidden />
       {item.label}
     </Link>
   )
 }
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const [user, setUser] = useState<{ username: string } | null>(null)
@@ -107,56 +112,97 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="sticky top-0 z-sticky border-b border-border bg-surface">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-6">
-              <Link
-                href="/admin"
-                className="flex shrink-0 items-center gap-2 text-[15px] font-extrabold tracking-tight text-text"
-              >
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-on-primary">
-                  <Utensils size={18} aria-hidden />
-                </span>
-                <span className="hidden sm:block">EatFinder Admin</span>
-              </Link>
-
-              <div className="hidden items-center gap-1 lg:flex">
-                {NAV.map((item) => (
-                  <NavLink key={item.href} item={item} pathname={pathname} />
-                ))}
-              </div>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2">
-              <Link href="/" className="ef-btn ef-btn--ghost hidden h-9 xl:inline-flex">
-                View site
-              </Link>
-              {user && (
-                <>
-                  <span className="hidden text-[13px] font-semibold text-text-secondary sm:block">
-                    {user.username}
-                  </span>
-                  <button onClick={handleLogout} className="ef-btn ef-btn--ghost h-9">
-                    <LogOut size={16} aria-hidden />
-                    <span className="hidden sm:inline">Logout</span>
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Below lg the nav becomes a scrollable rail rather than disappearing —
-              /admin/queue and /admin/photos were previously URL-only on any width. */}
-          <div className="ef-scroll-fade -mx-4 flex items-center gap-1 overflow-x-auto px-4 pb-2 lg:hidden">
-            {NAV.map((item) => (
-              <NavLink key={item.href} item={item} pathname={pathname} />
-            ))}
-          </div>
+    <div className="admin-shell" lang="en">
+      <a href="#admin-content" className="admin-skip">
+        Skip to content
+      </a>
+      <aside className="admin-sidebar">
+        <Link href="/admin" className="flex items-center gap-3 px-2 py-2">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-on-primary">
+            <UtensilsCrossed size={21} aria-hidden />
+          </span>
+          <span>
+            <span className="block text-lg font-extrabold tracking-tight">
+              EatFinder<span className="text-primary">.</span>
+            </span>
+            <span className="block text-[11px] font-medium text-text-secondary">
+              Admin workspace
+            </span>
+          </span>
+        </Link>
+        <p className="ef-label mb-3 mt-10 px-3">Manage</p>
+        <nav aria-label="Admin navigation" className="flex flex-col gap-1.5">
+          {NAV.map((item) => (
+            <NavLink key={item.href} item={item} pathname={pathname} />
+          ))}
+        </nav>
+        <div className="mt-auto border-t border-border pt-5">
+          <Link href="/" className="admin-nav-link text-text-secondary hover:bg-surface-hover">
+            <ArrowUpRight size={18} aria-hidden />
+            View public site
+          </Link>
+          <p className="mt-5 px-3 text-xs leading-relaxed text-text-secondary">
+            Good food. Great discoveries.
+            <br />
+            Curated in Prishtina.
+          </p>
         </div>
-      </nav>
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">{children}</main>
+      </aside>
+      <div className="admin-workspace">
+        <header className="admin-topbar">
+          <Link href="/admin" className="flex items-center gap-2 font-extrabold lg:hidden">
+            <UtensilsCrossed size={20} className="text-primary" aria-hidden />
+            EatFinder
+          </Link>
+          <div className="hidden items-center gap-2 text-xs text-text-secondary lg:flex">
+            <span>Workspace</span>
+            <ChevronRight size={13} aria-hidden />
+            <span className="font-semibold text-text">
+              {pathname === '/admin/new'
+                ? 'New restaurant'
+                : (NAV.find((n) => n.href === pathname)?.label ?? 'Restaurant details')}
+            </span>
+          </div>
+          <div className="ml-auto flex min-w-0 items-center gap-3">
+            <Link
+              href="/"
+              className="text-xs font-semibold text-text-secondary hover:text-primary lg:hidden"
+            >
+              View site
+            </Link>
+            {user && (
+              <>
+                <div className="hidden min-w-0 items-center gap-2.5 sm:flex">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-primary-soft text-xs font-bold text-primary">
+                    {user.username.slice(0, 2).toUpperCase()}
+                  </span>
+                  <span className="max-w-40 truncate text-xs font-semibold">{user.username}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="admin-icon-button"
+                  aria-label="Sign out"
+                  title="Sign out"
+                >
+                  <LogOut size={17} aria-hidden />
+                </button>
+              </>
+            )}
+          </div>
+        </header>
+        <nav aria-label="Mobile admin navigation" className="admin-mobile-nav">
+          {NAV.map((item) => (
+            <NavLink key={item.href} item={item} pathname={pathname} />
+          ))}
+        </nav>
+        <main id="admin-content" tabIndex={-1} className="admin-content">
+          {children}
+        </main>
+        <footer className="admin-footer">
+          <span>EatFinder / Admin workspace</span>
+          <span>Made for better discoveries</span>
+        </footer>
+      </div>
     </div>
   )
 }

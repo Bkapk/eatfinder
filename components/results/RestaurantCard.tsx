@@ -43,7 +43,7 @@ export default function RestaurantCard({
       onFocus={onHover ? () => onHover(item.id) : undefined}
       onBlur={onHover ? () => onHover(null) : undefined}
       className={[
-        'ef-card group relative overflow-hidden',
+        'ef-card group relative h-full overflow-hidden',
         row ? 'flex' : 'flex flex-col',
         active ? 'ring-2 ring-primary' : '',
       ].join(' ')}
@@ -51,7 +51,7 @@ export default function RestaurantCard({
       <div
         className={[
           'relative shrink-0 overflow-hidden bg-surface-muted',
-          row ? 'w-32 sm:w-40' : popup ? 'aspect-[16/9]' : 'aspect-[4/3]',
+          row ? 'w-28 sm:w-32' : popup ? 'aspect-[16/9]' : 'aspect-[3/2]',
         ].join(' ')}
       >
         {item.image ? (
@@ -121,7 +121,11 @@ export default function RestaurantCard({
           <li
             className={[
               'flex items-center gap-1',
-              item.isOpenNow === true ? 'text-success' : item.isOpenNow === false ? 'text-error' : '',
+              item.isOpenNow === true
+                ? 'text-success'
+                : item.isOpenNow === false
+                  ? 'text-error'
+                  : '',
             ].join(' ')}
           >
             <Clock size={13} aria-hidden className="shrink-0" />

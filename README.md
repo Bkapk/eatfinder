@@ -270,12 +270,10 @@ Genuinely unverified or deferred, not softened:
   first, and `db:seed` skips creating a user that already exists. Running
   `db:seed` alone against an empty database creates an admin account that
   cannot pass `requireAdmin()`.
-- **The admin area has had no design pass since the v2 rebuild.** It is still
-  the pre-rebuild dark-era markup wearing the new light-mode Tailwind tokens;
-  several buttons render at borderline contrast. `app/admin/layout.tsx`'s nav
-  also does not link to `/admin/discover`, `/admin/queue` or `/admin/photos`
-  even though all three pages exist and work — they're reachable only by
-  typing the URL.
+- **The admin visual refresh is complete.** The catalogue, forms,
+  discovery, review queues, import/export, and sign-in share a responsive
+  light dashboard layout. See `docs/VISUAL_REVIEW.md` for changes, validation,
+  and the remaining limits of live-integration verification.
 - **`CUISINE_VOCAB` / `TAG_VOCAB` in `lib/types.ts`** were seeded from
   existing data plus obvious Kosovo categories by the Phase 1 agent and have
   not been reviewed by the owner. Changing them after Gemini enrichment has
