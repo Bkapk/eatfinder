@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { aiProposalEditSchema, flattenScoringResult, restaurantScoringResultSchema } from '@/lib/aiSchemas'
+import { adminServerError } from '@/lib/apiError'
 import { z } from 'zod'
 
 const approveBodySchema = z.object({
@@ -110,7 +111,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
-    console.error('Proposal review error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return adminServerError('admin/proposals/[id]', error)
   }
 }

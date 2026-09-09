@@ -5,6 +5,7 @@ import { requireAuth } from '@/lib/auth'
 import { photoToDTO } from '@/lib/types'
 import { saveImage, UnsupportedImageError } from '@/lib/storage'
 import { moderatePhoto, decidePhotoModeration, AiDisabledError, type ModerationResult } from '@/lib/gemini'
+import { serverError } from '@/lib/apiError'
 
 const MAX_BYTES = 5 * 1024 * 1024
 const HOUR_MS = 60 * 60 * 1000
@@ -179,8 +180,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 })
     }
-    console.error('Community photo submit error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return serverError('community/photos', error)
   }
 }
 
@@ -216,7 +216,6 @@ export async function GET() {
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('Community photo list error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return serverError('community/photos', error)
   }
 }

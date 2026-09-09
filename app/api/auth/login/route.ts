@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyPassword, createSession, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth'
+import { serverError } from '@/lib/apiError'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 
@@ -68,11 +69,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, user: { id: user.id, username: user.username } })
   } catch (error) {
-    console.error('Login error:', error)
+    // Zod check first: a malformed login body is a 400, not something to log
+    // as a server fault on every bot that posts junk at this endpoint.
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 })
     }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return serverError('auth/login', error)
   }
 }
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { slugify } from '@/lib/types'
+import { adminServerError } from '@/lib/apiError'
 import { sampleRestaurants } from '@/prisma/sample-restaurants'
 
 export async function POST() {
@@ -31,8 +32,7 @@ export async function POST() {
     if (error.message === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-    console.error('Seed error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return adminServerError('restaurants/seed', error)
   }
 }
 

@@ -13,6 +13,8 @@ import {
   SlidersHorizontal,
   Eye,
   EyeOff,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import Link from 'next/link'
 import { PageHeader, EmptyState, LoadingState, ScoreMeter } from './components/AdminUI'
@@ -55,23 +57,43 @@ export default function AdminPage() {
   const [editingValues, setEditingValues] = useState<Partial<Restaurant>>({})
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkBusy, setBulkBusy] = useState(false)
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [counts, setCounts] = useState({ matching: 0, live: 0, draft: 0 })
 
+  const PAGE_SIZE = 50
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  // 250ms debounce: `search` is a server query now, and typing "pizzeria"
+  // used to fire nine full table fetches.
   useEffect(() => {
-    fetchRestaurants()
+    const t = setTimeout(fetchRestaurants, search ? 250 : 0)
+    return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, sortBy, sortOrder])
+  }, [search, sortBy, sortOrder, statusFilter, page])
+
+  // Any change to what is being listed invalidates the page number — staying on
+  // page 4 of a filter that now has one page shows an empty table.
+  useEffect(() => {
+    setPage(1)
+  }, [search, statusFilter, sortBy, sortOrder])
 
   const fetchRestaurants = async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       if (search) params.append('search', search)
+      if (statusFilter !== 'all') params.append('status', statusFilter)
       params.append('sortBy', sortBy)
       params.append('sortOrder', sortOrder)
+      params.append('page', String(page))
+      params.append('pageSize', String(PAGE_SIZE))
 
       const res = await fetch(`/api/restaurants?${params}`)
       const data = await res.json()
       setRestaurants(data.restaurants || [])
+      setTotal(data.total ?? 0)
+      setCounts(data.counts ?? { matching: 0, live: 0, draft: 0 })
     } catch (error) {
       console.error('Failed to fetch restaurants:', error)
     } finally {
@@ -79,11 +101,8 @@ export default function AdminPage() {
     }
   }
 
-  const visibleRestaurants = restaurants.filter((r) => {
-    if (statusFilter === 'live') return r.isActive
-    if (statusFilter === 'draft') return !r.isActive
-    return true
-  })
+  // The server already applied search + status; this is just the current page.
+  const visibleRestaurants = restaurants
 
   // A selection the admin can no longer see must not be acted on: searching or
   // switching the status filter would otherwise let a bulk delete hit rows that
@@ -224,19 +243,19 @@ export default function AdminPage() {
         {[
           {
             label: search ? 'Matching restaurants' : 'Total restaurants',
-            count: restaurants.length,
+            count: counts.matching,
             icon: Store,
             color: 'bg-primary-soft text-primary',
           },
           {
             label: search ? 'Matching live listings' : 'Live on EatFinder',
-            count: restaurants.filter((r) => r.isActive).length,
+            count: counts.live,
             icon: CircleCheck,
             color: 'bg-success-soft text-success',
           },
           {
             label: search ? 'Matching drafts' : 'Draft listings',
-            count: restaurants.filter((r) => !r.isActive).length,
+            count: counts.draft,
             icon: FilePenLine,
             color: 'bg-warning-soft text-warning',
           },
@@ -385,7 +404,9 @@ export default function AdminPage() {
               <>
                 <h2 className="text-sm font-bold">Restaurant directory</h2>
                 <span className="text-xs text-text-secondary">
-                  {visibleRestaurants.length} listing{visibleRestaurants.length === 1 ? '' : 's'}
+                  {total === 0
+                    ? 'No listings'
+                    : `${(page - 1) * PAGE_SIZE + 1}–${(page - 1) * PAGE_SIZE + visibleRestaurants.length} of ${total}`}
                 </span>
               </>
             )}
@@ -586,6 +607,32 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
+          {pageCount > 1 && (
+            <nav
+              className="flex items-center justify-between gap-3 border-t border-border px-5 py-4"
+              aria-label="Pagination"
+            >
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="ef-btn ef-btn--ghost disabled:opacity-40"
+              >
+                <ChevronLeft size={15} aria-hidden />
+                Previous
+              </button>
+              <span className="text-xs text-text-secondary" aria-live="polite">
+                Page {page} of {pageCount}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                disabled={page === pageCount}
+                className="ef-btn ef-btn--ghost disabled:opacity-40"
+              >
+                Next
+                <ChevronRight size={15} aria-hidden />
+              </button>
+            </nav>
+          )}
         </div>
       )}
     </div>

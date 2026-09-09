@@ -4,6 +4,7 @@ import { parseFilters } from '@/lib/filters'
 import { passesFilters, search } from '@/lib/scoring'
 import { toDTO } from '@/lib/types'
 import type { RestaurantDTO } from '@/lib/types'
+import { serverError } from '@/lib/apiError'
 import type { Facets, RecommendResponse } from '@/components/search/types'
 import { PAGE_SIZE } from '@/components/search/types'
 import { z } from 'zod'
@@ -102,10 +103,6 @@ export async function GET(request: NextRequest) {
         details: process.env.NODE_ENV === 'development' ? error.errors : undefined
       }, { status: 400 })
     }
-    console.error('Recommendation error:', error)
-    return NextResponse.json({
-      error: 'Internal server error',
-      message: process.env.NODE_ENV === 'development' ? String(error) : undefined
-    }, { status: 500 })
+    return serverError('recommend', error)
   }
 }

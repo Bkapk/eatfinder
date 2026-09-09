@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { saveImage, UnsupportedImageError } from '@/lib/storage'
+import { adminServerError } from '@/lib/apiError'
 
 const MAX_BYTES = 5 * 1024 * 1024
 
@@ -35,7 +36,6 @@ export async function POST(request: NextRequest) {
     if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
       return NextResponse.json({ error: error.message }, { status: error.message === 'Forbidden' ? 403 : 401 })
     }
-    console.error('Upload error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return adminServerError('upload', error)
   }
 }

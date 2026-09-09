@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { toDTO } from '@/lib/types'
+import { adminServerError } from '@/lib/apiError'
 
 const STATUSES = ['pending', 'approved', 'rejected', 'failed'] as const
 
@@ -49,7 +50,6 @@ export async function GET(request: NextRequest) {
     if (error.message === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-    console.error('Get proposals error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return adminServerError('admin/proposals', error)
   }
 }

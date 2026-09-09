@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { aiProposalsLastHour } from '@/lib/ratelimit'
+import { adminServerError } from '@/lib/apiError'
 import {
   scoreRestaurant,
   assertAiEnabled,
@@ -71,8 +72,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
-    console.error('AI enrich error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return adminServerError('admin/ai/enrich', error)
   }
 }
 

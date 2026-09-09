@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { parseCSV, validateCSVRow, csvRowToRestaurant, CSVImportResult } from '@/lib/csv'
+import { adminServerError } from '@/lib/apiError'
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,8 +58,7 @@ export async function POST(request: NextRequest) {
     if (error.message === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-    console.error('CSV import error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return adminServerError('restaurants/import', error)
   }
 }
 

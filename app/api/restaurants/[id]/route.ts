@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { uniqueConflictResponse } from '@/lib/apiError'
 import { requireAdmin } from '@/lib/auth'
 import { toDTO, slugify, openHoursSchema } from '@/lib/types'
 import { deleteRestaurantsWithFiles } from '@/lib/restaurants'
+import { adminServerError } from '@/lib/apiError'
 import { z } from 'zod'
 
 const restaurantSchema = z.object({
@@ -53,8 +55,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (error.message === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-    console.error('Get restaurant error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return adminServerError('restaurants/[id]', error)
   }
 }
 
@@ -97,8 +98,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
-    console.error('Update restaurant error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const conflict = uniqueConflictResponse(error)
+    if (conflict) return conflict
+    return adminServerError('restaurants/[id]', error)
   }
 }
 
@@ -123,8 +125,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (error.message === 'Forbidden') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-    console.error('Delete restaurant error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return adminServerError('restaurants/[id]', error)
   }
 }
 

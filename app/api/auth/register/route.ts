@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { createUser, createSession, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth'
 import { cookies } from 'next/headers'
 import { createMapLimiter } from '@/lib/ratelimit'
+import { serverError } from '@/lib/apiError'
 
 // role is deliberately absent from this schema — a crafted body has nowhere
 // to put it. createUser() always defaults role to 'user' below.
@@ -57,7 +58,6 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 })
     }
-    console.error('Register error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return serverError('auth/register', error)
   }
 }

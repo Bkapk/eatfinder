@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { deleteUpload } from '@/lib/storage'
+import { adminServerError } from '@/lib/apiError'
 
 const bodySchema = z.object({
   decisionNote: z.string().max(500).optional().default(''),
@@ -66,7 +67,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 })
     }
-    console.error('Photo decision error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return adminServerError('admin/photos/[id]', error)
   }
 }
