@@ -26,12 +26,36 @@ git reset --hard origin/main
 npm ci
 npx prisma migrate deploy
 
-if [ ! -L "${PROD_DIR}/public/uploads" ]; then
-  rm -rf "${PROD_DIR}/public/uploads"
-  ln -s "${PROD_DATA}/uploads" "${PROD_DIR}/public/uploads"
+# Turbopack refuses to build when public/ holds a symlink pointing out of the
+# project root, so the old public/uploads -> ${PROD_DATA}/uploads link is removed
+# here and never recreated. nginx serves /uploads/ from the volume directly;
+# the app writes there via UPLOAD_DIR, set below.
+if [ -L "${PROD_DIR}/public/uploads" ]; then
+  rm -f "${PROD_DIR}/public/uploads"
+fi
+
+# Self-healing: without this the app would silently write uploads back into the
+# checkout, where the next deploy's `git reset --hard` cannot be trusted to keep them.
+if ! grep -q '^UPLOAD_DIR=' .env 2>/dev/null; then
+  echo "UPLOAD_DIR=\"${PROD_DATA}/uploads\"" >> .env
 fi
 
 npm run build
 
 pm2 restart "${APP_NAME}" --update-env
+
+# `next start` boots happily against a missing or half-written .next and then
+# 500s on every request, which is how this site once sat dead for a day with a
+# green-looking deploy. Fail the deploy loudly instead.
+for i in $(seq 1 15); do
+  code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PROD_PORT}/" || true)
+  [ "$code" = "200" ] && break
+  sleep 2
+done
+if [ "$code" != "200" ]; then
+  echo "==> DEPLOY FAILED: ${APP_NAME} answers HTTP ${code:-000}, not 200" >&2
+  pm2 logs "${APP_NAME}" --lines 40 --nostream >&2 || true
+  exit 1
+fi
+
 echo "==> ${APP_NAME} deployed: https://${PROD_DOMAIN}"

@@ -9,7 +9,18 @@ import type { S3Client } from '@aws-sdk/client-s3'
 // Callers must treat the returned url as OPAQUE: store it and render it, never
 // parse it, prefix it, or rebuild a path from it. Routing back to the right
 // backend on delete is this module's job and nobody else's.
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads')
+// Where local uploads are written. On a server this points OUTSIDE the
+// checkout, at the persistent volume, so a reclone cannot destroy them.
+//
+// This used to be a symlink at public/uploads pointing at that volume. Next 16
+// builds with Turbopack, which walks public/ and hard-fails on a symlink
+// leaving the project root ("points out of the filesystem root"), taking the
+// whole build down. nginx already serves /uploads/ straight from the volume
+// (deploy/nginx-dev.conf), so Next never needs the files under public/ at all.
+//
+// Unset — local development — keeps the plain public/uploads directory, which
+// `next dev` serves itself.
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'public', 'uploads')
 const LOCAL_PREFIX = '/uploads/'
 
 const MIME: Record<string, string> = {
