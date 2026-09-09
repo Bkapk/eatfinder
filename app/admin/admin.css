@@ -58,6 +58,23 @@
 .admin-toolbar {
   @apply mb-5 flex flex-col gap-3 xl:flex-row;
 }
+/* Both states of the table's top bar — the "Restaurant directory" heading and
+   the bulk-action row — have to occupy the same height, or ticking one
+   checkbox swaps a 20px line of text for a 44px button and shoves the entire
+   table down the page. */
+.admin-table-bar {
+  @apply flex min-h-[68px] flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3;
+}
+/* A refetch keeps the list mounted and dims it. Swapping in the spinner
+   collapsed the page to the empty state's 288px and back on every keystroke.
+   The transition lives on .admin-list, which is always present — put it on
+   .admin-refreshing and the fade back in has nothing to animate from. */
+.admin-list {
+  transition: opacity var(--dur) var(--ease);
+}
+.admin-refreshing {
+  @apply pointer-events-none opacity-50;
+}
 .admin-table {
   @apply w-full text-sm;
 }
@@ -68,7 +85,13 @@
   @apply px-5 py-5;
 }
 .admin-table tbody tr {
-  @apply border-t border-border transition-colors hover:bg-background;
+  @apply border-t border-border hover:bg-background;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+/* Tint, not a border — a selected row must not change size. */
+.admin-table tbody tr[data-selected='true'],
+.admin-table tbody tr[data-selected='true']:hover {
+  background-color: var(--primary-soft);
 }
 .admin-table .ef-btn {
   @apply min-h-9 px-3 text-xs;
@@ -108,9 +131,6 @@
 }
 .admin-form-jumps a {
   @apply rounded-lg border border-border bg-surface px-3 py-2 text-xs font-semibold text-text-secondary transition-colors hover:border-primary hover:text-primary;
-}
-.admin-shell input[type='checkbox'] {
-  @apply h-4 w-4 shrink-0 accent-primary;
 }
 .admin-shell .ef-input {
   @apply min-h-11 min-w-0;

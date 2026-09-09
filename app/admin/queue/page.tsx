@@ -31,6 +31,10 @@ export default function QueuePage() {
   const [status, setStatus] = useState<(typeof STATUS_TABS)[number]>('pending')
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [loading, setLoading] = useState(true)
+  // Only the first load swaps in a spinner. Switching tabs afterwards dims the
+  // list in place, instead of collapsing the page to the empty state's height
+  // and expanding it again.
+  const [firstLoad, setFirstLoad] = useState(true)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState<Set<string>>(new Set())
 
@@ -46,6 +50,7 @@ export default function QueuePage() {
       setError(err.message || 'Failed to load queue')
     } finally {
       setLoading(false)
+      setFirstLoad(false)
     }
   }
 
@@ -149,7 +154,7 @@ export default function QueuePage() {
         </div>
       )}
 
-      {loading ? (
+      {firstLoad ? (
         <LoadingState label="Loading review queue" />
       ) : proposals.length === 0 ? (
         <EmptyState
@@ -162,7 +167,10 @@ export default function QueuePage() {
           }
         />
       ) : (
-        <div className="space-y-6">
+        <div
+          className={'admin-list space-y-6' + (loading ? ' admin-refreshing' : '')}
+          aria-busy={loading}
+        >
           {proposals.map((p) => (
             <ProposalCard
               key={p.id}

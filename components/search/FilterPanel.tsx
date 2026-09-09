@@ -255,7 +255,6 @@ export default function FilterPanel({
                   type="checkbox"
                   checked={!!filters.openNow}
                   onChange={(e) => onPatch({ openNow: e.target.checked || undefined })}
-                  className="h-5 w-5 accent-[color:var(--primary)]"
                 />
                 {t(locale, 'filters.openNow')}
               </label>
@@ -264,7 +263,6 @@ export default function FilterPanel({
                   type="checkbox"
                   checked={!!filters.woltOnly}
                   onChange={(e) => onPatch({ woltOnly: e.target.checked || undefined })}
-                  className="h-5 w-5 accent-[color:var(--primary)]"
                 />
                 {t(locale, 'filters.woltOnly')}
               </label>

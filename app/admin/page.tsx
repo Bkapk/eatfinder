@@ -49,6 +49,10 @@ interface Restaurant {
 export default function AdminPage() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [loading, setLoading] = useState(true)
+  // Only the very first fetch is allowed to replace the table with a spinner.
+  // Every later one dims what is already there, so typing in the search box
+  // stops collapsing and re-expanding the page under the cursor.
+  const [firstLoad, setFirstLoad] = useState(true)
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('updatedAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -98,6 +102,7 @@ export default function AdminPage() {
       console.error('Failed to fetch restaurants:', error)
     } finally {
       setLoading(false)
+      setFirstLoad(false)
     }
   }
 
@@ -111,6 +116,7 @@ export default function AdminPage() {
   const selectedVisible = [...selected].filter((id) => visibleIds.has(id))
   const allVisibleSelected =
     visibleRestaurants.length > 0 && selectedVisible.length === visibleRestaurants.length
+  const someVisibleSelected = selectedVisible.length > 0 && !allVisibleSelected
 
   const toggleOne = (id: string) =>
     setSelected((prev) => {
@@ -267,7 +273,7 @@ export default function AdminPage() {
             <div>
               <p className="text-xs font-medium text-text-secondary">{label}</p>
               <p className="mt-1 text-2xl font-extrabold tracking-tight tabular-nums">
-                {loading ? '—' : count}
+                {firstLoad ? '—' : count}
               </p>
             </div>
           </div>
@@ -324,7 +330,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {loading ? (
+      {firstLoad ? (
         <LoadingState label="Loading restaurants" />
       ) : visibleRestaurants.length === 0 ? (
         <EmptyState
@@ -358,8 +364,14 @@ export default function AdminPage() {
           )}
         </EmptyState>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-surface">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+        <div
+          className={
+            'admin-list overflow-hidden rounded-2xl border border-border bg-surface' +
+            (loading ? ' admin-refreshing' : '')
+          }
+          aria-busy={loading}
+        >
+          <div className="admin-table-bar">
             {selectedVisible.length > 0 ? (
               <>
                 <div className="flex items-center gap-3">
@@ -423,6 +435,11 @@ export default function AdminPage() {
                       <input
                         type="checkbox"
                         checked={allVisibleSelected}
+                        // `indeterminate` is a DOM property with no HTML
+                        // attribute, so it can only be set through a ref.
+                        ref={(el) => {
+                          if (el) el.indeterminate = someVisibleSelected
+                        }}
                         onChange={toggleAllVisible}
                         aria-label={
                           allVisibleSelected ? 'Deselect all listings' : 'Select all listings'
@@ -439,7 +456,7 @@ export default function AdminPage() {
               </thead>
               <tbody>
                 {visibleRestaurants.map((restaurant) => (
-                  <tr key={restaurant.id}>
+                  <tr key={restaurant.id} data-selected={selected.has(restaurant.id)}>
                     <td>
                       <div className="flex items-center gap-3">
                         <input

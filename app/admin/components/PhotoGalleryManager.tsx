@@ -70,7 +70,7 @@ export default function PhotoGalleryManager({
     <div className="ef-panel admin-form-wide">
       <div className="flex items-center gap-2 mb-4">
         <ImageIcon size={20} className="text-primary" />
-        <h2 className="text-xl font-semibold text-primary">Photo Gallery</h2>
+        <h2>Photo Gallery</h2>
       </div>
 
       {unavailable && (
@@ -112,7 +112,7 @@ export default function PhotoGalleryManager({
                   title="Set as hero image"
                   className="ef-btn ef-btn--ghost flex-1"
                 >
-                  <Star size={12} /> Hero
+                  <Star size={15} aria-hidden /> Hero
                 </button>
                 <button
                   type="button"
@@ -122,7 +122,7 @@ export default function PhotoGalleryManager({
                   aria-label="Delete gallery photo"
                   className="admin-icon-button hover:!bg-error-soft hover:!text-error"
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={16} aria-hidden />
                 </button>
               </div>
             </div>

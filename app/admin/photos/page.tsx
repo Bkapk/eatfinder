@@ -31,6 +31,10 @@ export default function AdminPhotosPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('pending')
   const [photos, setPhotos] = useState<AdminPhoto[]>([])
   const [loading, setLoading] = useState(true)
+  // Only the first load swaps in a spinner. Switching tabs afterwards dims the
+  // list in place, instead of collapsing the page to the empty state's height
+  // and expanding it again.
+  const [firstLoad, setFirstLoad] = useState(true)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState<Set<string>>(new Set())
 
@@ -47,6 +51,7 @@ export default function AdminPhotosPage() {
       setError(err.message || 'Failed to load photos')
     } finally {
       setLoading(false)
+      setFirstLoad(false)
     }
   }
 
@@ -114,7 +119,7 @@ export default function AdminPhotosPage() {
         </div>
       )}
 
-      {loading ? (
+      {firstLoad ? (
         <LoadingState label="Loading photos" />
       ) : photos.length === 0 ? (
         <EmptyState
@@ -131,7 +136,13 @@ export default function AdminPhotosPage() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-5">
+        <div
+          className={
+            'admin-list grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3' +
+            (loading ? ' admin-refreshing' : '')
+          }
+          aria-busy={loading}
+        >
           {photos.map((p) => (
             <PhotoCard key={p.id} photo={p} busy={busy.has(p.id)} onDecide={(a) => decide(p, a)} />
           ))}
