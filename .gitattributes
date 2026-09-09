@@ -1,0 +1,26 @@
+# core.autocrlf=true on this Windows machine was committing CRLF into files that
+# run on the Linux server. A shell script with CRLF fails at its first line with
+# `$'\r': command not found`, which reads like a syntax error and is not one.
+#
+# Normalise everything to LF in the repository. Windows editors handle LF fine.
+* text=auto eol=lf
+
+# Anything the server executes or parses must be LF, no exceptions.
+*.sh   text eol=lf
+*.conf text eol=lf
+*.js   text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.json text eol=lf
+*.prisma text eol=lf
+*.sql  text eol=lf
+
+# Binary — never touch these.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.avif binary
+*.db   binary
+*.ico  binary
