@@ -1,3 +1,8 @@
+// Must be the first import: the Prisma *Client* does not read .env (only the
+// Prisma CLI does), so without this a `tsx prisma/seed.ts` run outside Next.js
+// fails with "Environment variable not found: DATABASE_URL". scripts/create-admin.ts
+// already did this; seed.ts did not, and only broke on a real deployment.
+import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 import { hashPassword } from '../lib/auth'
 import { slugify } from '../lib/types'

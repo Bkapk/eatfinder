@@ -54,9 +54,11 @@ git clone https://github.com/Bkapk/eatfinder.git .
 git checkout dev
 ```
 
-## Step 4 — `.env.local` (untracked, per environment)
+## Step 4 — `.env` (untracked, per environment)
 
-Next.js loads this automatically. Copy `.env.example` and fill it in. Minimum to boot:
+Use `.env`, NOT `.env.local`: Next.js reads both, but the Prisma CLI only reads
+`.env`, so `prisma migrate deploy` cannot see DATABASE_URL in `.env.local`. Copy
+`.env.example` to `.env` and fill it in. Minimum to boot:
 
 ```bash
 DATABASE_URL="file:/home/<user>/eatfinder-data/dev/eatfinder-dev.db"
