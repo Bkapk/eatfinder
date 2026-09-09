@@ -70,3 +70,7 @@ dev-output.log
 # Reference/Template files
 reference-design/
 *.zip
+
+# Deploy secrets — never commit. Created on the server with:
+#   openssl rand -hex 32 > deploy/.webhook-secret
+deploy/.webhook-secret
