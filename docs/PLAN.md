@@ -842,3 +842,37 @@ can be trusted, then lower it. Read at request time like every other key.
 
 `CUISINE_VOCAB` / `TAG_VOCAB` are seeded by the Phase 1 agent from real data and reported
 back for review before Phase 4 runs. Unchanged from the plan.
+
+---
+
+## Phase 6 backlog
+
+Raised during Phases 2-4, deferred here rather than fixed mid-phase.
+
+- **Admin contrast.** The light palette flipped globally, so `app/admin/**` inherits it.
+  Admin buttons render `text-text` on `bg-primary` at 4.4:1 — readable but unintentional.
+  Fix is `text-on-primary` on those buttons. The admin area has not had a design pass at
+  all; it is still the old dark-era markup wearing light tokens.
+- **Spinner duplication.** Four copies of `animate-spin rounded-full … border-b-2
+  border-primary` in `app/admin/{layout,page,[id]/page,discover/page}.tsx`. The public side
+  uses skeletons and has no call sites, so the shared component belongs with the admin
+  restyle, not before it. Also the subject of a standing design-hook finding, which is a
+  false positive on each one: the accent border *is* the spinner.
+- **`tsconfig.json` has no `@testing-library/jest-dom` type reference**, so
+  `toBeInTheDocument()` fails typecheck despite `jest.setup.js` importing it. Note that a
+  naive `"types": ["jest", "@testing-library/jest-dom"]` would *replace* the default and
+  drop `@types/node`. Phase 2 sidestepped it with `toBeTruthy()`, which is equivalent
+  because `getBy*` throws when absent.
+- **`middleware.ts` deprecation.** Next 16 warns on every build to use `proxy` instead.
+  Cosmetic today, load-bearing when it is finally removed.
+- **Popup fallback.** `points` runs to 500 while `items` pages at 24, so a marker outside
+  the current page gets a name+price card rather than the full one. Trigger: it reads as
+  broken. Fix: a public `/api/restaurants/[slug]` read.
+- **Photo attributions render as stripped text**, not Google's anchor HTML, to avoid
+  `dangerouslySetInnerHTML` on third-party markup. If the TOS review says the link is
+  mandatory, that is a sanitiser, not a one-liner.
+- **Places refresh has no UI trigger.** The route exists; there is deliberately no
+  per-row button, since that puts a billed Google call one click away.
+- **Un-enriched drafts and the mood axes** (plan Risk 7). A restaurant left at 50/50/50
+  ranks identically to a real match. Harmless while drafts are `isActive: false`; stops
+  being harmless the moment a low-confidence proposal is approved.

@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Upload, Save } from 'lucide-react'
+import { X, Upload, Save, Sparkles } from 'lucide-react'
+import { CUISINE_VOCAB, TAG_VOCAB } from '@/lib/types'
+import PhotoGalleryManager from './PhotoGalleryManager'
 
 interface RestaurantFormProps {
   restaurant?: any
@@ -20,20 +22,29 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
     spiceLevel: 50,
     avgPrepTime: 30,
     cuisines: [] as string[],
+    tags: [] as string[],
     neighborhood: '',
+    address: '',
     websiteUrl: '',
     gmapsUrl: '',
+    woltUrl: '',
+    instagramUrl: '',
     phone: '',
     image: '',
     lat: '',
     lng: '',
     openHours: '',
+    rating: '',
+    isFeatured: false,
   })
 
   const [cuisineInput, setCuisineInput] = useState('')
+  const [tagInput, setTagInput] = useState('')
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [aiStatus, setAiStatus] = useState('')
+  const [asking, setAsking] = useState(false)
 
   useEffect(() => {
     if (restaurant) {
@@ -47,17 +58,53 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
         spiceLevel: restaurant.spiceLevel ?? 50,
         avgPrepTime: restaurant.avgPrepTime ?? 30,
         cuisines: restaurant.cuisines || [],
+        tags: restaurant.tags || [],
         neighborhood: restaurant.neighborhood || '',
+        address: restaurant.address || '',
         websiteUrl: restaurant.websiteUrl || '',
         gmapsUrl: restaurant.gmapsUrl || '',
+        woltUrl: restaurant.woltUrl || '',
+        instagramUrl: restaurant.instagramUrl || '',
         phone: restaurant.phone || '',
         image: restaurant.image || '',
         lat: restaurant.lat?.toString() || '',
         lng: restaurant.lng?.toString() || '',
         openHours: restaurant.openHours ? JSON.stringify(restaurant.openHours, null, 2) : '',
+        rating: restaurant.rating?.toString() || '',
+        isFeatured: restaurant.isFeatured ?? false,
       })
     }
   }, [restaurant])
+
+  const askAi = async () => {
+    if (!restaurant?.id) return
+    setAsking(true)
+    setAiStatus('')
+    try {
+      const res = await fetch('/api/admin/ai/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurantId: restaurant.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setAiStatus(data.error || 'AI enrichment failed')
+        return
+      }
+      const result = data.results?.[0]
+      if (result?.status === 'proposed') {
+        setAiStatus('Proposal created — review it in the AI Queue.')
+      } else if (result?.status === 'failed') {
+        setAiStatus(`AI could not produce a usable result: ${result.reason}`)
+      } else {
+        setAiStatus(result?.reason || 'This restaurant already has a pending proposal.')
+      }
+    } catch {
+      setAiStatus('AI enrichment failed')
+    } finally {
+      setAsking(false)
+    }
+  }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -107,6 +154,18 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
     }))
   }
 
+  const addTag = () => {
+    const tag = tagInput.trim()
+    if (tag && !formData.tags.includes(tag)) {
+      setFormData((prev) => ({ ...prev, tags: [...prev.tags, tag] }))
+      setTagInput('')
+    }
+  }
+
+  const removeTag = (tag: string) => {
+    setFormData((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag) }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -128,10 +187,13 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
         ...formData,
         websiteUrl: formData.websiteUrl || null,
         gmapsUrl: formData.gmapsUrl || null,
+        woltUrl: formData.woltUrl || null,
+        instagramUrl: formData.instagramUrl || null,
         phone: formData.phone || null,
         image: formData.image || null,
         lat: formData.lat ? parseFloat(formData.lat) : null,
         lng: formData.lng ? parseFloat(formData.lng) : null,
+        rating: formData.rating ? parseFloat(formData.rating) : null,
         openHours,
       }
 
@@ -168,7 +230,21 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
 
       {/* Basic Information */}
       <div className="bg-surface border border-border rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-primary mb-4">Basic Information</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-primary">Basic Information</h2>
+          {restaurant?.id && (
+            <button
+              type="button"
+              onClick={askAi}
+              disabled={asking}
+              className="flex items-center gap-2 px-3 py-2 bg-surface-hover hover:bg-border border border-border rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+            >
+              <Sparkles size={16} />
+              {asking ? 'Asking AI...' : 'Ask AI'}
+            </button>
+          )}
+        </div>
+        {aiStatus && <p className="text-sm text-text-secondary mb-4">{aiStatus}</p>}
         <div className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium mb-2">
@@ -197,17 +273,31 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
             />
           </div>
 
-          <div>
-            <label htmlFor="neighborhood" className="block text-sm font-medium mb-2">
-              Neighborhood
-            </label>
-            <input
-              id="neighborhood"
-              type="text"
-              value={formData.neighborhood}
-              onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="neighborhood" className="block text-sm font-medium mb-2">
+                Neighborhood
+              </label>
+              <input
+                id="neighborhood"
+                type="text"
+                value={formData.neighborhood}
+                onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
+                className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label htmlFor="address" className="block text-sm font-medium mb-2">
+                Address
+              </label>
+              <input
+                id="address"
+                type="text"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -346,6 +436,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
           <div className="flex gap-2">
             <input
               type="text"
+              list="cuisine-vocab"
               value={cuisineInput}
               onChange={(e) => setCuisineInput(e.target.value)}
               onKeyPress={(e) => {
@@ -357,6 +448,13 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               placeholder="Add cuisine tag"
               className="flex-1 px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             />
+            {/* ponytail: native <datalist> autocomplete, not a combobox component — the API
+                still accepts free text, this just nudges toward CUISINE_VOCAB. */}
+            <datalist id="cuisine-vocab">
+              {CUISINE_VOCAB.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
             <button
               type="button"
               onClick={addCuisine}
@@ -376,6 +474,60 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
                   <button
                     type="button"
                     onClick={() => removeCuisine(cuisine)}
+                    className="hover:text-error transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Tags */}
+      <div className="bg-surface border border-border rounded-lg p-6">
+        <h2 className="text-xl font-semibold text-primary mb-4">Tags</h2>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              list="tag-vocab"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  addTag()
+                }
+              }}
+              placeholder="Add tag, e.g. outdoor-seating"
+              className="flex-1 px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <datalist id="tag-vocab">
+              {TAG_VOCAB.map((t) => (
+                <option key={t} value={t} />
+              ))}
+            </datalist>
+            <button
+              type="button"
+              onClick={addTag}
+              className="px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
+            >
+              Add
+            </button>
+          </div>
+          {formData.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {formData.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-2 px-3 py-1 bg-surface-hover border border-border rounded-full text-sm"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
                     className="hover:text-error transition-colors"
                   >
                     <X size={14} />
@@ -429,7 +581,59 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
+
+          <div>
+            <label htmlFor="woltUrl" className="block text-sm font-medium mb-2">
+              Wolt URL
+            </label>
+            <input
+              id="woltUrl"
+              type="url"
+              value={formData.woltUrl}
+              onChange={(e) => setFormData({ ...formData, woltUrl: e.target.value })}
+              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="instagramUrl" className="block text-sm font-medium mb-2">
+              Instagram URL
+            </label>
+            <input
+              id="instagramUrl"
+              type="url"
+              value={formData.instagramUrl}
+              onChange={(e) => setFormData({ ...formData, instagramUrl: e.target.value })}
+              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="rating" className="block text-sm font-medium mb-2">
+              Editorial Rating (0-5)
+            </label>
+            <input
+              id="rating"
+              type="number"
+              min="0"
+              max="5"
+              step="0.1"
+              value={formData.rating}
+              onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
+              className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
         </div>
+
+        <label className="flex items-center gap-2 mt-4 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={formData.isFeatured}
+            onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+            className="w-4 h-4"
+          />
+          Featured
+        </label>
       </div>
 
       {/* Image */}
@@ -510,6 +714,9 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
           </div>
         </div>
       </div>
+
+      {/* Photo gallery */}
+      {restaurant?.id && <PhotoGalleryManager restaurantId={restaurant.id} onSetHero={(url) => setFormData((f) => ({ ...f, image: url }))} />}
 
       {/* Actions */}
       <div className="flex justify-end gap-4 pt-4 border-t border-border">

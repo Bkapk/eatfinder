@@ -103,6 +103,11 @@ async function generateStructured<T>(
   geminiSchema: object,
   zodSchema: z.ZodType<T>
 ): Promise<StructuredResult<T>> {
+  // Outside callStructured's try/catch on purpose: a missing key must throw
+  // AiDisabledError up to the caller (-> 503), not be swallowed into an
+  // ordinary ok:false result.
+  assertAiEnabled()
+
   const model = modelName()
   const firstParts: Part[] = [{ text: basePrompt }, ...mediaParts]
   const first = await callStructured(firstParts, geminiSchema, zodSchema)
