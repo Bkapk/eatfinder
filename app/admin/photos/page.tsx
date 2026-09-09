@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Check, X, Trash2, Bot, User, Images } from 'lucide-react'
 
-import { PageHeader, EmptyState, LoadingState } from '../components/AdminUI'
+import { PageHeader, EmptyState, LoadingState, Notice, useNotice } from '../components/AdminUI'
 
 interface AdminPhoto {
   id: string
@@ -36,6 +36,7 @@ export default function AdminPhotosPage() {
   // and expanding it again.
   const [firstLoad, setFirstLoad] = useState(true)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useNotice()
   const [busy, setBusy] = useState<Set<string>>(new Set())
 
   const load = async (t = tab) => {
@@ -90,6 +91,15 @@ export default function AdminPhotosPage() {
         setError(data.error || `Failed to ${action}`)
         return
       }
+      // Moderating is repetitive work: say which gallery just changed, so a
+      // mis-click is caught on the spot rather than three photos later.
+      setNotice(
+        action === 'approve'
+          ? `Live in ${photo.restaurantName}'s gallery`
+          : action === 'reject'
+            ? `Photo rejected — ${photo.restaurantName}`
+            : `Photo deleted — ${photo.restaurantName}`
+      )
       await load()
     })
   }
@@ -111,13 +121,12 @@ export default function AdminPhotosPage() {
       </div>
 
       {error && (
-        <div
-          role="alert"
-          className="px-4 py-3 mb-6 bg-error-soft border border-error rounded-lg text-error"
-        >
+        <div role="alert" className="ef-alert">
           {error}
         </div>
       )}
+
+      <Notice message={notice} />
 
       {firstLoad ? (
         <LoadingState label="Loading photos" />
@@ -153,15 +162,16 @@ export default function AdminPhotosPage() {
 }
 
 function StatusBadge({ status }: { status: AdminPhoto['status'] }) {
-  const cls =
+  const tone =
     status === 'approved'
-      ? 'bg-success-soft text-success'
+      ? 'ef-badge--success'
       : status === 'rejected'
-        ? 'bg-error-soft text-error'
-        : 'bg-warning-soft text-warning'
-  return (
-    <span className={`px-2 py-0.5 rounded text-xs font-semibold capitalize ${cls}`}>{status}</span>
-  )
+        ? 'ef-badge--error'
+        : // Pending here means "waiting on you", which is the warning tone. The
+          // same word on the guest's account page is --info, because there it
+          // means "we have it" and nothing is owed.
+          'ef-badge--warning'
+  return <span className={`ef-badge ${tone} shrink-0 capitalize`}>{status}</span>
 }
 
 function PhotoCard({
@@ -184,44 +194,53 @@ function PhotoCard({
         className="aspect-[4/3] w-full bg-surface-muted object-cover"
       />
 
-      <div className="p-5 flex flex-1 flex-col gap-3">
-        <div className="flex items-center justify-between gap-2">
+      {/* gap-2 through the meta lines, gap-4 under the title: at a flat gap-3
+          the restaurant name, the caption and four lines of provenance were
+          evenly spaced, so nothing in the card looked like the heading. */}
+      <div className="flex flex-1 flex-col gap-2 p-5">
+        <div className="mb-2 flex items-center justify-between gap-2">
           <Link
             href={`/admin/${photo.restaurantId}`}
-            className="font-semibold text-primary hover:underline truncate"
+            className="truncate text-base font-bold tracking-tight text-primary hover:underline"
           >
             {photo.restaurantName}
           </Link>
           <StatusBadge status={photo.status} />
         </div>
 
-        {photo.caption && <p className="text-sm text-text">{photo.caption}</p>}
+        {photo.caption && <p className="text-sm leading-relaxed text-text">{photo.caption}</p>}
 
-        <div className="text-xs text-text-secondary">
+        <p className="text-xs text-text-secondary">
           Submitted by {photo.submittedByName || 'unknown'}
-        </div>
+        </p>
 
-        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-          {photo.wasAutoDecision ? <Bot size={13} /> : <User size={13} />}
+        <p className="flex items-center gap-1.5 text-xs text-text-secondary">
+          {photo.wasAutoDecision ? (
+            <Bot size={13} aria-hidden className="shrink-0" />
+          ) : (
+            <User size={13} aria-hidden className="shrink-0" />
+          )}
           {photo.wasAutoDecision
             ? 'Auto-decided by AI'
             : photo.decidedByUsername
               ? `Reviewed by ${photo.decidedByUsername}`
               : 'Awaiting review'}
-        </div>
+        </p>
 
         {photo.aiReason && (
-          <p className="text-xs text-text-secondary bg-background border border-border rounded p-2">
+          <p className="rounded-xl border border-border bg-background p-3 text-xs leading-relaxed text-text-secondary">
             AI: {photo.aiReason}
             {photo.aiConfidence != null && ` (${Math.round(photo.aiConfidence * 100)}% confidence)`}
           </p>
         )}
 
         {photo.decisionNote && (
-          <p className="text-xs text-text-secondary italic">Note: {photo.decisionNote}</p>
+          <p className="text-xs leading-relaxed text-text-secondary">
+            Note: {photo.decisionNote}
+          </p>
         )}
 
-        <div className="flex flex-wrap gap-2 mt-auto border-t border-border pt-4">
+        <div className="mt-auto flex flex-wrap gap-2 border-t border-border pt-5">
           {photo.status !== 'approved' && (
             <button
               onClick={() => onDecide('approve')}
@@ -243,7 +262,7 @@ function PhotoCard({
           <button
             onClick={() => onDecide('delete')}
             disabled={busy}
-            className="admin-icon-button !h-11 !w-11 hover:text-error"
+            className="ef-icon-btn ef-icon-btn--danger"
             aria-label="Delete photo"
           >
             <Trash2 size={14} />

@@ -104,12 +104,15 @@ export default function ImportPage() {
       />
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         {/* CSV Import Section */}
+        {/* Panel headings across the admin are 16px bold; these three were 20px
+            semibold behind 24px icons, which made a utility page shout louder
+            than the page title above it. */}
         <div className="ef-panel">
-          <div className="flex items-center gap-2 mb-4">
-            <Upload size={24} className="text-primary" />
-            <h2 className="text-xl font-semibold">CSV Import</h2>
+          <div className="mb-3 flex items-center gap-2.5">
+            <Upload size={18} className="text-primary" aria-hidden />
+            <h2 className="ef-heading">CSV import</h2>
           </div>
-          <p className="text-text-secondary mb-4">
+          <p className="mb-4 text-sm leading-relaxed text-text-secondary">
             Upload a CSV file with restaurant data. See the format description below.
           </p>
 
@@ -122,13 +125,13 @@ export default function ImportPage() {
                 accept=".csv"
                 aria-label="Choose a CSV file to import"
                 onChange={handleFileChange}
-                className="ef-input file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:font-semibold file:text-on-primary hover:file:bg-primary-hover"
+                className="ef-input ef-file-input"
               />
             </div>
             {file && (
-              <div className="px-4 py-2 bg-surface-hover border border-border rounded-lg text-sm text-text-secondary">
+              <p className="rounded-xl border border-border bg-surface-hover px-4 py-3 text-sm text-text-secondary">
                 Selected: {file.name} ({(file.size / 1024).toFixed(2)} KB)
-              </div>
+              </p>
             )}
 
             <button
@@ -136,24 +139,24 @@ export default function ImportPage() {
               disabled={!file || importing}
               className="ef-btn ef-btn--primary"
             >
-              {importing ? 'Importing...' : 'Import CSV'}
+              {importing ? 'Importing…' : 'Import CSV'}
             </button>
           </div>
 
           {result && (
             <div
-              className={`mt-4 px-4 py-3 rounded-lg border ${
+              className={`mt-5 rounded-xl border px-4 py-3 text-sm ${
                 result.success && result.errors?.length === 0
-                  ? 'bg-success-soft border-success/30 text-success'
-                  : 'bg-warning-soft border-warning/30 text-warning'
+                  ? 'border-success bg-success-soft text-success'
+                  : 'border-warning bg-warning-soft text-warning'
               }`}
             >
-              <h3 className="font-semibold mb-2">Import Results</h3>
+              <h3 className="mb-1 text-sm font-bold">Import results</h3>
               <p>Imported: {result.imported} restaurants</p>
               {result.errors && result.errors.length > 0 && (
                 <div className="mt-3">
-                  <h4 className="font-medium mb-1">Errors:</h4>
-                  <ul className="text-sm space-y-1">
+                  <h4 className="mb-1 font-bold">Errors:</h4>
+                  <ul className="space-y-1">
                     {result.errors.map((err: any, i: number) => (
                       <li key={i}>
                         Row {err.row}: {err.message}
@@ -168,11 +171,13 @@ export default function ImportPage() {
 
         {/* CSV Export Section */}
         <div className="ef-panel">
-          <div className="flex items-center gap-2 mb-4">
-            <Download size={24} className="text-primary" />
-            <h2 className="text-xl font-semibold">CSV Export</h2>
+          <div className="mb-3 flex items-center gap-2.5">
+            <Download size={18} className="text-primary" aria-hidden />
+            <h2 className="ef-heading">CSV export</h2>
           </div>
-          <p className="text-text-secondary mb-4">Download all restaurants as a CSV file.</p>
+          <p className="mb-4 text-sm leading-relaxed text-text-secondary">
+            Download all restaurants as a CSV file.
+          </p>
           <button onClick={handleExport} className="ef-btn ef-btn--ghost">
             Export CSV
           </button>
@@ -181,28 +186,30 @@ export default function ImportPage() {
 
       {/* Seed Sample Data Section */}
       <div className="my-5 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 rounded-2xl border border-border bg-surface p-5">
-        <div className="flex items-center gap-2">
-          <Database size={24} className="text-primary" />
-          <h2 className="text-sm font-bold">Sample data</h2>
+        <div className="flex items-center gap-2.5">
+          <Database size={18} className="text-primary" aria-hidden />
+          <h2 className="ef-heading">Sample data</h2>
         </div>
         <p className="text-sm text-text-secondary">
           Add 10 sample restaurants to your catalogue for testing.
         </p>
         <button onClick={handleSeed} disabled={importing} className="ef-btn ef-btn--ghost">
-          {importing ? 'Creating...' : 'Create Sample Data'}
+          {importing ? 'Creating…' : 'Create sample data'}
         </button>
       </div>
 
       {/* CSV Format Documentation */}
       <div className="ef-panel">
-        <div className="flex items-center gap-2 mb-4">
-          <FileText size={24} className="text-primary" />
-          <h2 className="text-xl font-semibold">CSV Format</h2>
+        <div className="mb-3 flex items-center gap-2.5">
+          <FileText size={18} className="text-primary" aria-hidden />
+          <h2 className="ef-heading">CSV format</h2>
         </div>
+        {/* list-outside: with list-inside a wrapped column description ran back
+            under its own bullet instead of hanging off it. */}
         <div className="grid gap-6 rounded-xl border border-border bg-background p-5 text-sm md:grid-cols-2">
           <div>
-            <p className="font-semibold mb-2">Required columns:</p>
-            <ul className="list-disc list-inside space-y-1 text-text-secondary">
+            <p className="mb-2 font-bold">Required columns:</p>
+            <ul className="list-outside list-disc space-y-1 pl-5 text-text-secondary">
               <li>
                 <strong className="text-text">name</strong> (string, required, unique)
               </li>
@@ -221,8 +228,8 @@ export default function ImportPage() {
             </ul>
           </div>
           <div>
-            <p className="font-semibold mb-2">Optional columns:</p>
-            <ul className="list-disc list-inside space-y-1 text-text-secondary">
+            <p className="mb-2 font-bold">Optional columns:</p>
+            <ul className="list-outside list-disc space-y-1 pl-5 text-text-secondary">
               <li>
                 <strong className="text-text">description</strong> (string)
               </li>
@@ -267,10 +274,7 @@ export default function ImportPage() {
 
       {/* Error Message */}
       {error && (
-        <div
-          role="alert"
-          className="mt-6 px-4 py-3 bg-error-soft border border-error rounded-lg text-error"
-        >
+        <div role="alert" className="ef-alert mt-5">
           {error}
         </div>
       )}

@@ -35,7 +35,11 @@ export default function TopBar({
   toggleParams.set('lang', other)
 
   return (
-    <header className="z-sticky flex w-full shrink-0 items-center gap-3 border-b border-border bg-surface px-3 py-2.5 sm:gap-4 sm:px-4">
+    // px-4 sm:px-5 matches the inset every page body under this header uses
+    // (results pane, /account, /r). At px-3 the chrome was tighter than the
+    // content it framed, which is visible on the detail and account pages where
+    // the wordmark sits directly above the page's own left edge.
+    <header className="z-sticky flex w-full shrink-0 items-center gap-3 border-b border-border bg-surface px-4 py-2.5 sm:gap-4 sm:px-5">
       <Link
         href="/"
         className="flex shrink-0 items-center gap-2 text-text"

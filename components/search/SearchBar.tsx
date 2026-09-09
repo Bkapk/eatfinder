@@ -99,7 +99,7 @@ export default function SearchBar({
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
-      <div className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-border bg-surface pl-4 pr-2 shadow-sm focus-within:border-primary">
+      <div className="ef-searchbar">
         <Search size={17} aria-hidden className="shrink-0 text-text-secondary" />
 
         <div
@@ -111,13 +111,13 @@ export default function SearchBar({
           aria-label={t(locale, 'search.activeFilters')}
         >
           {chips.map((c) => (
-            <span key={c.key} className="ef-chip">
+            <span key={c.key} className="ef-chip ef-chip-enter">
               {c.label}
               <button
                 type="button"
                 onClick={() => remove(c.patch)}
                 aria-label={t(locale, 'search.remove', { label: c.label })}
-                className="grid h-6 w-6 place-items-center rounded-full text-primary transition-colors duration-200 hover:bg-primary hover:text-[color:var(--on-primary)]"
+                className="ef-chip-remove"
               >
                 <X size={12} aria-hidden />
               </button>
@@ -139,7 +139,7 @@ export default function SearchBar({
           <button
             type="button"
             onClick={onClearAll}
-            className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold text-text-secondary transition-colors duration-200 hover:bg-surface-hover hover:text-text"
+            className="ef-btn ef-btn--quiet shrink-0"
           >
             {t(locale, 'search.clearAll')}
           </button>

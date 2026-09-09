@@ -33,7 +33,7 @@ export default function EditRestaurantPage() {
       <div className="flex items-center justify-center min-h-72">
         <div className="text-center">
           <Spinner size={44} className="mb-4" />
-          <p className="text-text-secondary">Loading...</p>
+          <p className="text-text-secondary">Loading…</p>
         </div>
       </div>
     )

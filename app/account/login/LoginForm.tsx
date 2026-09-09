@@ -41,10 +41,7 @@ export default function LoginForm({ locale, next }: { locale: Locale; next: stri
   return (
     <form onSubmit={submit} aria-busy={loading} className="ef-panel flex flex-col gap-5 p-6 sm:p-8">
       {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-error bg-error-soft px-4 py-3 text-[13px] font-semibold text-error"
-        >
+        <div role="alert" className="ef-alert !mb-0">
           {error}
         </div>
       )}

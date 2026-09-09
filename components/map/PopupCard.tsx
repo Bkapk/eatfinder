@@ -34,7 +34,9 @@ export default function PopupCard({
       maxWidth="260px"
       className="ef-popup"
     >
-      <div className="relative w-[236px]">
+      {/* Fade only. The popup is positioned by mapbox on the marker it belongs
+          to, and anything that moves it moves it away from its own pin. */}
+      <div className="ef-fade-enter relative w-[236px]">
         {item ? (
           <RestaurantCard item={item} locale={locale} size="popup" />
         ) : (

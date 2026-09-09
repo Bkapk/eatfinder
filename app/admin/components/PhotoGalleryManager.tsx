@@ -68,29 +68,43 @@ export default function PhotoGalleryManager({
 
   return (
     <div className="ef-panel admin-form-wide">
-      <div className="flex items-center gap-2 mb-4">
-        <ImageIcon size={20} className="text-primary" />
-        <h2>Photo Gallery</h2>
+      <div className="mb-4 flex items-center gap-2.5">
+        <ImageIcon size={18} className="text-primary" aria-hidden />
+        <h2>Photo gallery</h2>
       </div>
 
       {unavailable && (
-        <p className="text-sm text-text-secondary">
+        <p className="text-sm leading-relaxed text-text-secondary">
           Photo management isn&apos;t available yet — it ships with the community photo moderation
           queue.
         </p>
       )}
-      {error && <p className="text-sm text-error mb-3">{error}</p>}
+      {error && (
+        <div role="alert" className="ef-alert">
+          {error}
+        </div>
+      )}
 
       {photos && photos.length === 0 && !unavailable && (
-        <p className="rounded-xl border border-dashed border-border-control bg-background p-8 text-center text-sm text-text-secondary">
+        <p className="admin-upload text-center text-sm text-text-secondary">
           No gallery photos yet.
         </p>
       )}
 
       {photos && photos.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {photos.map((photo) => (
-            <div key={photo.id} className="space-y-2">
+        <div className="ef-stagger grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          {photos.map((photo, i) => (
+            <div
+              key={photo.id}
+              // Capped at 9 like the public results grid: a gallery of 200
+              // photos must not take twenty seconds to finish arriving.
+              style={{ '--i': Math.min(i, 9) } as React.CSSProperties}
+              // A tile mid-delete dims and stops taking clicks rather than
+              // vanishing under the cursor.
+              className={`space-y-2 transition-opacity duration-200 ${
+                busyId === photo.id ? 'pointer-events-none opacity-50' : ''
+              }`}
+            >
               {/* Opaque URL from the database (local disk today, R2 next), so it
                   must not be routed through next/image's remotePatterns. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -99,11 +113,11 @@ export default function PhotoGalleryManager({
                 alt={photo.caption || restaurantName || ''}
                 loading="lazy"
                 decoding="async"
-                className="w-full aspect-square object-cover rounded-lg border border-border"
+                className="aspect-square w-full rounded-xl border border-border object-cover"
               />
-              <div className="flex items-center justify-between text-xs text-text-secondary">
-                <span className="capitalize">{photo.status}</span>
-                <span>{photo.source}</span>
+              <div className="flex items-center justify-between gap-2 text-xs font-semibold text-text-secondary">
+                <span className="truncate capitalize">{photo.status}</span>
+                <span className="truncate">{photo.source}</span>
               </div>
               <div className="flex gap-2">
                 <button
@@ -120,7 +134,7 @@ export default function PhotoGalleryManager({
                   disabled={busyId === photo.id}
                   title="Delete photo"
                   aria-label="Delete gallery photo"
-                  className="admin-icon-button hover:!bg-error-soft hover:!text-error"
+                  className="ef-icon-btn ef-icon-btn--danger"
                 >
                   <Trash2 size={16} aria-hidden />
                 </button>

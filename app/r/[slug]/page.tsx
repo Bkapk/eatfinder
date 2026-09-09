@@ -83,8 +83,8 @@ function MoodBar({ label, value }: { label: string; value: number }) {
         <span>{label}</span>
         <span className="tabular-nums text-text-secondary">{value}</span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-surface-hover">
-        <div className="h-full rounded-full bg-primary" style={{ width: `${value}%` }} />
+      <div className="ef-meter h-2">
+        <div style={{ transform: `scaleX(${value / 100})` }} />
       </div>
     </div>
   )
@@ -105,7 +105,10 @@ function LinkRow({
     <a
       href={href}
       {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-      className="flex items-center gap-2.5 rounded-xl px-2 py-2 text-[14px] font-semibold text-text transition-colors duration-200 hover:bg-surface-hover"
+      // -mx-2 pulls the hover surface out past the panel's padding while the
+      // text itself sits on the panel's left edge — with px-2 alone every link
+      // in this card was inset 8px from the heading above it.
+      className="-mx-2 flex items-center gap-2.5 rounded-xl px-2 py-2 text-[14px] font-semibold text-text transition-colors duration-200 hover:bg-surface-hover"
     >
       <span className="text-text-secondary">{icon}</span>
       <span className="truncate">{children}</span>
@@ -158,7 +161,7 @@ export default async function RestaurantPage({
 
         <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-[28px] font-extrabold leading-tight tracking-tight text-text sm:text-[34px]">
+            <h1 className="ef-title">
               {r.name}
             </h1>
             <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px] font-semibold text-text-secondary">
@@ -241,13 +244,15 @@ export default async function RestaurantPage({
                         decoding="async"
                         className="aspect-square w-full object-cover"
                       />
+                      {/* 11px is the type scale's floor (.ef-label); these two
+                          credits were 10px in a 2px-tall padding box. */}
                       {p.attributions.length > 0 && (
-                        <p className="px-2 py-1 text-[10px] text-text-secondary">
+                        <p className="px-2.5 pb-1 pt-1.5 text-[11px] leading-snug text-text-secondary">
                           {p.attributions.map(attributionText).filter(Boolean).join(', ')}
                         </p>
                       )}
                       {p.submittedByName && (
-                        <p className="px-2 py-1 text-[10px] text-text-secondary">
+                        <p className="px-2.5 pb-1.5 pt-1 text-[11px] leading-snug text-text-secondary">
                           {p.submittedByName}
                         </p>
                       )}
@@ -295,7 +300,9 @@ export default async function RestaurantPage({
               {hasContact && (
                 <Panel title={t(locale, 'detail.contact')}>
                   {r.address && (
-                    <p className="mb-2 px-2 text-[14px] text-text-secondary">{r.address}</p>
+                    <p className="mb-3 text-[14px] leading-relaxed text-text-secondary">
+                      {r.address}
+                    </p>
                   )}
                   <div className="flex flex-col">
                     {r.phone && (

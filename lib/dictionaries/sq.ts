@@ -29,8 +29,9 @@ export const sq = {
 
   'results.heading': '{n} vende',
   'results.headingOne': '1 vend',
-  'results.empty.title': 'Nuk u gjet asnjë vend',
-  'results.empty.body': 'Provo të heqësh një filtër ose të zhvendosësh hartën.',
+  'results.empty.title': 'Asgjë për të ngrënë këtu',
+  'results.empty.body':
+    'Asnjë vend në këtë pjesë të hartës nuk i plotëson filtrat. Zgjero zonën ose hiq një filtër.',
   'results.empty.reset': 'Pastro filtrat',
   'results.loadMore': 'Shfaq më shumë',
   'results.loading': 'Duke u ngarkuar…',
@@ -42,8 +43,8 @@ export const sq = {
   'sort.match': 'Përputhja më e mirë',
   'sort.rating': 'Vlerësimi',
   'sort.distance': 'Distanca',
-  'sort.price-asc': 'Çmimi: nga i ulëti',
-  'sort.price-desc': 'Çmimi: nga i larti',
+  'sort.price-asc': 'Çmimi: nga i ulëti te i larti',
+  'sort.price-desc': 'Çmimi: nga i larti te i ulëti',
 
   'view.label': 'Pamja',
   'view.grid': 'Rrjetë',
@@ -81,7 +82,7 @@ export const sq = {
   'mood.heavy.max': 'E rëndë',
   'mood.hungry.min': 'Porcion i vogël',
   'mood.hungry.max': 'Ngopëse',
-  'mood.fine.min': 'Rruge',
+  'mood.fine.min': 'Ushqim rruge',
   'mood.fine.max': 'Elegante',
 
   'card.openNow': 'Hapur tani',
@@ -154,7 +155,7 @@ export const sq = {
 
   'tag.breakfast': 'Mëngjes',
   'tag.brunch': 'Brunch',
-  'tag.budget-friendly': 'Lirë',
+  'tag.budget-friendly': 'Çmim i lirë',
   'tag.date-night': 'Për çift',
   'tag.delivery': 'Dërgesë',
   'tag.family-friendly': 'Për familje',
@@ -176,7 +177,7 @@ export const sq = {
   'auth.email': 'Email',
   'auth.displayName': 'Emri publik',
   'auth.displayNameHint': 'Ky emër shfaqet publikisht nën fotot që ngarkon.',
-  'auth.passwordHint': 'Të paktën 8 shkronja.',
+  'auth.passwordHint': 'Të paktën 8 karaktere.',
 
   'login.title': 'Kyçu',
   'login.submit': 'Kyçu',
@@ -201,12 +202,19 @@ export const sq = {
   'account.signInLink': 'Kyçu',
   'account.loading': 'Duke u ngarkuar…',
   'account.favorites.title': 'Të preferuarat',
-  'account.favorites.empty': 'Nuk ke shtuar ende asnjë vend te të preferuarat.',
+  'account.favorites.empty': 'Çdo vend që i vë zemër ulet këtu. Ende asnjë.',
+  'account.favorites.emptyCta': 'Gjej ku të hash',
   'account.photos.title': 'Fotot e mia',
-  'account.photos.empty': 'Nuk ke ngarkuar ende asnjë foto.',
+  'account.photos.empty':
+    'Ende asnjë foto. Herën tjetër që del për të ngrënë, ndaje pamjen nga tavolina jote.',
   'account.photos.status.pending': 'Në shqyrtim',
   'account.photos.status.approved': 'Publikuar',
   'account.photos.status.rejected': 'Refuzuar',
+
+  'notFound.title': 'Kjo faqe nuk është në menu',
+  'notFound.body':
+    'Lidhja mund të jetë e vjetër, ose vendi ka ndryshuar adresë. Harta është aty ku e le.',
+  'notFound.cta': 'Kthehu te harta',
 
   'photoUpload.title': 'Shto një foto',
   'photoUpload.chooseFile': 'Zgjidh një foto',

@@ -121,14 +121,14 @@ export default function FilterPanel({
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-[17px] font-extrabold tracking-tight text-text">
+          <h2 className="ef-heading">
             {t(locale, 'filters.title')}
           </h2>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onClearAll}
-              className="rounded-full px-3 py-1.5 text-[12px] font-bold text-text-secondary transition-colors duration-200 hover:bg-surface-hover hover:text-text"
+              className="ef-btn ef-btn--quiet"
             >
               {t(locale, 'filters.clear')}
             </button>
@@ -136,7 +136,7 @@ export default function FilterPanel({
               type="button"
               onClick={onClose}
               aria-label={t(locale, 'filters.close')}
-              className="grid h-9 w-9 place-items-center rounded-full text-text-secondary transition-colors duration-200 hover:bg-surface-hover hover:text-text"
+              className="ef-icon-btn ef-icon-btn--quiet"
             >
               <X size={18} aria-hidden />
             </button>

@@ -48,11 +48,11 @@ export default function LoginPage() {
             EatFinder.
           </div>
           <div className="py-16">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-widest">
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.08em]">
               Behind every great discovery
             </p>
             <h2 className="text-4xl font-extrabold leading-tight tracking-tight">
-              A city full of flavor.
+              A city full of flavour.
               <br />
               Curated by you.
             </h2>
@@ -70,22 +70,20 @@ export default function LoginPage() {
             <ArrowLeft size={15} aria-hidden />
             Back to EatFinder
           </Link>
+          {/* The badge, the title and the line under it are one block: at mb-5
+              the badge sat further from its own heading than the heading sat
+              from the subtitle. */}
           <div className="mb-8">
-            <div className="mb-3">
-              <span className="mb-5 grid h-11 w-11 place-items-center rounded-xl bg-primary-soft text-primary">
-                <ShieldCheck size={23} aria-hidden />
-              </span>
-              <h1 className="text-[26px] font-extrabold tracking-tight text-text">Welcome back</h1>
-            </div>
-            <p className="text-text-secondary">Sign in to your admin workspace.</p>
+            <span className="mb-4 grid h-11 w-11 place-items-center rounded-xl bg-primary-soft text-primary">
+              <ShieldCheck size={23} aria-hidden />
+            </span>
+            <h1 className="ef-title">Welcome back</h1>
+            <p className="mt-2 text-sm text-text-secondary">Sign in to your admin workspace.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5" aria-busy={loading}>
             {error && (
-              <div
-                role="alert"
-                className="px-4 py-3 bg-error-soft border border-error rounded text-error text-sm"
-              >
+              <div role="alert" className="ef-alert !mb-0">
                 {error}
               </div>
             )}
@@ -114,14 +112,16 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="ef-input"
+                // h-12, like the username field above it: this one inherited the
+                // ~38px default and the two stacked fields were different sizes.
+                className="ef-input h-12"
                 required
                 autoComplete="current-password"
               />
             </div>
 
             <button type="submit" disabled={loading} className="ef-btn ef-btn--primary h-12 w-full">
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Signing in…' : 'Sign in'}
               <ArrowRight size={16} aria-hidden />
             </button>
           </form>

@@ -81,13 +81,18 @@ export default function RestaurantCard({
         />
 
         {item.isFeatured && !popup && (
-          <span className="absolute right-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[color:var(--on-primary)]">
+          // 11px is the scale's floor and 0.08em is what every other uppercase
+          // run in the app uses; this badge was the only 10px text shipping.
+          <span className="absolute right-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[color:var(--on-primary)]">
             {t(locale, 'card.featured')}
           </span>
         )}
       </div>
 
-      <div className={['flex min-w-0 flex-1 flex-col gap-2', popup ? 'p-3' : 'p-3.5'].join(' ')}>
+      {/* p-4, not p-3.5: 14px was the one off-scale inset in the app, and it is
+          the padding the loading skeleton has to reproduce exactly or the whole
+          list shifts a couple of pixels the moment results arrive. */}
+      <div className={['flex min-w-0 flex-1 flex-col gap-2', popup ? 'p-3' : 'p-4'].join(' ')}>
         <Link
           href={`/r/${item.slug}`}
           className="truncate text-[15px] font-bold leading-snug text-text after:absolute after:inset-0 after:content-['']"

@@ -10,14 +10,21 @@
 .admin-topbar {
   @apply flex h-[72px] shrink-0 items-center gap-4 border-b border-border bg-surface px-4 sm:px-8;
 }
+/* px-3 everywhere down the rail: the wordmark, the "Manage" eyebrow and every
+   nav row now start their icon at the same 28px from the sidebar's edge. At
+   px-3.5 the links sat 2px right of the label above them, which is the kind of
+   drift you cannot name but can see. */
 .admin-nav-link {
-  @apply inline-flex min-h-11 shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold transition-colors;
+  @apply inline-flex min-h-11 shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold;
+  transition:
+    background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
 }
-.admin-mobile-nav {
-  @apply flex gap-1 overflow-x-auto border-b border-border bg-surface p-2 lg:hidden;
-}
-.admin-mobile-nav .admin-nav-link {
-  @apply whitespace-nowrap text-xs;
+/* The mobile sheet's panel. Same width and padding as .admin-sidebar so the
+   two read as one component in two places, not two navigations. */
+.admin-nav-sheet {
+  @apply relative flex h-full w-[17.5rem] max-w-[85vw] flex-col overflow-y-auto border-r border-border bg-surface px-4 py-7;
+  box-shadow: var(--shadow-lg);
 }
 .admin-content {
   @apply mx-auto w-full max-w-[1480px] flex-1 p-4 outline-none sm:p-8 xl:p-10;
@@ -28,11 +35,19 @@
 .admin-footer {
   @apply mx-4 flex flex-wrap justify-between gap-2 border-t border-border py-5 text-[11px] text-text-secondary sm:mx-8 xl:mx-10;
 }
-.admin-icon-button {
-  @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition-colors hover:bg-surface-hover hover:text-text disabled:cursor-not-allowed disabled:opacity-50;
-}
 .admin-empty {
   @apply flex min-h-72 flex-col items-center justify-center rounded-2xl border border-border bg-surface px-5 py-14 text-center;
+}
+/* An alert or an empty state is always the answer to something the user just
+   did, so it arrives rather than blinking into place. Never a resting
+   opacity: 0 — if the animation does not run, the message is still there.
+   .ef-notice / .ef-alert carry their own copy of this in globals.css, where
+   they now live so the public auth forms can use them too. */
+@media (prefers-reduced-motion: no-preference) {
+  .admin-empty,
+  .admin-shell [role='alert'] {
+    animation: ef-enter var(--dur) var(--ease-out) both;
+  }
 }
 .admin-tabs {
   @apply mb-6 flex gap-1 overflow-x-auto border-b border-border;
@@ -78,8 +93,11 @@
 .admin-table {
   @apply w-full text-sm;
 }
+/* Same 11px/bold/0.08em as .ef-label: a column header IS an uppercase
+   micro-label, and at tracking-wider it was the one uppercase run in the app
+   set to a different letterfit. */
 .admin-table th {
-  @apply whitespace-nowrap bg-surface-muted px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-text-secondary;
+  @apply whitespace-nowrap bg-surface-muted px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.08em] text-text-secondary;
 }
 .admin-table td {
   @apply px-5 py-5;
@@ -96,9 +114,6 @@
 .admin-table .ef-btn {
   @apply min-h-9 px-3 text-xs;
 }
-.admin-badge {
-  @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold;
-}
 .admin-form {
   @apply pb-24;
 }
@@ -114,11 +129,16 @@
 .admin-form .ef-panel {
   @apply p-5 sm:p-7;
 }
+/* The element selector rather than a class on eight bare <h2>s — but the
+   values are .ef-heading's, so a panel heading in the admin and a panel heading
+   on the public side are the same step of the same scale. */
 .admin-form h2 {
-  @apply text-base font-bold tracking-tight text-text;
+  @apply text-[17px] font-bold leading-snug tracking-[-0.01em] text-text;
 }
+/* 68ch: the hints sit under a full-width panel heading, and at xl the panel is
+   ~700px, which put a 12px sentence on a 110-character line. */
 .admin-form-hint {
-  @apply -mt-2 mb-5 text-xs leading-relaxed text-text-secondary;
+  @apply -mt-2 mb-5 max-w-[68ch] text-xs leading-relaxed text-text-secondary;
 }
 .admin-form-actions {
   @apply fixed bottom-3 left-4 right-4 z-overlay mx-auto flex max-w-[1400px] flex-wrap items-center justify-end gap-3 rounded-2xl border border-border bg-surface p-4 shadow-md sm:left-8 sm:right-8 lg:left-[272px] xl:left-[280px] xl:right-10;
@@ -167,11 +187,15 @@
     overflow: hidden;
     clip-path: inset(50%);
   }
+  /* 8px of row padding plus 8px of cell padding puts every card's content on the
+     same 16px inset the rest of the admin uses, and makes the gutter between
+     two cells (8) visibly smaller than the gap between two rows — at 12/4 the
+     cells inside one card were further apart than the cards themselves. */
   .admin-table tr {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    padding: 12px;
-    gap: 4px;
+    padding: 8px;
+    gap: 8px 0;
   }
   .admin-table td {
     display: block;

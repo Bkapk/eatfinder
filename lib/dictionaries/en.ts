@@ -27,8 +27,9 @@ export const en: Record<keyof typeof sq, string> = {
 
   'results.heading': '{n} places',
   'results.headingOne': '1 place',
-  'results.empty.title': 'No places found',
-  'results.empty.body': 'Try removing a filter or moving the map.',
+  'results.empty.title': 'Nothing to eat here',
+  'results.empty.body':
+    'No place in this stretch of the map matches your filters. Widen the area, or drop a filter.',
   'results.empty.reset': 'Clear filters',
   'results.loadMore': 'Load more',
   'results.loading': 'Loading…',
@@ -199,12 +200,19 @@ export const en: Record<keyof typeof sq, string> = {
   'account.signInLink': 'Sign in',
   'account.loading': 'Loading…',
   'account.favorites.title': 'Favourites',
-  'account.favorites.empty': "You haven't added any favourites yet.",
+  'account.favorites.empty': 'Every place you heart takes a seat here. None yet.',
+  'account.favorites.emptyCta': 'Find somewhere to eat',
   'account.photos.title': 'My photos',
-  'account.photos.empty': "You haven't submitted any photos yet.",
+  'account.photos.empty':
+    'No photos yet. Next time you eat out, share the view from your table.',
   'account.photos.status.pending': 'Under review',
   'account.photos.status.approved': 'Published',
   'account.photos.status.rejected': 'Rejected',
+
+  'notFound.title': 'This page is not on the menu',
+  'notFound.body':
+    'The link may be old, or the place changed address. The map is right where you left it.',
+  'notFound.cta': 'Back to the map',
 
   'photoUpload.title': 'Add a photo',
   'photoUpload.chooseFile': 'Choose a photo',
@@ -216,6 +224,6 @@ export const en: Record<keyof typeof sq, string> = {
   'photoUpload.success.pending': 'Thanks! Your photo is being reviewed.',
   'photoUpload.error.generic': 'Upload failed. Please try again.',
   'photoUpload.error.tooLarge': 'Photo must be under 5 MB.',
-  'photoUpload.error.rateLimited': "You've hit the upload limit. Try again in {minutes} minutes.",
+  'photoUpload.error.rateLimited': "You've hit the upload limit. Try again in {minutes} min.",
   'photoUpload.cancel': 'Cancel',
 }

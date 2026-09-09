@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -10,9 +10,11 @@ import {
   Images,
   LayoutList,
   LogOut,
+  Menu,
   Sparkles,
   Store,
   UtensilsCrossed,
+  X,
 } from 'lucide-react'
 import Spinner from '@/components/Spinner'
 import './admin.css'
@@ -56,11 +58,82 @@ function NavLink({ item, pathname }: { item: (typeof NAV)[number]; pathname: str
   )
 }
 
+/**
+ * One nav, rendered twice: pinned on desktop, in a sheet below lg. Two copies
+ * of this markup is how the mobile nav drifted into a five-item horizontal
+ * scroller that hid half its own destinations.
+ */
+function SidebarContent({ pathname }: { pathname: string }) {
+  return (
+    <>
+      <Link href="/admin" className="flex items-center gap-3 px-3 py-2">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-on-primary">
+          <UtensilsCrossed size={21} aria-hidden />
+        </span>
+        <span>
+          <span className="block text-lg font-extrabold tracking-tight">
+            EatFinder<span className="text-primary">.</span>
+          </span>
+          <span className="block text-[11px] font-medium text-text-secondary">
+            Admin workspace
+          </span>
+        </span>
+      </Link>
+      <p className="ef-label mb-2 mt-8 px-3">Manage</p>
+      <nav aria-label="Admin navigation" className="flex flex-col gap-1.5">
+        {NAV.map((item) => (
+          <NavLink key={item.href} item={item} pathname={pathname} />
+        ))}
+      </nav>
+      <div className="mt-auto border-t border-border pt-5">
+        <Link href="/" className="admin-nav-link text-text-secondary hover:bg-surface-hover">
+          <ArrowUpRight size={18} aria-hidden />
+          View public site
+        </Link>
+        <p className="mt-5 px-3 text-xs leading-relaxed text-text-secondary">
+          Good food. Great discoveries.
+          <br />
+          Curated in Prishtina.
+        </p>
+      </div>
+    </>
+  )
+}
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const [user, setUser] = useState<{ username: string } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [navOpen, setNavOpen] = useState(false)
+  const navRef = useRef<HTMLDialogElement>(null)
+
+  // showModal() is what brings the focus trap, Escape, the inert background and
+  // focus restoration to the hamburger. `open` stays a React boolean so the
+  // slide is driven purely by the [open] attribute in CSS — no isClosing flag,
+  // no timeout racing the transition.
+  useEffect(() => {
+    const el = navRef.current
+    if (!el) return
+    if (navOpen && !el.open) el.showModal()
+    if (!navOpen && el.open) el.close()
+  }, [navOpen])
+
+  // Navigating is the point of the sheet, so arriving somewhere closes it.
+  useEffect(() => setNavOpen(false), [pathname])
+
+  // Rotating to landscape past lg with the sheet open would leave a modal
+  // <dialog> in the top layer that CSS has set to display:none — invisible, but
+  // still holding the rest of the page inert. Close it at the breakpoint.
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const sync = () => {
+      if (mq.matches) setNavOpen(false)
+    }
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
 
   useEffect(() => {
     checkAuth()
@@ -117,39 +190,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         Skip to content
       </a>
       <aside className="admin-sidebar">
-        <Link href="/admin" className="flex items-center gap-3 px-2 py-2">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-on-primary">
-            <UtensilsCrossed size={21} aria-hidden />
-          </span>
-          <span>
-            <span className="block text-lg font-extrabold tracking-tight">
-              EatFinder<span className="text-primary">.</span>
-            </span>
-            <span className="block text-[11px] font-medium text-text-secondary">
-              Admin workspace
-            </span>
-          </span>
-        </Link>
-        <p className="ef-label mb-3 mt-10 px-3">Manage</p>
-        <nav aria-label="Admin navigation" className="flex flex-col gap-1.5">
-          {NAV.map((item) => (
-            <NavLink key={item.href} item={item} pathname={pathname} />
-          ))}
-        </nav>
-        <div className="mt-auto border-t border-border pt-5">
-          <Link href="/" className="admin-nav-link text-text-secondary hover:bg-surface-hover">
-            <ArrowUpRight size={18} aria-hidden />
-            View public site
-          </Link>
-          <p className="mt-5 px-3 text-xs leading-relaxed text-text-secondary">
-            Good food. Great discoveries.
-            <br />
-            Curated in Prishtina.
-          </p>
-        </div>
+        <SidebarContent pathname={pathname} />
       </aside>
+
+      {/* The same nav as a left-anchored sheet below lg. It shares .ef-drawer
+          with the public filter panel, so both slide on translate alone. */}
+      <dialog
+        ref={navRef}
+        aria-label="Admin navigation"
+        onClose={() => setNavOpen(false)}
+        onClick={(e) => {
+          if (e.target === navRef.current) setNavOpen(false)
+        }}
+        className="ef-drawer ef-drawer--left lg:hidden"
+      >
+        <div className="admin-nav-sheet">
+          <button
+            type="button"
+            onClick={() => setNavOpen(false)}
+            aria-label="Close navigation"
+            className="ef-icon-btn ef-icon-btn--quiet absolute right-4 top-4"
+          >
+            <X size={18} aria-hidden />
+          </button>
+          <SidebarContent pathname={pathname} />
+        </div>
+      </dialog>
+
       <div className="admin-workspace">
         <header className="admin-topbar">
+          <button
+            type="button"
+            onClick={() => setNavOpen(true)}
+            aria-label="Open navigation"
+            aria-expanded={navOpen}
+            className="ef-icon-btn lg:hidden"
+          >
+            <Menu size={19} aria-hidden />
+          </button>
           <Link href="/admin" className="flex items-center gap-2 font-extrabold lg:hidden">
             <UtensilsCrossed size={20} className="text-primary" aria-hidden />
             EatFinder
@@ -180,7 +258,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="admin-icon-button"
+                  className="ef-icon-btn"
                   aria-label="Sign out"
                   title="Sign out"
                 >
@@ -190,12 +268,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             )}
           </div>
         </header>
-        <nav aria-label="Mobile admin navigation" className="admin-mobile-nav">
-          {NAV.map((item) => (
-            <NavLink key={item.href} item={item} pathname={pathname} />
-          ))}
-        </nav>
-        <main id="admin-content" tabIndex={-1} className="admin-content">
+        {/* keyed on the route: an 8px fade-up marks "this is a different page"
+            on a shell where the chrome never changes. */}
+        <main
+          key={pathname}
+          id="admin-content"
+          tabIndex={-1}
+          className="admin-content ef-enter"
+        >
           {children}
         </main>
         <footer className="admin-footer">

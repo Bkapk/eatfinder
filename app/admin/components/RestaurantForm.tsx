@@ -237,10 +237,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
           ))}
         </nav>
         {error && (
-          <div
-            role="alert"
-            className="admin-form-wide px-4 py-3 bg-error-soft border border-error rounded-lg text-error"
-          >
+          <div role="alert" className="ef-alert admin-form-wide !mb-0">
             {error}
           </div>
         )}
@@ -248,7 +245,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
         {/* Basic Information */}
         <div id="basic" className="ef-panel admin-form-section admin-form-wide">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <h2 className="text-xl font-semibold text-primary">Basic Information</h2>
+            <h2>Basic information</h2>
             {restaurant?.id && (
               <button
                 type="button"
@@ -257,7 +254,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
                 className="ef-btn ef-btn--ghost"
               >
                 <Sparkles size={16} />
-                {asking ? 'Asking AI...' : 'Ask AI'}
+                {asking ? 'Asking AI…' : 'Ask AI'}
               </button>
             )}
           </div>
@@ -321,17 +318,19 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
 
         {/* Core Scores */}
         <div id="scores" className="ef-panel admin-form-section admin-form-wide">
-          <h2 className="text-xl font-semibold text-primary mb-4">Profile scores</h2>
+          <h2 className="mb-4">Profile scores</h2>
           <p className="admin-form-hint">
             Describe the dining experience on a scale from 0 to 100.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* gap-4 is the gutter every other field row in this form uses; gap-6
+              made the three sliders drift out of step with the grids above. */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label htmlFor="heaviness" className="text-sm font-medium">
+                <label htmlFor="heaviness" className="text-[13px] font-semibold text-text">
                   Heaviness
                 </label>
-                <span className="text-primary font-mono">{formData.heaviness}</span>
+                <span className="text-[13px] font-bold tabular-nums text-primary">{formData.heaviness}</span>
               </div>
               <input
                 id="heaviness"
@@ -346,10 +345,10 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
 
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label htmlFor="portionSize" className="text-sm font-medium">
+                <label htmlFor="portionSize" className="text-[13px] font-semibold text-text">
                   Portion Size
                 </label>
-                <span className="text-primary font-mono">{formData.portionSize}</span>
+                <span className="text-[13px] font-bold tabular-nums text-primary">{formData.portionSize}</span>
               </div>
               <input
                 id="portionSize"
@@ -364,10 +363,10 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
 
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label htmlFor="fineDining" className="text-sm font-medium">
+                <label htmlFor="fineDining" className="text-[13px] font-semibold text-text">
                   Fine Dining
                 </label>
-                <span className="text-primary font-mono">{formData.fineDining}</span>
+                <span className="text-[13px] font-bold tabular-nums text-primary">{formData.fineDining}</span>
               </div>
               <input
                 id="fineDining"
@@ -384,7 +383,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
 
         {/* Additional Details */}
         <div id="details" className="ef-panel admin-form-section admin-form-wide">
-          <h2 className="text-xl font-semibold text-primary mb-4">Additional Details</h2>
+          <h2 className="mb-4">Additional details</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label htmlFor="priceLevel" className="ef-field-label">
@@ -405,10 +404,10 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
 
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label htmlFor="spiceLevel" className="text-sm font-medium">
+                <label htmlFor="spiceLevel" className="text-[13px] font-semibold text-text">
                   Spice Level
                 </label>
-                <span className="text-primary font-mono">{formData.spiceLevel}</span>
+                <span className="text-[13px] font-bold tabular-nums text-primary">{formData.spiceLevel}</span>
               </div>
               <input
                 id="spiceLevel"
@@ -439,7 +438,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
 
         {/* Cuisines */}
         <div id="cuisines" className="ef-panel admin-form-section">
-          <h2 className="text-xl font-semibold text-primary mb-4">Cuisines</h2>
+          <h2 className="mb-4">Cuisines</h2>
           <div className="space-y-3">
             <div className="flex gap-2">
               <input
@@ -471,18 +470,15 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
             {formData.cuisines.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {formData.cuisines.map((cuisine) => (
-                  <span
-                    key={cuisine}
-                    className="inline-flex items-center gap-2 px-3 py-1 bg-surface-hover border border-border rounded-full text-sm"
-                  >
+                  <span key={cuisine} className="ef-chip ef-chip-enter">
                     {cuisine}
                     <button
                       type="button"
                       onClick={() => removeCuisine(cuisine)}
                       aria-label={`Remove ${cuisine}`}
-                      className="grid h-6 w-6 place-items-center rounded hover:text-error transition-colors"
+                      className="ef-chip-remove"
                     >
-                      <X size={14} />
+                      <X size={12} aria-hidden />
                     </button>
                   </span>
                 ))}
@@ -493,7 +489,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
 
         {/* Tags */}
         <div id="tags" className="ef-panel admin-form-section">
-          <h2 className="text-xl font-semibold text-primary mb-4">Tags</h2>
+          <h2 className="mb-4">Tags</h2>
           <div className="space-y-3">
             <div className="flex gap-2">
               <input
@@ -523,18 +519,15 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
             {formData.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {formData.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-2 px-3 py-1 bg-surface-hover border border-border rounded-full text-sm"
-                  >
+                  <span key={tag} className="ef-chip ef-chip-enter">
                     {tag}
                     <button
                       type="button"
                       onClick={() => removeTag(tag)}
                       aria-label={`Remove ${tag}`}
-                      className="grid h-6 w-6 place-items-center rounded hover:text-error transition-colors"
+                      className="ef-chip-remove"
                     >
-                      <X size={14} />
+                      <X size={12} aria-hidden />
                     </button>
                   </span>
                 ))}
@@ -545,7 +538,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
 
         {/* Contact & Links */}
         <div id="contact" className="ef-panel admin-form-section admin-form-wide">
-          <h2 className="text-xl font-semibold text-primary mb-4">Contact & links</h2>
+          <h2 className="mb-4">Contact & links</h2>
           <p className="admin-form-hint">Give guests a direct route to the restaurant.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -630,12 +623,13 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
             </div>
           </div>
 
-          <label className="flex items-center gap-2 mt-4 text-sm font-medium">
+          {/* No w-4 h-4: that override shrank this one box below the 18px every
+              other checkbox in the app draws, and the gap-3 matches them too. */}
+          <label className="mt-5 flex cursor-pointer items-center gap-3 text-[13px] font-semibold text-text">
             <input
               type="checkbox"
               checked={formData.isFeatured}
               onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
-              className="w-4 h-4"
             />
             Featured
           </label>
@@ -643,22 +637,29 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
 
         {/* Image */}
         <div id="image" className="ef-panel admin-form-section admin-form-wide">
-          <div className="flex items-center gap-2 mb-4">
-            <Upload size={20} className="text-primary" />
-            <h2 className="text-xl font-semibold text-primary">Image</h2>
+          <div className="mb-4 flex items-center gap-2.5">
+            <Upload size={18} className="text-primary" aria-hidden />
+            <h2>Image</h2>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <input
               type="file"
               accept="image/*"
               aria-label="Upload hero image"
               onChange={handleImageUpload}
               disabled={uploading}
-              className="ef-input !p-4 file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:font-semibold file:text-on-primary hover:file:bg-primary-hover disabled:opacity-50"
+              className="ef-input ef-file-input !py-3 disabled:opacity-50"
             />
-            {uploading && <div className="text-sm text-text-secondary">Uploading...</div>}
+            {/* Indeterminate: /api/upload is a single fetch() and reports no
+                byte progress, so the bar promises activity and nothing more. */}
+            {uploading && (
+              <div role="status">
+                <div className="ef-progress" aria-hidden />
+                <p className="mt-2 text-sm text-text-secondary">Uploading…</p>
+              </div>
+            )}
             {formData.image && (
-              <div className="max-w-xs aspect-[16/9] overflow-hidden rounded-lg border border-border">
+              <div className="aspect-[16/9] max-w-xs overflow-hidden rounded-xl border border-border">
                 {/* Opaque URL from lib/storage saveImage(); never reconstructed. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={formData.image} alt="Preview" className="h-full w-full object-cover" />
@@ -669,7 +670,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
 
         {/* Location */}
         <div id="location" className="ef-panel admin-form-section admin-form-wide">
-          <h2 className="text-xl font-semibold text-primary mb-4">Location & opening hours</h2>
+          <h2 className="mb-4">Location & opening hours</h2>
           <p className="admin-form-hint">
             Optional coordinates and the restaurant’s weekly schedule.
           </p>
@@ -738,8 +739,8 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
           Cancel
         </button>
         <button type="submit" disabled={saving} className="ef-btn ef-btn--primary">
-          <Save size={20} />
-          {saving ? 'Saving...' : 'Save Restaurant'}
+          <Save size={17} aria-hidden />
+          {saving ? 'Saving…' : 'Save restaurant'}
         </button>
       </div>
     </form>

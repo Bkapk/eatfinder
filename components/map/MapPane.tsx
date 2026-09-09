@@ -239,7 +239,10 @@ export default function MapPane({
           type="button"
           onClick={() => onSearchArea(pendingBbox)}
           onMouseEnter={() => onHover(null)}
-          className="ef-pill ef-pill--active absolute left-1/2 top-16 z-overlay h-10 -translate-x-1/2 px-4 shadow-lg"
+          // ef-fade-enter, not ef-enter: this pill is centred with
+          // -translate-x-1/2, and an entrance that animates `transform` would
+          // interpolate from translateY(8px) to that and slide it in sideways.
+          className="ef-pill ef-pill--active ef-fade-enter absolute left-1/2 top-16 z-overlay h-10 -translate-x-1/2 px-4 shadow-lg"
         >
           <Search size={15} aria-hidden />
           {t(locale, 'map.searchArea')}

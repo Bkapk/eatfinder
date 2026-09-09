@@ -17,7 +17,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import Link from 'next/link'
-import { PageHeader, EmptyState, LoadingState, ScoreMeter } from './components/AdminUI'
+import { PageHeader, EmptyState, LoadingState, ScoreMeter, Notice, useNotice } from './components/AdminUI'
 
 interface Restaurant {
   id: string
@@ -64,6 +64,7 @@ export default function AdminPage() {
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [counts, setCounts] = useState({ matching: 0, live: 0, draft: 0 })
+  const [notice, setNotice] = useNotice()
 
   const PAGE_SIZE = 50
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
@@ -167,6 +168,17 @@ export default function AdminPage() {
         alert(data.error || 'Bulk action failed')
         return
       }
+      // Named in the admin's terms — "live on EatFinder" is the thing they were
+      // actually trying to achieve; "publish succeeded" is the thing the API did.
+      const n = selectedVisible.length
+      const label = `${n} listing${n === 1 ? '' : 's'}`
+      setNotice(
+        action === 'publish'
+          ? `${label} now live on EatFinder`
+          : action === 'unpublish'
+            ? `${label} moved back to drafts`
+            : `${label} deleted`
+      )
       setSelected(new Set())
       await fetchRestaurants()
     } finally {
@@ -321,7 +333,7 @@ export default function AdminPage() {
           </select>
           <button
             onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            className="admin-icon-button !h-11 !w-11"
+            className="ef-icon-btn"
             aria-label={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
             title={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
           >
@@ -329,6 +341,8 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
+
+      <Notice message={notice} />
 
       {firstLoad ? (
         <LoadingState label="Loading restaurants" />
@@ -414,7 +428,7 @@ export default function AdminPage() {
               </>
             ) : (
               <>
-                <h2 className="text-sm font-bold">Restaurant directory</h2>
+                <h2 className="ef-heading">Restaurant directory</h2>
                 <span className="text-xs text-text-secondary">
                   {total === 0
                     ? 'No listings'
@@ -485,10 +499,14 @@ export default function AdminPage() {
                           >
                             {restaurant.name}
                           </Link>
-                          <p className="mt-1 text-xs text-text-secondary">
+                          {/* One meta block, not two paragraphs: at mt-1 apiece
+                              the name, the neighborhood and the cuisines were
+                              three evenly spaced lines of the same weight and
+                              the eye had to read all three to find the name. */}
+                          <p className="mt-1 text-xs leading-snug text-text-secondary">
                             {restaurant.neighborhood || 'No neighborhood'}
                           </p>
-                          <p className="mt-1 text-xs text-text-secondary">
+                          <p className="text-xs leading-snug text-text-secondary">
                             {restaurant.cuisines.slice(0, 2).join(' · ')}
                             {restaurant.cuisines.length > 2 &&
                               ' +' + (restaurant.cuisines.length - 2)}
@@ -537,10 +555,8 @@ export default function AdminPage() {
                       <div className="flex flex-col items-start gap-2">
                         <span
                           className={
-                            'admin-badge ' +
-                            (restaurant.isActive
-                              ? 'bg-success-soft text-success'
-                              : 'bg-warning-soft text-warning')
+                            'ef-badge ' +
+                            (restaurant.isActive ? 'ef-badge--success' : 'ef-badge--warning')
                           }
                         >
                           <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
@@ -601,7 +617,7 @@ export default function AdminPage() {
                             </button>
                             <button
                               onClick={() => handleEdit(restaurant)}
-                              className="admin-icon-button"
+                              className="ef-icon-btn"
                               aria-label={'Quick edit scores for ' + restaurant.name}
                               title="Quick edit scores"
                             >
@@ -609,7 +625,7 @@ export default function AdminPage() {
                             </button>
                             <button
                               onClick={() => handleDelete(restaurant.id)}
-                              className="admin-icon-button hover:!bg-error-soft hover:!text-error"
+                              className="ef-icon-btn ef-icon-btn--danger"
                               aria-label={'Delete ' + restaurant.name}
                               title="Delete restaurant"
                             >

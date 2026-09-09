@@ -58,12 +58,23 @@
     --shadow-md: 0 2px 6px rgb(11 18 32 / 0.07), 0 8px 20px rgb(11 18 32 / 0.06);
     --shadow-lg: 0 4px 12px rgb(11 18 32 / 0.08), 0 16px 40px rgb(11 18 32 / 0.10);
 
-    /* One easing and two durations for everything that moves, so "make it
-       smoother" is a two-line change here and not forty call sites. The curve
-       is fast-out/slow-in: motion should feel like it settles, not coast. */
+    /* One easing and a duration ladder for everything that moves, so "make it
+       smoother" is a few lines here and not forty call sites. The curve is
+       fast-out/slow-in: motion should feel like it settles, not coast.
+       --dur-fast  acknowledges a press or a hover.
+       --dur       routine state change (toggle, tint, dim).
+       --dur-panel overlays and panels that travel a real distance.
+       --dur-exit  every dismissal. An exit is faster than its entrance —
+                   arriving is information, leaving is just getting out of the
+                   way, and a slow close reads as lag. */
     --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    /* Deep deceleration, for a panel that should look certain about where it
+       lands. Deliberately not a bounce: nothing here is elastic. */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     --dur-fast: 130ms;
     --dur: 220ms;
+    --dur-panel: 320ms;
+    --dur-exit: 180ms;
 
     /* The one focus halo. Every control uses this instead of a Tailwind ring,
        which is what stopped inputs drawing two rings on top of each other. */
@@ -272,9 +283,25 @@
   /* The three controls the whole search UI is built from. Extracted because
      they repeat across the top bar, the map overlay and the results header —
      not as a component library. */
+  /* transform, never a size or margin change: a pill that grows on press
+     reflows the rail it sits in and shoves its neighbours sideways. */
   .ef-pill {
-    @apply inline-flex h-9 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-surface px-3.5 text-[13px] font-semibold text-text transition-colors duration-200 hover:bg-surface-hover;
+    @apply inline-flex h-9 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-surface px-3.5 text-[13px] font-semibold text-text hover:bg-surface-hover;
     box-shadow: var(--shadow-sm);
+    transition:
+      background-color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease),
+      color var(--dur) var(--ease),
+      scale var(--dur-fast) var(--ease);
+  }
+
+  /* The independent `scale` property, not transform: scale(). Two of these
+     pills are centred with Tailwind's -translate-x-1/2 (the mobile map toggle,
+     the "search this area" button), and a `transform` here would replace that
+     translate outright — pressing either would fling it half a width to the
+     right. `scale` composes with `transform` instead of overwriting it. */
+  .ef-pill:active {
+    scale: 0.96;
   }
 
   .ef-pill--active {
@@ -285,13 +312,67 @@
     @apply inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-full bg-primary-soft pl-2.5 pr-1 text-[12px] font-semibold text-primary;
   }
 
-  .ef-card {
-    @apply rounded-2xl border border-border bg-surface transition-shadow duration-200;
-    box-shadow: var(--shadow-sm);
+  /* The × inside a chip. The search rail and both vocab pickers in the admin
+     form had this same 24px target hand-written three times, so a hover tweak
+     had to be made in two files to land everywhere. */
+  .ef-chip-remove {
+    @apply grid h-6 w-6 place-items-center rounded-full text-primary hover:bg-primary hover:text-on-primary;
+    transition:
+      background-color var(--dur) var(--ease),
+      color var(--dur) var(--ease);
   }
 
-  .ef-card:hover {
+  /* Status pill. Previously .admin-badge, promoted here because the account
+     page was drawing the same thing at a 4px radius with its own type size —
+     "pending" meant one shape in the dashboard and another to the guest whose
+     photo it was. The tone modifiers exist because five call sites each
+     re-derived the same soft-tint/solid-text pairing from a ternary. */
+  .ef-badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold;
+  }
+
+  .ef-badge--success {
+    @apply bg-success-soft text-success;
+  }
+
+  .ef-badge--warning {
+    @apply bg-warning-soft text-warning;
+  }
+
+  .ef-badge--error {
+    @apply bg-error-soft text-error;
+  }
+
+  .ef-badge--info {
+    @apply bg-primary-soft text-primary;
+  }
+
+  .ef-badge--neutral {
+    @apply bg-surface-hover font-semibold text-text-secondary;
+  }
+
+  /* The lift is 2px of transform, not a margin or a border-width change, so a
+     hovered card never re-lays-out the grid around it. */
+  .ef-card {
+    @apply rounded-2xl border border-border bg-surface;
+    box-shadow: var(--shadow-sm);
+    transition:
+      box-shadow var(--dur) var(--ease),
+      translate var(--dur) var(--ease);
+  }
+
+  /* focus-within as well as hover: the card's title is the link, so a keyboard
+     user tabbing the list gets the same "this one" cue a mouse does. */
+  .ef-card:hover,
+  .ef-card:focus-within {
     box-shadow: var(--shadow-md);
+    translate: 0 -2px;
+  }
+
+  /* Press settles it back down, faster than it rose. */
+  .ef-card:active {
+    translate: 0 0;
+    transition-duration: var(--dur-fast);
   }
 
   /* Admin shares this vocabulary. Adding it here rather than restyling ~3200
@@ -306,11 +387,11 @@
       border-color var(--dur-fast) var(--ease),
       color var(--dur-fast) var(--ease),
       box-shadow var(--dur-fast) var(--ease),
-      transform var(--dur-fast) var(--ease);
+      scale var(--dur-fast) var(--ease);
   }
 
   .ef-btn:active:not(:disabled) {
-    transform: scale(0.97);
+    scale: 0.97;
   }
 
   .ef-btn--primary {
@@ -322,8 +403,45 @@
     @apply border-border bg-surface text-text hover:bg-surface-hover;
   }
 
-  .ef-btn--danger {
-    @apply bg-error text-on-primary hover:bg-error-hover;
+  /* The "clear all" affordance. Not a ghost button: it sits inside a control
+     that already has a border (the search capsule, the filter drawer header),
+     and a second outlined box in there read as a second field. Defined after
+     .ef-btn so the smaller metrics win when both classes are present. */
+  .ef-btn--quiet {
+    @apply rounded-full px-3 py-1.5 text-[12px] font-bold text-text-secondary hover:bg-surface-hover hover:text-text;
+  }
+
+  /* Square icon-only control — toolbar, table row, drawer close. Was
+     .admin-icon-button and admin-only, so the public filter drawer's close
+     button was a borderless 36px circle while the admin's was a 40px rounded
+     square: same job, two answers, and the 36px one missed the touch target. */
+  /* 44px, the touch minimum, everywhere — not 40 in the admin toolbar, 36 in
+     the public filter drawer and 44 only at the two call sites that had
+     remembered to write `!h-11 !w-11`. */
+  .ef-icon-btn {
+    @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary hover:bg-surface-hover hover:text-text disabled:cursor-not-allowed disabled:opacity-50;
+    transition:
+      background-color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease),
+      color var(--dur) var(--ease),
+      scale var(--dur-fast) var(--ease);
+  }
+
+  .ef-icon-btn:active:not(:disabled) {
+    scale: 0.94;
+  }
+
+  /* No chrome until hovered: for one sitting inside a header or overlay that
+     already draws its own edge. */
+  .ef-icon-btn--quiet {
+    @apply border-transparent bg-transparent;
+  }
+
+  /* Destructive. Three call sites had hand-rolled this and only two of them
+     tinted the background, so the same delete button changed behaviour
+     depending on which screen you were on. */
+  .ef-icon-btn--danger:hover:not(:disabled) {
+    @apply bg-error-soft text-error;
   }
 
   .ef-panel {
@@ -352,8 +470,68 @@
     @apply mb-2 block text-[13px] font-semibold text-text;
   }
 
+  /* The file picker. Two admin uploads shipped the same eight file: utilities
+     inline; a hover colour changed in one of them and not the other. */
+  .ef-file-input {
+    @apply file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:font-semibold file:text-on-primary hover:file:bg-primary-hover;
+  }
+
+  /* A determinate bar: a profile score, an AI confidence, a mood axis. Three
+     copies existed and the queue page carried a comment asking the next person
+     to keep its numbers in sync with AdminUI by hand — which is the job of a
+     class. Height is the caller's (h-1.5 inline, h-2 on the detail page); the
+     track colour, radius and fill are not. */
+  .ef-meter {
+    @apply block h-1.5 w-full overflow-hidden rounded-full;
+    background-color: var(--surface-hover);
+  }
+
+  .ef-meter > * {
+    @apply block h-full w-full origin-left rounded-full bg-primary;
+    transition: transform var(--dur) var(--ease);
+  }
+
+  /* Status messages. Both were admin-only, so the two public auth forms had
+     hand-rolled the error box at their own type size — the same failure
+     reported in two visual languages depending on which half of the product
+     you were standing in. items-start on the alert: an error is the one
+     message here that regularly runs to two lines. */
+  .ef-notice {
+    @apply mb-5 flex items-center gap-2 rounded-xl border border-success bg-success-soft px-4 py-3 text-sm font-semibold text-success;
+  }
+
+  .ef-alert {
+    @apply mb-5 flex items-start gap-2 rounded-xl border border-error bg-error-soft px-4 py-3 text-sm font-semibold leading-relaxed text-error;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ef-notice,
+    .ef-alert {
+      animation: ef-enter var(--dur) var(--ease-out) both;
+    }
+  }
+
   .ef-label {
     @apply text-[11px] font-bold uppercase tracking-[0.08em] text-text-secondary;
+  }
+
+  /* The type scale, stated once. Every heading in the app is one of three
+     steps, and the step is chosen by SEMANTIC level, not by how important the
+     page felt on the day it was written:
+       .ef-title    page <h1>. One value for /r, /account, both logins, the
+                    admin page header and the 404 — those six shipped at 22,
+                    24, 26, 28, 30 and 34px for the same job.
+       .ef-heading  the heading of a card, panel, drawer or section.
+       .ef-label    eyebrow, table header, any uppercase micro-label (above).
+     Body is the 16px/1.55 on <body>; 15px/relaxed for long-form prose, 13-14px
+     for meta. Negative tracking only from 17px up — below that it closes the
+     letterfit on Manrope's already tight lowercase. */
+  .ef-title {
+    @apply text-[26px] font-extrabold leading-[1.15] tracking-[-0.02em] text-text sm:text-[32px];
+  }
+
+  .ef-heading {
+    @apply text-[17px] font-bold leading-snug tracking-[-0.01em] text-text;
   }
 
   /* A <dialog> in the top layer, laid out as a right-hand sheet. Sizing has to
@@ -368,34 +546,179 @@
     @apply flex;
   }
 
+  /* Left-anchored variant: the admin navigation. Same element, same script,
+     only the edge it is attached to changes — which is the whole reason this
+     is a modifier and not a second drawer implementation. */
+  .ef-drawer--left {
+    @apply justify-start;
+  }
+
   /* Slide the sheet in and out with no JS and no "isClosing" state flag:
      allow-discrete keeps `display` and the top layer alive for the exit, and
      @starting-style supplies the frame the panel animates FROM on entry.
-     Browsers without either simply snap, which is today's behaviour. */
+     Browsers without either simply snap, which is today's behaviour.
+     The timing here is the EXIT timing, because these declarations are the
+     ones in force while the panel is closing. */
   .ef-drawer {
     transition:
-      display var(--dur) allow-discrete,
-      overlay var(--dur) allow-discrete;
+      display var(--dur-exit) allow-discrete,
+      overlay var(--dur-exit) allow-discrete;
   }
 
+  /* translate, not left/right/width: those three are laid out by the engine on
+     every frame and are what made the panel stutter on a mid-range phone. */
   .ef-drawer > * {
     translate: 100% 0;
-    transition: translate var(--dur) var(--ease);
+    transition: translate var(--dur-exit) var(--ease);
+  }
+
+  .ef-drawer--left > * {
+    translate: -100% 0;
   }
 
   .ef-drawer[open] > * {
     translate: 0 0;
+    /* Entrance: slower and deeply decelerated, so the panel looks certain
+       about where it stops. */
+    transition:
+      translate var(--dur-panel) var(--ease-out);
   }
 
   @starting-style {
     .ef-drawer[open] > * {
       translate: 100% 0;
     }
+    .ef-drawer--left[open] > * {
+      translate: -100% 0;
+    }
+  }
+
+  /* The search field. focus-within, not :focus — the field owns a chip rail and
+     a clear button, so the whole capsule is the control as far as the eye is
+     concerned and it should light up as one thing. */
+  .ef-searchbar {
+    @apply flex h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-border bg-surface pl-4 pr-2;
+    box-shadow: var(--shadow-sm);
+    transition:
+      border-color var(--dur) var(--ease),
+      box-shadow var(--dur) var(--ease);
+  }
+
+  .ef-searchbar:focus-within {
+    border-color: var(--primary);
+    box-shadow: var(--ring);
+  }
+
+  /* An indeterminate bar, because fetch() reports no upload progress. It says
+     "still working", which is the only honest claim available — a fake
+     percentage that jumps to 100 is worse than no percentage. */
+  .ef-progress {
+    @apply relative h-1 w-full overflow-hidden rounded-full;
+    background-color: var(--surface-hover);
+  }
+
+  .ef-progress::after {
+    content: '';
+    @apply absolute inset-y-0 left-0 w-2/5 rounded-full;
+    background-color: var(--primary);
+    animation: ef-progress-slide 1100ms var(--ease) infinite;
+  }
+
+  /* Entrance utilities.
+     Every one of these is wrapped in `prefers-reduced-motion: no-preference`
+     and nowhere is the resting style `opacity: 0`. A user with motion reduced,
+     or a browser that ignores the rule, gets the content — never a blank box
+     waiting on an animation that is not going to run. */
+  @media (prefers-reduced-motion: no-preference) {
+    /* Something arrived in response to what you just did: a result set, an
+       error, a status line. 8px, not 40 — this is a nod, not a journey. */
+    .ef-enter {
+      animation: ef-enter var(--dur) var(--ease-out) both;
+    }
+
+    /* Opacity only. For anything already carrying a transform of its own — a
+       centred overlay pill, say — where an entrance that animates `transform`
+       would fight the centring and slide the element in from the wrong place. */
+    .ef-fade-enter {
+      animation: ef-fade-enter var(--dur) var(--ease-out) both;
+    }
+
+    /* A filter chip appearing in the search rail. Scale from 0.9 so it reads as
+       "this was just added here" rather than "the row reflowed". */
+    .ef-chip-enter {
+      animation: ef-chip-enter var(--dur-fast) var(--ease-out) both;
+    }
+
+    /* Results arriving as a list. --i is the row index, capped by the caller,
+       so the last card is never more than ~360ms behind the first however many
+       hundred rows the query returns. */
+    .ef-stagger > * {
+      animation: ef-enter var(--dur) var(--ease-out) both;
+      animation-delay: calc(var(--i, 0) * 40ms);
+    }
   }
 
   .ef-scroll-fade {
     /* Horizontal rails fade at the right edge instead of showing a cut-off chip. */
     mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+  }
+}
+
+/* Keyframes live outside @layer: a layered @keyframes is still global, but
+   keeping them here means the utilities above are the only thing anyone has to
+   read to know what moves. */
+@keyframes ef-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes ef-fade-enter {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ef-chip-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes ef-progress-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
+  }
+}
+
+/* The heart. A single 220ms pop on the frame it becomes filled, and nothing at
+   all on the frame it empties — saving is the event worth confirming, removing
+   is not, and a heart that pulses when you un-save it is celebrating the wrong
+   thing. Scoped to the svg so the button's own hit area never moves. */
+@keyframes ef-favorite-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.28);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ef-favorite svg {
+    transition: color var(--dur) var(--ease);
+  }
+
+  .ef-favorite[data-on='true'] svg {
+    animation: ef-favorite-pop var(--dur) var(--ease-out);
   }
 }
 
@@ -418,15 +741,16 @@
   background: rgb(11 18 32 / 0);
   backdrop-filter: blur(0px);
   transition:
-    background var(--dur) var(--ease),
-    backdrop-filter var(--dur) var(--ease),
-    display var(--dur) allow-discrete,
-    overlay var(--dur) allow-discrete;
+    background var(--dur-exit) var(--ease),
+    backdrop-filter var(--dur-exit) var(--ease),
+    display var(--dur-exit) allow-discrete,
+    overlay var(--dur-exit) allow-discrete;
 }
 
 .ef-drawer[open]::backdrop {
   background: rgb(11 18 32 / 0.35);
   backdrop-filter: blur(3px);
+  transition-duration: var(--dur-panel);
 }
 
 @starting-style {

@@ -23,7 +23,7 @@ interface Proposal {
   createdAt: string
 }
 
-import { PageHeader, EmptyState, LoadingState } from '../components/AdminUI'
+import { PageHeader, EmptyState, LoadingState, Notice, useNotice } from '../components/AdminUI'
 
 const STATUS_TABS = ['pending', 'approved', 'rejected', 'failed'] as const
 
@@ -36,6 +36,7 @@ export default function QueuePage() {
   // and expanding it again.
   const [firstLoad, setFirstLoad] = useState(true)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useNotice()
   const [busy, setBusy] = useState<Set<string>>(new Set())
 
   const load = async (s = status) => {
@@ -84,6 +85,9 @@ export default function QueuePage() {
         setError(data.error || 'Failed to approve')
         return
       }
+      // The card disappears from the pending tab on the next load, so without
+      // this the only evidence of an approval is a row that vanished.
+      setNotice(`${proposal.restaurant.name} updated from the AI profile`)
       await load()
     })
   }
@@ -101,6 +105,7 @@ export default function QueuePage() {
         setError(data.error || 'Failed to reject')
         return
       }
+      setNotice(`Proposal dismissed — ${proposal.restaurant.name} is unchanged`)
       await load()
     })
   }
@@ -125,7 +130,7 @@ export default function QueuePage() {
           <>
             {status === 'pending' && proposals.length > 0 && (
               <button onClick={approveAll} className="ef-btn ef-btn--primary">
-                Approve All
+                Approve all
               </button>
             )}
           </>
@@ -146,13 +151,12 @@ export default function QueuePage() {
       </div>
 
       {error && (
-        <div
-          role="alert"
-          className="px-4 py-3 mb-6 bg-error-soft border border-error rounded-lg text-error"
-        >
+        <div role="alert" className="ef-alert">
           {error}
         </div>
       )}
+
+      <Notice message={notice} />
 
       {firstLoad ? (
         <LoadingState label="Loading review queue" />
@@ -220,16 +224,19 @@ function ProposalCard({
 
   if (proposal.status === 'failed') {
     return (
-      <div className="bg-surface border border-error rounded-lg p-6">
-        <div className="flex items-center gap-2 text-error font-semibold mb-2">
-          <AlertTriangle size={18} />
+      // ef-panel, not a bespoke rounded-lg box: a failed proposal is the same
+      // card as a successful one in a different tone, and at rounded-lg it was
+      // the only 8px corner in a list of 16px ones.
+      <div className="ef-panel border-error">
+        <div className="mb-2 flex items-center gap-2 text-base font-bold tracking-tight text-error">
+          <AlertTriangle size={18} aria-hidden className="shrink-0" />
           {restaurant.name} — enrichment failed
         </div>
-        <p className="text-sm text-text-secondary mb-2">{proposal.errorMessage}</p>
+        <p className="text-sm leading-relaxed text-text-secondary">{proposal.errorMessage}</p>
         {proposal.rawResponse && (
           <pre
             tabIndex={0}
-            className="text-xs bg-background border border-border rounded p-3 overflow-x-auto whitespace-pre-wrap"
+            className="mt-4 overflow-x-auto whitespace-pre-wrap rounded-xl border border-border bg-background p-4 text-xs leading-relaxed"
           >
             {proposal.rawResponse}
           </pre>
@@ -242,27 +249,27 @@ function ProposalCard({
 
   return (
     <div className="ef-panel admin-proposal">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-5 mb-5">
-        <div>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-5">
+        <div className="min-w-0">
           <Link
             href={`/admin/${restaurant.id}`}
-            className="text-lg font-semibold text-primary hover:underline"
+            className="text-base font-bold tracking-tight text-primary hover:underline"
           >
             {restaurant.name}
           </Link>
-          <div className="text-xs text-text-secondary">
+          <p className="mt-0.5 text-xs text-text-secondary">
             {proposal.model} · overall confidence{' '}
             {Math.round((proposal.overallConfidence ?? 0) * 100)}%
-          </div>
+          </p>
         </div>
         {lowSignal && (
-          <span className="flex items-center gap-1 px-2 py-1 text-xs bg-error-soft text-error rounded">
-            <AlertTriangle size={14} /> Low signal — not auto-filled
+          <span className="ef-badge ef-badge--error shrink-0">
+            <AlertTriangle size={13} aria-hidden /> Low signal — not auto-filled
           </span>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-4 mb-4">
+      <div className="mb-5 grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-4">
         <AxisField
           id={`${proposal.id}-heaviness`}
           label="Heaviness"
@@ -273,7 +280,7 @@ function ProposalCard({
         />
         <AxisField
           id={`${proposal.id}-portionSize`}
-          label="Portion Size"
+          label="Portion size"
           current={restaurant.portionSize}
           field={payload.scores.portionSize}
           value={fields.portionSize}
@@ -281,7 +288,7 @@ function ProposalCard({
         />
         <AxisField
           id={`${proposal.id}-fineDining`}
-          label="Fine Dining"
+          label="Fine dining"
           current={restaurant.fineDining}
           field={payload.scores.fineDining}
           value={fields.fineDining}
@@ -289,7 +296,7 @@ function ProposalCard({
         />
         <AxisField
           id={`${proposal.id}-spiceLevel`}
-          label="Spice Level"
+          label="Spice level"
           current={restaurant.spiceLevel}
           field={payload.scores.spiceLevel}
           value={fields.spiceLevel}
@@ -297,17 +304,17 @@ function ProposalCard({
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div className="mb-5 grid grid-cols-1 gap-5 md:grid-cols-2">
         <div>
           <FieldLabel
             htmlFor={`${proposal.id}-priceLevel`}
-            label="Price Level"
+            label="Price level"
             confidence={payload.priceLevel.confidence}
             rationale={payload.priceLevel.rationale}
           />
-          <div className="text-xs text-text-secondary mb-1">
+          <p className="mb-2 text-xs text-text-secondary">
             Current: {'$'.repeat(restaurant.priceLevel)}
-          </div>
+          </p>
           <select
             id={`${proposal.id}-priceLevel`}
             value={fields.priceLevel}
@@ -329,9 +336,9 @@ function ProposalCard({
             confidence={payload.neighborhood.confidence}
             rationale={payload.neighborhood.rationale}
           />
-          <div className="text-xs text-text-secondary mb-1">
+          <p className="mb-2 text-xs text-text-secondary">
             Current: {restaurant.neighborhood || '(none)'}
-          </div>
+          </p>
           <input
             id={`${proposal.id}-neighborhood`}
             type="text"
@@ -342,15 +349,15 @@ function ProposalCard({
         </div>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-5">
         <FieldLabel
           label="Cuisines"
           confidence={payload.cuisines.confidence}
           rationale={payload.cuisines.rationale}
         />
-        <div className="text-xs text-text-secondary mb-1">
+        <p className="mb-2 text-xs text-text-secondary">
           Current: {restaurant.cuisines.join(', ') || '(none)'}
-        </div>
+        </p>
         <VocabPicker
           vocab={CUISINE_VOCAB}
           selected={fields.cuisines}
@@ -358,15 +365,15 @@ function ProposalCard({
         />
       </div>
 
-      <div className="mb-4">
+      <div className="mb-5">
         <FieldLabel
           label="Tags"
           confidence={payload.tags.confidence}
           rationale={payload.tags.rationale}
         />
-        <div className="text-xs text-text-secondary mb-1">
+        <p className="mb-2 text-xs text-text-secondary">
           Current: {restaurant.tags.join(', ') || '(none)'}
-        </div>
+        </p>
         <VocabPicker
           vocab={TAG_VOCAB}
           selected={fields.tags}
@@ -374,16 +381,16 @@ function ProposalCard({
         />
       </div>
 
-      <div className="mb-4">
+      <div className="mb-5">
         <FieldLabel
           htmlFor={`${proposal.id}-description`}
           label="Description (Albanian)"
           confidence={payload.description.confidence}
           rationale={payload.description.rationale}
         />
-        <div className="text-xs text-text-secondary mb-1">
+        <p className="mb-2 text-xs leading-relaxed text-text-secondary">
           Current: {restaurant.description || '(none)'}
-        </div>
+        </p>
         <textarea
           id={`${proposal.id}-description`}
           value={fields.description}
@@ -394,16 +401,16 @@ function ProposalCard({
         />
       </div>
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-border">
+      <div className="flex flex-wrap justify-end gap-3 border-t border-border pt-5">
         <button onClick={onReject} disabled={busy} className="ef-btn ef-btn--ghost">
-          <X size={18} /> Reject
+          <X size={17} aria-hidden /> Reject
         </button>
         <button
           onClick={() => onApprove(fields)}
           disabled={busy}
           className="ef-btn ef-btn--primary"
         >
-          <Check size={18} /> Approve
+          <Check size={17} aria-hidden /> Approve
         </button>
       </div>
     </div>
@@ -422,12 +429,15 @@ function FieldLabel({
   rationale: string
 }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1 block">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">{label}</span>
+    // The label, its confidence bar and its rationale are one block with 8px
+    // under it; every one of them used to sit 4px apart, so a field's own
+    // caption was as close to the next field's label as to its own control.
+    <label htmlFor={htmlFor} className="mb-2 block">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[13px] font-semibold text-text">{label}</span>
         <ConfidenceBar confidence={confidence} />
       </div>
-      <p className="text-xs text-text-secondary italic">{rationale}</p>
+      <p className="mt-1 text-xs leading-relaxed text-text-secondary">{rationale}</p>
     </label>
   )
 }
@@ -435,9 +445,12 @@ function FieldLabel({
 function ConfidenceBar({ confidence }: { confidence: number }) {
   const pct = Math.round(confidence * 100)
   return (
-    <span className="flex items-center gap-2 text-xs text-text-secondary">
-      <span className="w-16 h-1.5 bg-border rounded-full overflow-hidden">
-        <span className="block h-full bg-primary" style={{ width: `${pct}%` }} />
+    // .ef-meter — the same track as <ScoreMeter> and the detail page's mood
+    // bars. This used to be a hand-kept copy with a comment asking the next
+    // person to keep three numbers in sync across two files.
+    <span className="flex shrink-0 items-center gap-2 text-xs font-semibold tabular-nums text-text-secondary">
+      <span className="ef-meter w-16">
+        <span style={{ transform: `scaleX(${pct / 100})` }} />
       </span>
       {pct}%
     </span>
@@ -460,16 +473,19 @@ function AxisField({
   onChange: (v: number) => void
 }) {
   return (
-    <div className="rounded-xl border border-border bg-background p-4">
+    <div className="flex flex-col rounded-xl border border-border bg-background p-4">
       <FieldLabel
         htmlFor={id}
         label={label}
         confidence={field.confidence}
         rationale={field.rationale}
       />
-      <div className="text-xs text-text-secondary mb-1">
+      {/* mt-auto pins the slider to the bottom of the tile: the four rationales
+          above it are different lengths, so without this the four sliders in
+          the row sat at four different heights. */}
+      <p className="mb-2 mt-auto text-xs text-text-secondary">
         Current: {current} · Proposed: {field.value}
-      </div>
+      </p>
       <input
         id={id}
         type="range"
@@ -479,7 +495,11 @@ function AxisField({
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full"
       />
-      <div className="text-right text-primary font-mono text-sm">{value}</div>
+      {/* tabular-nums in the UI font, not font-mono: there is no mono token in
+          this design system, so that span rendered in the browser default. */}
+      <div className="mt-1.5 text-right text-[13px] font-bold tabular-nums text-primary">
+        {value}
+      </div>
     </div>
   )
 }
@@ -506,11 +526,10 @@ function VocabPicker({
           type="button"
           onClick={() => toggle(v)}
           aria-pressed={selected.includes(v)}
-          className={`min-h-[24px] px-2 py-1 text-xs rounded-full border transition-colors ${
-            selected.includes(v)
-              ? 'bg-primary text-on-primary border-primary'
-              : 'bg-background border-border text-text-secondary hover:text-text'
-          }`}
+          // .ef-pill: the app already has a toggleable pill, and this one was
+          // 26px tall — half the 44px minimum, in the one admin view whose whole
+          // job is tapping twenty of them in a row.
+          className={`ef-pill ${selected.includes(v) ? 'ef-pill--active' : ''}`}
         >
           {v}
         </button>

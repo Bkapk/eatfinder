@@ -87,9 +87,13 @@ export default function PhotoUpload({
         className="ef-input h-10"
         aria-label={t(locale, 'photoUpload.caption')}
       />
+      {/* The upload is a single fetch() with no progress events, so the bar is
+          honestly indeterminate: it says "still going", not a fake percentage. */}
+      {busy && <div className="ef-progress" aria-hidden />}
+
       {message && (
         <p
-          className={`text-[13px] font-semibold ${message.kind === 'success' ? 'text-success' : 'text-error'}`}
+          className={`ef-enter text-[13px] font-semibold ${message.kind === 'success' ? 'text-success' : 'text-error'}`}
           role={message.kind === 'error' ? 'alert' : 'status'}
         >
           {message.text}

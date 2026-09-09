@@ -134,39 +134,31 @@ export default function DiscoverPage() {
       <PageHeader
         eyebrow="Grow your catalogue"
         title="Discover places"
-        description="Find local favorites on Google Places and bring them into EatFinder as drafts, ready for your review."
+        description="Find local favourites on Google Places and bring them into EatFinder as drafts, ready for your review."
       />
 
       {disabled && (
-        <div
-          role="alert"
-          className="mb-6 px-4 py-3 bg-error-soft border border-error rounded-lg text-error"
-        >
+        <div role="alert" className="ef-alert">
           Google Places is disabled: {error || 'GOOGLE_PLACES_API_KEY is not set.'} Add the key to
           your environment and restart the app to use Discover.
         </div>
       )}
 
       {!disabled && error && (
-        <div
-          role="alert"
-          className="mb-6 px-4 py-3 bg-error-soft border border-error rounded-lg text-error"
-        >
+        <div role="alert" className="ef-alert">
           {error}
         </div>
       )}
 
-      <form onSubmit={runSearch} className="ef-panel mb-6 space-y-4">
+      <form onSubmit={runSearch} className="ef-panel mb-5 space-y-4">
+        {/* .ef-btn, not a third button shape: these were 36px tall above a
+            44px input, and the only rounded-lg controls in the admin. */}
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setMode('text')}
             aria-pressed={mode === 'text'}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              mode === 'text'
-                ? 'bg-primary text-on-primary'
-                : 'bg-surface-hover border border-border text-text-secondary'
-            }`}
+            className={`ef-btn ${mode === 'text' ? 'ef-btn--primary' : 'ef-btn--ghost'}`}
           >
             Text search
           </button>
@@ -174,11 +166,7 @@ export default function DiscoverPage() {
             type="button"
             onClick={() => setMode('nearby')}
             aria-pressed={mode === 'nearby'}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              mode === 'nearby'
-                ? 'bg-primary text-on-primary'
-                : 'bg-surface-hover border border-border text-text-secondary'
-            }`}
+            className={`ef-btn ${mode === 'nearby' ? 'ef-btn--primary' : 'ef-btn--ghost'}`}
           >
             Nearby · Prishtina, 3 km
           </button>
@@ -187,8 +175,9 @@ export default function DiscoverPage() {
         {mode === 'text' && (
           <div className="relative">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
-              size={20}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary"
+              size={18}
+              aria-hidden
             />
             <input
               aria-label="Search Google Places"
@@ -196,7 +185,7 @@ export default function DiscoverPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder='e.g. "restaurants in Prishtina" or a specific business name'
-              className="ef-input pl-10"
+              className="ef-input pl-11"
               required
             />
           </div>
@@ -204,22 +193,22 @@ export default function DiscoverPage() {
 
         <button type="submit" disabled={searching} className="ef-btn ef-btn--primary">
           {searching ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
-          {searching ? 'Searching...' : 'Search'}
+          {searching ? 'Searching…' : 'Search'}
         </button>
       </form>
 
       {!searching && !error && candidates.length === 0 && results.length === 0 && (
         <EmptyState
           icon={Compass}
-          title="Find the next local favorite"
+          title="Find the next local favourite"
           description="Search by restaurant name or explore places within 3 km of Prishtina centre. Selected places are imported as drafts."
         />
       )}
 
       {results.length > 0 && (
-        <div className="ef-panel mb-6">
-          <h2 className="text-lg font-semibold mb-3">Import results</h2>
-          <ul className="space-y-1 text-sm">
+        <div className="ef-panel mb-5">
+          <h2 className="ef-heading mb-3">Import results</h2>
+          <ul className="space-y-1.5 text-sm">
             {results.map((r) => (
               <li key={r.placeId} className="flex items-center gap-2">
                 <span
@@ -242,9 +231,9 @@ export default function DiscoverPage() {
       )}
 
       {candidates.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap justify-between items-center gap-3">
-            <p className="text-text-secondary text-sm">
+        <div className="space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-text-secondary">
               {candidates.length} result{candidates.length === 1 ? '' : 's'}, {selected.size}{' '}
               selected
             </p>
@@ -258,11 +247,11 @@ export default function DiscoverPage() {
               ) : (
                 <CheckCircle2 size={18} />
               )}
-              {importing ? 'Importing...' : `Import selected (${selected.size})`}
+              {importing ? 'Importing…' : `Import selected (${selected.size})`}
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
             {candidates.map((c) => (
               <label
                 key={c.placeId}
@@ -275,24 +264,26 @@ export default function DiscoverPage() {
                 }`}
               >
                 <div className="flex items-start gap-3">
+                  {/* mt-0.5 centres an 18px box on the 21px first line of the
+                      title; mt-1 left it visibly low against every card. */}
                   <input
                     type="checkbox"
                     checked={selected.has(c.placeId)}
                     disabled={c.alreadyImported}
                     onChange={() => toggle(c.placeId)}
-                    className="mt-1"
+                    className="mt-0.5"
                   />
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold">{c.name}</span>
+                      <span className="font-bold leading-snug">{c.name}</span>
                       {c.alreadyImported && (
-                        <span className="text-xs px-2 py-0.5 bg-surface-hover rounded-full text-text-secondary shrink-0">
+                        <span className="ef-badge ef-badge--neutral shrink-0">
                           Already imported
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-text-secondary mt-1">{c.address}</p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-text-secondary">
+                    <p className="mt-1 text-xs leading-relaxed text-text-secondary">{c.address}</p>
+                    <div className="mt-2 flex items-center gap-3 text-xs text-text-secondary">
                       {c.priceLevel && <span>{'$'.repeat(c.priceLevel)}</span>}
                       {c.rating != null && (
                         <span>

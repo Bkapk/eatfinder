@@ -29,7 +29,7 @@ export default async function AccountRegisterPage({
       </Suspense>
 
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-10">
-        <h1 className="mb-6 text-center text-[28px] font-extrabold tracking-tight text-text">
+        <h1 className="ef-title mb-6 text-center">
           {t(locale, 'register.title')}
         </h1>
         <RegisterForm locale={locale} next={next} />
