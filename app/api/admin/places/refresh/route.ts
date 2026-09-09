@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { toDTO } from '@/lib/types'
-import { placeDetails, toRestaurantDraft, PlacesDisabledError } from '@/lib/places'
+import { placeDetails, toRestaurantDraft, PlacesApiError, PlacesDisabledError } from '@/lib/places'
 import { z } from 'zod'
 
 const refreshSchema = z.object({ placeId: z.string().min(1) })
@@ -47,6 +47,9 @@ export async function POST(request: NextRequest) {
     }
     if (error instanceof PlacesDisabledError) {
       return NextResponse.json({ error: error.message }, { status: 503 })
+    }
+    if (error instanceof PlacesApiError) {
+      return NextResponse.json({ error: error.message }, { status: 502 })
     }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })

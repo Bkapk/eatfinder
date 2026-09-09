@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { createMapLimiter } from '@/lib/ratelimit'
-import { searchText, searchNearby, PlacesDisabledError, type PlaceCandidate } from '@/lib/places'
+import { searchText, searchNearby, PlacesApiError, PlacesDisabledError, type PlaceCandidate } from '@/lib/places'
 import { z } from 'zod'
 
 const searchSchema = z.object({
@@ -72,6 +72,9 @@ export async function POST(request: NextRequest) {
     }
     if (error instanceof PlacesDisabledError) {
       return NextResponse.json({ error: error.message }, { status: 503 })
+    }
+    if (error instanceof PlacesApiError) {
+      return NextResponse.json({ error: error.message }, { status: 502 })
     }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })

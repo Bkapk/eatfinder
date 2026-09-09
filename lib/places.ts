@@ -8,6 +8,13 @@ const PLACES_BASE = 'https://places.googleapis.com/v1'
 
 export class PlacesDisabledError extends Error {}
 
+/** Google rejected the call (bad key, API not enabled, referrer-restricted key, quota). */
+export class PlacesApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message)
+  }
+}
+
 function apiKey(): string {
   const key = process.env.GOOGLE_PLACES_API_KEY
   if (!key) {
@@ -132,9 +139,18 @@ async function callPlaces<T>(url: string, fieldMask: string, body?: unknown): Pr
   })
   if (!res.ok) {
     const text = await res.text().catch(() => '')
-    throw new Error(`Places API ${res.status}: ${text.slice(0, 300)}`)
+    throw new PlacesApiError(res.status, `Google Places API ${res.status}: ${googleMessage(text)}`)
   }
   return res.json() as Promise<T>
+}
+
+/** Google errors are `{ error: { message } }`; fall back to the raw body. */
+function googleMessage(body: string): string {
+  try {
+    return JSON.parse(body)?.error?.message ?? body.slice(0, 300)
+  } catch {
+    return body.slice(0, 300)
+  }
 }
 
 // Candidate list fields only — no photos, no reviews, no opening hours. Those are
@@ -235,7 +251,7 @@ const MAX_PHOTO_BYTES = 8 * 1024 * 1024 // maxWidthPx keeps normal photos well u
 export async function downloadPhotoMedia(photoName: string, maxWidthPx = 1200): Promise<Buffer> {
   const url = `${PLACES_BASE}/${photoName}/media?maxWidthPx=${maxWidthPx}&key=${apiKey()}`
   const res = await fetch(url)
-  if (!res.ok) throw new Error(`Places photo media ${res.status}`)
+  if (!res.ok) throw new PlacesApiError(res.status, `Google Places photo media ${res.status}`)
 
   const declared = res.headers.get('content-length')
   if (declared && Number(declared) > MAX_PHOTO_BYTES) {
