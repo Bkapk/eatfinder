@@ -1,30 +1,29 @@
 #!/usr/bin/env bash
 # Shared deploy configuration. Sourced by deploy-dev.sh and deploy-prod.sh.
 #
-# FILL THESE IN before the first deploy. They are the only values that differ
-# between one Virtualmin box and another, which is why they live here rather
-# than being scattered across five scripts.
+# Directories are written out in full rather than derived from the domain,
+# because the dev site is a Virtualmin sub-server under an unrelated apex
+# (hajdehajme.bleart.dev under bleart.dev), not dev.<app-domain>. Deriving them
+# would only work for one of the two layouts.
 
-# The Linux user that owns the Virtualmin virtual server.
-VM_USER="CHANGEME"
+VM_USER="bleart"
 
-# Bare apex domain, no scheme, no www.
-APP_DOMAIN="CHANGEME.com"
+# --- dev: live now ---
+DEV_DOMAIN="hajdehajme.bleart.dev"
+DEV_DIR="/home/bleart/domains/hajdehajme.bleart.dev/public_html"
+DEV_PORT=3009   # 3000-3008 and 3100 were taken
 
-# PM2 app name and the base for the dev one (<APP_NAME>-dev).
+# --- prod: no domain chosen yet ---
+# When one exists: create the virtual server, set these three, and the same
+# deploy-prod.sh works unchanged. Until then prod is simply never deployed.
+PROD_DOMAIN=""
+PROD_DIR="/home/bleart/public_html"
+PROD_PORT=3010  # reserved, no prod domain yet
+
 APP_NAME="eatfinder"
 
-# Ports must be unique across every app on this box. Check what is already
-# taken with: pm2 list  (and: ss -ltnp | grep -E ':30[0-9][0-9]')
-PROD_PORT=3005
-DEV_PORT=3006
-
-# --- Derived. Virtualmin fixes this layout; do not fight it. ---
-PROD_DIR="/home/${VM_USER}/public_html"
-DEV_DIR="/home/${VM_USER}/domains/dev.${APP_DOMAIN}/public_html"
-
-# SQLite lives OUTSIDE the checkout on purpose. Inside it, a stray clean or a
-# reclone destroys the database, and prisma/*.db is gitignored so nothing warns
-# you. Same for uploads when R2 is not configured. Back up these two paths.
-PROD_DATA="/home/${VM_USER}/eatfinder-data/prod"
+# SQLite and uploads live OUTSIDE the checkout on purpose. Inside it, a reclone
+# or a clean destroys the database, and prisma/*.db is gitignored so nothing
+# warns you. These two paths are the entire backup surface.
 DEV_DATA="/home/${VM_USER}/eatfinder-data/dev"
+PROD_DATA="/home/${VM_USER}/eatfinder-data/prod"

@@ -12,7 +12,7 @@ const fs = require('fs')
 const path = require('path')
 const { execFile } = require('child_process')
 
-const PORT = 9876
+const PORT = 9884  // 9876-9883 taken by the other apps on this box
 const HOST = '127.0.0.1'
 const LOCKFILE = '/tmp/eatfinder-deploy.lock'
 const LOCK_STALE_MS = 10 * 60 * 1000

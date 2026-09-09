@@ -34,4 +34,4 @@ fi
 npm run build
 
 pm2 restart "${APP_NAME}" --update-env
-echo "==> ${APP_NAME} deployed: https://${APP_DOMAIN}"
+echo "==> ${APP_NAME} deployed: https://${PROD_DOMAIN}"

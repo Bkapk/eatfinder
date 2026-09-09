@@ -35,4 +35,4 @@ fi
 npm run build
 
 pm2 restart "${APP_NAME}-dev" --update-env
-echo "==> ${APP_NAME}-dev deployed: https://dev.${APP_DOMAIN}"
+echo "==> ${APP_NAME}-dev deployed: https://${DEV_DOMAIN}"

@@ -12,7 +12,7 @@ module.exports = {
       name: 'eatfinder-dev',
       cwd: APP_DIR,
       script: 'node_modules/next/dist/bin/next',
-      args: 'start -p 3006', // keep in sync with DEV_PORT in deploy/config.sh and nginx-dev.conf
+      args: 'start -p 3009', // keep in sync with DEV_PORT in deploy/config.sh and nginx-dev.conf
       instances: 1,
       // Must stay 1. lib/ratelimit.ts uses in-process Maps for the login lockout
       // and the Places search limit; under a cluster those silently multiply by
