@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import Map, {
   GeolocateControl,
   NavigationControl,
@@ -28,6 +28,11 @@ const BBOX_EPSILON = 0.0015
 function differs(a: Bbox | undefined, b: Bbox): boolean {
   if (!a) return true
   return a.some((v, i) => Math.abs(v - b[i]) > BBOX_EPSILON)
+}
+
+function sameBbox(a?: Bbox, b?: Bbox): boolean {
+  if (!a || !b) return !a && !b
+  return !differs(a, b)
 }
 
 /** Top cuisines by facet count — the quick-filter row over the map. */
@@ -73,12 +78,14 @@ export default function MapPane({
   onLocate: (lat: number, lng: number) => void
 }) {
   const mapRef = useRef<MapRef>(null)
-  const [pending, setPending] = useState<Bbox | null>(null)
+  const [pending, setPending] = useState<{ bbox: Bbox; against?: Bbox } | null>(null)
   const [selected, setSelected] = useState<MapPoint | null>(null)
   const [cursor, setCursor] = useState<string>('grab')
 
-  // The pill is stale the moment the shell actually queries those bounds.
-  useEffect(() => setPending(null), [queriedBbox])
+  // Derived rather than cleared in an effect: the offer to re-search is only
+  // meaningful while the shell is still showing the bounds it was measured
+  // against, so the moment those change the pill is simply not rendered.
+  const pendingBbox = pending && sameBbox(pending.against, queriedBbox) ? pending.bbox : null
 
   const onMoveEnd = useCallback(
     (e: ViewStateChangeEvent) => {
@@ -88,7 +95,7 @@ export default function MapPane({
       const b = mapRef.current?.getBounds()
       if (!b) return
       const bbox: Bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]
-      setPending(differs(queriedBbox, bbox) ? bbox : null)
+      setPending(differs(queriedBbox, bbox) ? { bbox, against: queriedBbox } : null)
     },
     [queriedBbox]
   )
@@ -215,10 +222,10 @@ export default function MapPane({
         <ViewToggle locale={locale} view={view} onChange={onView} className="pointer-events-auto" />
       </div>
 
-      {pending && (
+      {pendingBbox && (
         <button
           type="button"
-          onClick={() => onSearchArea(pending)}
+          onClick={() => onSearchArea(pendingBbox)}
           onMouseEnter={() => onHover(null)}
           className="ef-pill ef-pill--active absolute left-1/2 top-16 z-overlay h-10 -translate-x-1/2 px-4 shadow-lg"
         >
