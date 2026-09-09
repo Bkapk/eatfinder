@@ -3,41 +3,37 @@
 import { useCallback, useSyncExternalStore } from 'react'
 
 /**
- * ponytail: favourites live in localStorage, not the database. Phase 5 owns
- * /api/community/favorites and the Favorite table; until a user can sign in
- * there is nobody to hang a row on. Swap point is this file only — the two
- * exported hooks are the whole surface. Upgrade when /account/login exists.
+ * Favourites live in the database (Favorite table) behind
+ * /api/community/favorites, one per signed-in user. A signed-out visitor
+ * simply gets an empty list back (401) — toggling while signed out reverts
+ * the optimistic update rather than throwing. The two exported hooks are the
+ * whole surface, matching the localStorage version this replaces.
  */
-const KEY = 'ef:favorites'
-
 let cache: string[] = []
+let loaded = false
 const listeners = new Set<() => void>()
 
-function read(): string[] {
+function notify() {
+  listeners.forEach((l) => l())
+}
+
+async function loadFavorites() {
   try {
-    const raw = window.localStorage.getItem(KEY)
-    const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : []
+    const res = await fetch('/api/community/favorites')
+    const data = res.ok ? await res.json() : null
+    cache = Array.isArray(data?.restaurantIds) ? data.restaurantIds : []
   } catch {
-    return []
+    cache = []
+  } finally {
+    loaded = true
+    notify()
   }
 }
 
 function subscribe(fn: () => void) {
-  if (listeners.size === 0) cache = read()
   listeners.add(fn)
-  // Another tab writing the same key must not leave this one stale.
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === KEY) {
-      cache = read()
-      listeners.forEach((l) => l())
-    }
-  }
-  window.addEventListener('storage', onStorage)
-  return () => {
-    listeners.delete(fn)
-    window.removeEventListener('storage', onStorage)
-  }
+  if (!loaded) loadFavorites()
+  return () => listeners.delete(fn)
 }
 
 // useSyncExternalStore requires a stable snapshot reference or it loops.
@@ -48,14 +44,24 @@ export function useFavorites() {
   const ids = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   const toggle = useCallback((id: string) => {
-    const next = cache.includes(id) ? cache.filter((v) => v !== id) : [...cache, id]
-    cache = next
-    try {
-      window.localStorage.setItem(KEY, JSON.stringify(next))
-    } catch {
-      /* private mode / quota: the in-memory set still works for this session */
-    }
-    listeners.forEach((l) => l())
+    const wasOn = cache.includes(id)
+    // Optimistic: flip immediately, revert if the request fails (e.g. the
+    // user is not signed in and gets a 401).
+    cache = wasOn ? cache.filter((v) => v !== id) : [...cache, id]
+    notify()
+
+    fetch('/api/community/favorites', {
+      method: wasOn ? 'DELETE' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restaurantId: id }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('failed')
+      })
+      .catch(() => {
+        cache = wasOn ? [...cache, id] : cache.filter((v) => v !== id)
+        notify()
+      })
   }, [])
 
   return { ids, toggle }

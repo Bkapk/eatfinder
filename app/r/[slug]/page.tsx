@@ -6,11 +6,13 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, ExternalLink, Instagram, MapPin, Phone, ShoppingBag, Star } from 'lucide-react'
 
 import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
 import { DAYS, isOpenAt, photoToDTO, toDTO } from '@/lib/types'
 import { LOCALE_COOKIE, priceGlyphs, resolveLocale, t, tVocab, type Locale } from '@/lib/i18n'
 import TopBar from '@/components/TopBar'
 import FavoriteButton from '@/components/FavoriteButton'
 import MiniMap from '@/components/map/MiniMap'
+import PhotoUpload from '@/components/community/PhotoUpload'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,11 +24,20 @@ async function load(slug: string) {
       photos: {
         where: { status: 'approved' },
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        include: { submittedBy: { select: { displayName: true } } },
       },
     },
   })
   if (!row || !row.isActive) return null
-  return { dto: toDTO(row), photos: row.photos.map(photoToDTO) }
+  return {
+    dto: toDTO(row),
+    // displayName is the public identity for a community submission
+    // (Decisions log 5) — never username or email.
+    photos: row.photos.map((p) => ({
+      ...photoToDTO(p),
+      submittedByName: p.source === 'community' ? p.submittedBy?.displayName || null : null,
+    })),
+  }
 }
 
 export async function generateMetadata({
@@ -105,7 +116,7 @@ export default async function RestaurantPage({
   params: Promise<{ slug: string }>
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const [{ slug }, sp, jar] = await Promise.all([params, searchParams, cookies()])
+  const [{ slug }, sp, jar, user] = await Promise.all([params, searchParams, cookies(), getCurrentUser()])
   // Same rule as app/page.tsx: ?lang= wins, then the cookie, then Albanian.
   const langParam = typeof sp.lang === 'string' ? sp.lang : null
   const locale: Locale = resolveLocale(langParam, jar.get(LOCALE_COOKIE)?.value)
@@ -220,23 +231,32 @@ export default async function RestaurantPage({
                           {p.attributions.map(attributionText).filter(Boolean).join(', ')}
                         </p>
                       )}
+                      {p.submittedByName && (
+                        <p className="px-2 py-1 text-[10px] text-text-secondary">{p.submittedByName}</p>
+                      )}
                     </li>
                   ))}
                 </ul>
               )}
 
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-muted p-4">
-                <div>
-                  <p className="text-[14px] font-bold text-text">{t(locale, 'detail.photoCta')}</p>
-                  <p className="text-[13px] text-text-secondary">
-                    {t(locale, 'detail.photoCtaBody')}
-                  </p>
+              {user ? (
+                <div className="mt-4 rounded-xl bg-surface-muted p-4">
+                  <p className="mb-3 text-[14px] font-bold text-text">{t(locale, 'photoUpload.title')}</p>
+                  <PhotoUpload restaurantId={r.id} locale={locale} />
                 </div>
-                {/* Community upload lands in Phase 5; the entry point is here now. */}
-                <Link href={`/account/login?next=/r/${r.slug}`} className="ef-pill ef-pill--active">
-                  {t(locale, 'detail.photoCtaAction')}
-                </Link>
-              </div>
+              ) : (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-muted p-4">
+                  <div>
+                    <p className="text-[14px] font-bold text-text">{t(locale, 'detail.photoCta')}</p>
+                    <p className="text-[13px] text-text-secondary">
+                      {t(locale, 'detail.photoCtaBody')}
+                    </p>
+                  </div>
+                  <Link href={`/account/login?next=/r/${r.slug}`} className="ef-pill ef-pill--active">
+                    {t(locale, 'detail.photoCtaAction')}
+                  </Link>
+                </div>
+              )}
             </Panel>
 
             <Panel title={t(locale, 'detail.mood')}>

@@ -47,8 +47,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const user = await prisma.user.findUnique({
-      where: { username },
+    // Community accounts log in with either their username (=lowercased
+    // email) or their email directly; admin keeps using its handle. One
+    // query covers both without changing the lockout key or the JSON shape.
+    const user = await prisma.user.findFirst({
+      where: { OR: [{ username }, { email: username }] },
     })
 
     // Same response and roughly the same cost whether or not the user exists,
