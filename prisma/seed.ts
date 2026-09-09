@@ -22,9 +22,18 @@ async function main() {
       data: {
         username,
         password: hashedPassword,
+        // Explicit: User.role defaults to 'user', which cannot pass requireAdmin().
+        // Without this a freshly seeded database has no account that can reach
+        // /admin at all. The v2 migration only backfills the row that already
+        // existed, so it does not cover this path.
+        role: 'admin',
       },
     })
     console.log(`✅ Admin user created: ${username}`)
+  } else if (existingUser.role !== 'admin') {
+    // A database seeded before this fix has an admin stuck at role 'user'.
+    await prisma.user.update({ where: { username }, data: { role: 'admin' } })
+    console.log(`✅ Promoted existing user to admin: ${username}`)
   } else {
     console.log(`ℹ️  Admin user already exists: ${username}`)
   }
