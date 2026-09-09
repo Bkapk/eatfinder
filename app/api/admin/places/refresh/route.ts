@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { adminServerError } from '@/lib/apiError'
 import { requireAdmin } from '@/lib/auth'
 import { toDTO } from '@/lib/types'
 import { placeDetails, toRestaurantDraft, PlacesApiError, PlacesDisabledError } from '@/lib/places'
@@ -54,7 +55,6 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
-    console.error('Places refresh error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return adminServerError('places/refresh', error)
   }
 }

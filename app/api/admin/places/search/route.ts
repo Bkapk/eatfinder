@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { adminServerError } from '@/lib/apiError'
 import { requireAdmin } from '@/lib/auth'
 import { createMapLimiter } from '@/lib/ratelimit'
 import { searchText, searchNearby, PlacesApiError, PlacesDisabledError, type PlaceCandidate } from '@/lib/places'
@@ -79,7 +80,6 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
-    console.error('Places search error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return adminServerError('places/search', error)
   }
 }
