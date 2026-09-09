@@ -91,13 +91,29 @@ export default function SearchShell({
   const [error, setError] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
 
-  useEffect(() => {
-    const controller = new AbortController()
-    const page = urlFilters.page
-    setLoading(true)
+  // Coalescing lives in `patch` alone: continuous input holds the URL write for
+  // 300 ms, so by the time the URL changes there is nothing left to debounce.
+  // A second timer here only made every pill, sort and toggle wait 300 ms for
+  // an event that fires once.
+  const firstRun = useRef(true)
 
-    // 300 ms: one keystroke burst or one slider drag is a single request.
-    const id = setTimeout(async () => {
+  useEffect(() => {
+    const page = urlFilters.page
+
+    // A shared ?page=2 link has no page 1 on screen to append to, so it would
+    // render results 25-48 as the whole list. Rewrite it and let the URL
+    // change re-run this effect.
+    if (firstRun.current) {
+      firstRun.current = false
+      if (page > 1) {
+        write({ ...urlFilters, page: 1 }, 'replace')
+        return
+      }
+    }
+
+    const controller = new AbortController()
+    setLoading(true)
+    ;(async () => {
       try {
         const res = await fetch(`/api/recommend?${spString}`, { signal: controller.signal })
         if (!res.ok) throw new Error(String(res.status))
@@ -108,19 +124,18 @@ export default function SearchShell({
         setFacets(data.facets)
         setTotal(data.total)
         setError(false)
+        setLoading(false)
       } catch (e) {
+        // An aborted request has a successor already loading; leaving the
+        // spinner to it stops the two racing over `loading`.
         if ((e as Error).name === 'AbortError') return
         setError(true)
-      } finally {
         setLoading(false)
       }
-    }, 300)
+    })()
 
-    return () => {
-      clearTimeout(id)
-      controller.abort()
-    }
-  }, [spString, urlFilters.page, reloadKey])
+    return () => controller.abort()
+  }, [spString, urlFilters, reloadKey, write])
 
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [panelOpen, setPanelOpen] = useState(false)
@@ -133,10 +148,17 @@ export default function SearchShell({
   const showResults = view !== 'map'
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <>
+      {/* The document's one h1. Everything visible on this screen is a control
+          or a listing, so the page title lives here for screen readers only. */}
+      <h1 className="sr-only">
+        {t(locale, 'app.name')} — {t(locale, 'app.tagline')}
+      </h1>
+
       {/* The map is a large non-tabbable canvas sitting before the results;
           without this a keyboard user tabs through the whole overlay rail to
-          reach the listings. */}
+          reach the listings. In map view #results is unmounted, so the target
+          moves to the map region rather than pointing at nothing. */}
       <a
         href="#results"
         className="sr-only rounded-b-xl bg-primary px-4 py-2 text-[13px] font-bold text-on-primary focus:not-sr-only focus:absolute focus:left-3 focus:top-0 focus:z-modal"
@@ -157,12 +179,14 @@ export default function SearchShell({
         />
       </TopBar>
 
-      <div className="flex min-h-0 flex-1">
+      <main className="flex min-h-0 flex-1">
         {/* Map: full-bleed, no padding, no card wrapper. Hidden below md unless
             the user asked for it. */}
         <div
+          id={showResults ? undefined : 'results'}
+          tabIndex={showResults ? undefined : -1}
           className={[
-            'relative min-h-0',
+            'relative min-h-0 outline-none',
             showMap ? 'flex-1' : 'hidden md:block md:w-[60%]',
             showMap ? '' : 'md:shrink-0',
           ].join(' ')}
@@ -216,7 +240,7 @@ export default function SearchShell({
             />
           </section>
         )}
-      </div>
+      </main>
 
       {/* Below md the split collapses: results are the page, map is a toggle. */}
       <button
@@ -237,6 +261,6 @@ export default function SearchShell({
         onClearAll={clearAll}
         onClose={() => setPanelOpen(false)}
       />
-    </div>
+    </>
   )
 }

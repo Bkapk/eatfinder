@@ -103,7 +103,10 @@ export default function SearchBar({
         <Search size={17} aria-hidden className="shrink-0 text-text-secondary" />
 
         <div
-          className="ef-scroll-fade flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto"
+          // scroll-pr-8 clears the 24px mask on .ef-scroll-fade: without it a
+          // chip tabbed to at the right edge lands under the fade and its focus
+          // ring is half invisible (WCAG 2.4.11).
+          className="ef-scroll-fade flex min-w-0 flex-1 scroll-pr-8 items-center gap-1.5 overflow-x-auto"
           role="group"
           aria-label={t(locale, 'search.activeFilters')}
         >
@@ -114,7 +117,7 @@ export default function SearchBar({
                 type="button"
                 onClick={() => remove(c.patch)}
                 aria-label={t(locale, 'search.remove', { label: c.label })}
-                className="grid h-5 w-5 place-items-center rounded-full text-primary transition-colors duration-200 hover:bg-primary hover:text-[color:var(--on-primary)]"
+                className="grid h-6 w-6 place-items-center rounded-full text-primary transition-colors duration-200 hover:bg-primary hover:text-[color:var(--on-primary)]"
               >
                 <X size={12} aria-hidden />
               </button>
@@ -128,7 +131,7 @@ export default function SearchBar({
             onChange={(e) => onQuery(e.target.value)}
             placeholder={chips.length ? '' : t(locale, 'search.placeholder')}
             aria-label={t(locale, 'search.label')}
-            className="h-9 min-w-[8rem] flex-1 border-0 bg-transparent text-[14px] text-text outline-none placeholder:text-text-secondary"
+            className="h-9 min-w-[4.5rem] flex-1 border-0 bg-transparent text-[14px] text-text outline-none placeholder:text-text-secondary"
           />
         </div>
 

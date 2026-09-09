@@ -153,7 +153,8 @@ export default function MapPane({
   }, [selected])
 
   const pills = (
-    <div className="ef-scroll-fade pointer-events-auto flex max-w-[calc(100%-1rem)] items-center gap-2 overflow-x-auto pb-1">
+    // scroll-pr-8: a pill focused at the right edge must not sit under the fade.
+    <div className="ef-scroll-fade pointer-events-auto flex max-w-[calc(100%-1rem)] scroll-pr-8 items-center gap-2 overflow-x-auto pb-1">
       {quickCuisines(facets, selectedCuisines).map((c) => {
         const on = selectedCuisines.includes(c)
         return (

@@ -77,9 +77,12 @@ export default function RegisterForm({ locale, next }: { locale: Locale; next: s
           required
           maxLength={60}
           autoComplete="nickname"
+          aria-describedby="displayName-hint"
           className="ef-input h-11"
         />
-        <p className="mt-1 text-[12px] text-text-secondary">{t(locale, 'auth.displayNameHint')}</p>
+        <p id="displayName-hint" className="mt-1 text-[12px] text-text-secondary">
+          {t(locale, 'auth.displayNameHint')}
+        </p>
       </div>
 
       <div>
@@ -94,9 +97,12 @@ export default function RegisterForm({ locale, next }: { locale: Locale; next: s
           required
           minLength={8}
           autoComplete="new-password"
+          aria-describedby="password-hint"
           className="ef-input h-11"
         />
-        <p className="mt-1 text-[12px] text-text-secondary">{t(locale, 'auth.passwordHint')}</p>
+        <p id="password-hint" className="mt-1 text-[12px] text-text-secondary">
+          {t(locale, 'auth.passwordHint')}
+        </p>
       </div>
 
       <button type="submit" disabled={loading} className="ef-pill ef-pill--active h-11 justify-center disabled:opacity-50">

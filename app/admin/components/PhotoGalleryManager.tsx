@@ -6,6 +6,7 @@ import type { RestaurantPhotoDTO } from '@/lib/types'
 
 interface PhotoGalleryManagerProps {
   restaurantId: string
+  restaurantName?: string
   onSetHero: (url: string) => void
 }
 
@@ -16,7 +17,7 @@ interface PhotoGalleryManagerProps {
  * ownership. Until that phase lands this degrades to a clear "not available
  * yet" message instead of crashing the form — see 404 handling below.
  */
-export default function PhotoGalleryManager({ restaurantId, onSetHero }: PhotoGalleryManagerProps) {
+export default function PhotoGalleryManager({ restaurantId, restaurantName, onSetHero }: PhotoGalleryManagerProps) {
   const [photos, setPhotos] = useState<RestaurantPhotoDTO[] | null>(null)
   const [unavailable, setUnavailable] = useState(false)
   const [error, setError] = useState('')
@@ -88,7 +89,9 @@ export default function PhotoGalleryManager({ restaurantId, onSetHero }: PhotoGa
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={photo.url}
-                alt={photo.caption || ''}
+                alt={photo.caption || restaurantName || ''}
+                loading="lazy"
+                decoding="async"
                 className="w-full aspect-square object-cover rounded-lg border border-border"
               />
               <div className="flex items-center justify-between text-xs text-text-secondary">
@@ -100,7 +103,7 @@ export default function PhotoGalleryManager({ restaurantId, onSetHero }: PhotoGa
                   type="button"
                   onClick={() => onSetHero(photo.url)}
                   title="Set as hero image"
-                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1 bg-surface-hover hover:bg-border border border-border rounded text-xs transition-colors"
+                  className="ef-btn ef-btn--ghost flex-1"
                 >
                   <Star size={12} /> Hero
                 </button>
@@ -109,7 +112,7 @@ export default function PhotoGalleryManager({ restaurantId, onSetHero }: PhotoGa
                   onClick={() => deletePhoto(photo.id)}
                   disabled={busyId === photo.id}
                   title="Delete photo"
-                  className="flex items-center justify-center gap-1 px-2 py-1 bg-surface-hover hover:bg-error/20 hover:text-error border border-border rounded text-xs transition-colors disabled:opacity-50"
+                  className="grid min-h-[24px] min-w-[24px] place-items-center rounded border border-border bg-surface-hover text-xs transition-colors hover:bg-error/20 hover:text-error disabled:opacity-50"
                 >
                   <Trash2 size={12} />
                 </button>

@@ -27,6 +27,7 @@ const config: Config = {
         'text-secondary': 'var(--text-secondary)',
         border: 'var(--border)',
         'border-strong': 'var(--border-strong)',
+        'border-control': 'var(--border-control)',
         success: 'var(--success)',
         'success-hover': 'var(--success-hover)',
         'success-soft': 'var(--success-soft)',
@@ -35,8 +36,6 @@ const config: Config = {
         'error-soft': 'var(--error-soft)',
         warning: 'var(--warning)',
         'warning-soft': 'var(--warning-soft)',
-        info: 'var(--info)',
-        'info-hover': 'var(--info-hover)',
       },
       boxShadow: {
         sm: 'var(--shadow-sm)',

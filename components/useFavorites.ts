@@ -18,7 +18,14 @@ interface Snapshot {
 }
 
 let snapshot: Snapshot = { ids: [], signedIn: null }
-let loaded = false
+/**
+ * The one load, held at module scope. React calls `subscribe` synchronously
+ * during commit for every consumer — TopBar plus one heart per card — so a
+ * guard set after an `await` is still false for all of them and fires a
+ * request each. Assigning the promise itself is synchronous, so subscriber
+ * two onwards join the request subscriber one started.
+ */
+let inflight: Promise<void> | null = null
 const listeners = new Set<() => void>()
 
 function setSnapshot(next: Snapshot) {
@@ -37,14 +44,12 @@ async function loadFavorites() {
   } catch {
     // Offline is unknown, not signed out, so the control stays a toggle.
     setSnapshot({ ids: [], signedIn: null })
-  } finally {
-    loaded = true
   }
 }
 
 function subscribe(fn: () => void) {
   listeners.add(fn)
-  if (!loaded) loadFavorites()
+  inflight ??= loadFavorites()
   return () => listeners.delete(fn)
 }
 

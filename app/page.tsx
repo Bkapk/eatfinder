@@ -27,11 +27,15 @@ export default async function Home({
   // as a prop. Falsy is a supported state — the map pane degrades.
   const mapboxToken = process.env.MAPBOX_TOKEN || null
 
+  // SearchShell owns the h1, the skip link, <TopBar> and <main>: the header
+  // has to sit outside <main> to be a banner landmark rather than a generic
+  // div, and it cannot move up here because it wraps the search bar, which
+  // is driven by this shell's client state.
   return (
-    <main className="flex h-[100dvh] flex-col overflow-hidden">
+    <div className="flex h-[100dvh] flex-col overflow-hidden">
       <Suspense fallback={<div className="h-14 border-b border-border bg-surface" />}>
         <SearchShell locale={locale} mapboxToken={mapboxToken} />
       </Suspense>
-    </main>
+    </div>
   )
 }

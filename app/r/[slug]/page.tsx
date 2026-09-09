@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { cache, Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
@@ -16,8 +16,13 @@ import PhotoUpload from '@/components/community/PhotoUpload'
 
 export const dynamic = 'force-dynamic'
 
-/** One query, one shape. Only approved photos ever leave this function. */
-async function load(slug: string) {
+/**
+ * One query, one shape. Only approved photos ever leave this function.
+ * cache() because generateMetadata and the page body both call it: Next's
+ * request memoization covers fetch(), not Prisma, so without this every hit
+ * on a listing runs the join twice.
+ */
+const load = cache(async (slug: string) => {
   const row = await prisma.restaurant.findUnique({
     where: { slug },
     include: {
@@ -38,7 +43,7 @@ async function load(slug: string) {
       submittedByName: p.source === 'community' ? p.submittedBy?.displayName || null : null,
     })),
   }
-}
+})
 
 export async function generateMetadata({
   params,

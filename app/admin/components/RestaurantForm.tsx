@@ -223,7 +223,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="px-4 py-3 bg-error-soft border border-error rounded-lg text-error">
+        <div role="alert" className="px-4 py-3 bg-error-soft border border-error rounded-lg text-error">
           {error}
         </div>
       )}
@@ -237,7 +237,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               type="button"
               onClick={askAi}
               disabled={asking}
-              className="flex items-center gap-2 px-3 py-2 bg-surface-hover hover:bg-border border border-border rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+              className="ef-btn ef-btn--ghost"
             >
               <Sparkles size={16} />
               {asking ? 'Asking AI...' : 'Ask AI'}
@@ -459,7 +459,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
             <button
               type="button"
               onClick={addCuisine}
-              className="px-4 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
+              className="ef-btn ef-btn--primary"
             >
               Add
             </button>
@@ -475,7 +475,8 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
                   <button
                     type="button"
                     onClick={() => removeCuisine(cuisine)}
-                    className="hover:text-error transition-colors"
+                    aria-label={`Remove ${cuisine}`}
+                    className="grid h-6 w-6 place-items-center rounded hover:text-error transition-colors"
                   >
                     <X size={14} />
                   </button>
@@ -514,7 +515,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
             <button
               type="button"
               onClick={addTag}
-              className="px-4 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
+              className="ef-btn ef-btn--primary"
             >
               Add
             </button>
@@ -530,7 +531,8 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
                   <button
                     type="button"
                     onClick={() => removeTag(tag)}
-                    className="hover:text-error transition-colors"
+                    aria-label={`Remove ${tag}`}
+                    className="grid h-6 w-6 place-items-center rounded hover:text-error transition-colors"
                   >
                     <X size={14} />
                   </button>
@@ -657,13 +659,13 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
             <div className="text-sm text-text-secondary">Uploading...</div>
           )}
           {formData.image && (
-            <div className="max-w-xs">
+            <div className="max-w-xs aspect-[16/9] overflow-hidden rounded-lg border border-border">
               {/* Opaque URL from lib/storage saveImage(); never reconstructed. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={formData.image}
                 alt="Preview"
-                className="w-full h-auto rounded-lg border border-border"
+                className="h-full w-full object-cover"
               />
             </div>
           )}
@@ -721,21 +723,27 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
       </div>
 
       {/* Photo gallery */}
-      {restaurant?.id && <PhotoGalleryManager restaurantId={restaurant.id} onSetHero={(url) => setFormData((f) => ({ ...f, image: url }))} />}
+      {restaurant?.id && (
+        <PhotoGalleryManager
+          restaurantId={restaurant.id}
+          restaurantName={formData.name}
+          onSetHero={(url) => setFormData((f) => ({ ...f, image: url }))}
+        />
+      )}
 
       {/* Actions */}
       <div className="flex justify-end gap-4 pt-4 border-t border-border">
         <button
           type="button"
           onClick={onCancel}
-          className="px-6 py-2 bg-surface-hover hover:bg-border border border-border rounded-lg font-semibold transition-colors"
+          className="ef-btn ef-btn--ghost"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={saving}
-          className="flex items-center gap-2 px-6 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          className="ef-btn ef-btn--primary"
         >
           <Save size={20} />
           {saving ? 'Saving...' : 'Save Restaurant'}

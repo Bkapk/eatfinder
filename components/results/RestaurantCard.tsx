@@ -39,6 +39,9 @@ export default function RestaurantCard({
     <article
       onMouseEnter={onHover ? () => onHover(item.id) : undefined}
       onMouseLeave={onHover ? () => onHover(null) : undefined}
+      // Focus mirrors hover: tabbing a card highlights its map pin too.
+      onFocus={onHover ? () => onHover(item.id) : undefined}
+      onBlur={onHover ? () => onHover(null) : undefined}
       className={[
         'ef-card group relative overflow-hidden',
         row ? 'flex' : 'flex flex-col',

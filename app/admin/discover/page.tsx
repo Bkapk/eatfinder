@@ -125,11 +125,11 @@ export default function DiscoverPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-[26px] font-extrabold tracking-tight text-text">Discover on Google Places</h1>
         <button
           onClick={() => router.push('/admin')}
-          className="px-4 py-2 bg-surface-hover hover:bg-border border border-border rounded-lg text-sm transition-colors"
+          className="ef-btn ef-btn--ghost"
         >
           Back to Restaurants
         </button>
@@ -185,7 +185,7 @@ export default function DiscoverPage() {
         <button
           type="submit"
           disabled={searching}
-          className="flex items-center gap-2 px-6 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50"
+          className="ef-btn ef-btn--primary"
         >
           {searching ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
           {searching ? 'Searching...' : 'Search'}
@@ -226,7 +226,7 @@ export default function DiscoverPage() {
             <button
               onClick={importSelected}
               disabled={selected.size === 0 || importing}
-              className="flex items-center gap-2 px-6 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="ef-btn ef-btn--primary"
             >
               {importing ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
               {importing ? 'Importing...' : `Import selected (${selected.size})`}

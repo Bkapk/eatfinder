@@ -16,8 +16,13 @@
     --surface-hover: #eef1f5;
     --surface-muted: #f0f3f7;
 
+    /* Decorative rules only -- 1.24:1, which 1.4.11 does not apply to. */
     --border: #e3e7ed;
     --border-strong: #c7d0dc;
+    /* 3.12:1 on --surface. For controls whose boundary is the only thing
+       identifying them, which is exactly what WCAG 1.4.11 covers. A text input
+       drawn in --border is white-on-white with a 1.2:1 outline. */
+    --border-control: #8793a4;
 
     /* 18.4:1 and 6.6:1 on --surface. Body copy never goes lighter than this. */
     --text: #0b1220;
@@ -29,9 +34,13 @@
     --primary-soft: #e6f1fa;
     --on-primary: #ffffff;
 
-    /* Warm counterweight: match score, favourite heart, featured badge. */
-    --accent: #d9480f;
-    --accent-hover: #b83b09;
+    /* Warm counterweight: match score, favourite heart, featured badge.
+       5.1:1 on --accent-soft and 5.7:1 on --surface. The previous #d9480f
+       measured 3.85:1 behind the match badge on every result card and 4.30:1
+       behind Featured and the rating figure -- the only token in this file
+       that shipped without a stated ratio, and the only one that failed. */
+    --accent: #b83b09;
+    --accent-hover: #9c320a;
     --accent-soft: #fdefe7;
 
     --success: #157347;
@@ -44,8 +53,6 @@
        the darkened text colour and the tint is separate. */
     --warning: #a16207;
     --warning-soft: #fdf5e3;
-    --info: #0b6bb0;
-    --info-hover: #095a95;
 
     --shadow-sm: 0 1px 2px rgb(11 18 32 / 0.06), 0 1px 3px rgb(11 18 32 / 0.04);
     --shadow-md: 0 2px 6px rgb(11 18 32 / 0.07), 0 8px 20px rgb(11 18 32 / 0.06);
@@ -92,6 +99,16 @@
   :focus-visible {
     @apply outline-none ring-2 ring-primary ring-offset-2;
     --tw-ring-offset-color: var(--surface);
+  }
+
+  /* Windows High Contrast paints outlines, never box-shadows -- and Tailwind's
+     ring IS a box-shadow, so outline-none above leaves those users with no
+     focus indicator anywhere in the app. */
+  @media (forced-colors: active) {
+    :focus-visible {
+      outline: 2px solid;
+      outline-offset: 2px;
+    }
   }
 
   input[type='range'] {
@@ -190,7 +207,8 @@
   }
 
   .ef-input {
-    @apply w-full rounded-xl border border-border bg-surface px-4 py-2 text-[14px] text-text transition-colors duration-200 placeholder:text-text-secondary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary;
+    @apply w-full rounded-xl border bg-surface px-4 py-2 text-[14px] text-text transition-colors duration-200 placeholder:text-text-secondary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary;
+    border-color: var(--border-control);
   }
 
   .ef-field-label {

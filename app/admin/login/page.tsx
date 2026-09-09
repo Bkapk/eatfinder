@@ -51,7 +51,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="ef-panel space-y-4">
           {error && (
-            <div className="px-4 py-3 bg-error-soft border border-error rounded text-error text-sm">
+            <div role="alert" className="px-4 py-3 bg-error-soft border border-error rounded text-error text-sm">
               {error}
             </div>
           )}
@@ -89,7 +89,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-4 py-3 bg-primary text-on-primary hover:bg-primary-hover rounded font-semibold transition-colors disabled:opacity-50 shadow-md"
+            className="ef-btn ef-btn--primary w-full"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>

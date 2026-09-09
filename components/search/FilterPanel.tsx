@@ -30,6 +30,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Mood({
   locale,
+  name,
   label,
   min,
   max,
@@ -37,13 +38,15 @@ function Mood({
   onChange,
 }: {
   locale: Locale
+  /** Stable axis key: the label is translated and contains spaces. */
+  name: string
   label: string
   min: string
   max: string
   value: number
   onChange: (v: number) => void
 }) {
-  const id = `mood-${label}`
+  const id = `mood-${name}`
   return (
     <div className="mb-5 last:mb-0">
       <div className="mb-2 flex items-baseline justify-between">
@@ -322,6 +325,7 @@ export default function FilterPanel({
           <Section title={t(locale, 'filters.mood')}>
             <Mood
               locale={locale}
+              name="heavy"
               label={t(locale, 'filters.heavy')}
               min={t(locale, 'mood.heavy.min')}
               max={t(locale, 'mood.heavy.max')}
@@ -330,6 +334,7 @@ export default function FilterPanel({
             />
             <Mood
               locale={locale}
+              name="hungry"
               label={t(locale, 'filters.hungry')}
               min={t(locale, 'mood.hungry.min')}
               max={t(locale, 'mood.hungry.max')}
@@ -338,6 +343,7 @@ export default function FilterPanel({
             />
             <Mood
               locale={locale}
+              name="fine"
               label={t(locale, 'filters.fine')}
               min={t(locale, 'mood.fine.min')}
               max={t(locale, 'mood.fine.max')}

@@ -123,19 +123,19 @@ export default function AdminPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-[26px] font-extrabold tracking-tight text-text">Restaurants</h1>
         <div className="flex gap-2">
           <button
             onClick={() => router.push('/admin/discover')}
-            className="flex items-center gap-2 px-4 py-2 bg-surface-hover hover:bg-border border border-border rounded-lg font-semibold transition-colors"
+            className="ef-btn ef-btn--ghost"
           >
             <Compass size={20} />
             Discover (Google Places)
           </button>
           <button
             onClick={() => router.push('/admin/new')}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors shadow-md"
+            className="ef-btn ef-btn--primary"
           >
             <Plus size={20} />
             Add Restaurant
@@ -156,26 +156,32 @@ export default function AdminPage() {
           />
         </div>
         <div className="flex gap-2">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'live' | 'draft')}
-            className="ef-input"
-          >
-            <option value="all">All</option>
-            <option value="live">Live only</option>
-            <option value="draft">Drafts only</option>
-          </select>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="ef-input"
-          >
-            <option value="updatedAt">Last Updated</option>
-            <option value="name">Name</option>
-            <option value="heaviness">Heaviness</option>
-            <option value="portionSize">Portion Size</option>
-            <option value="fineDining">Fine Dining</option>
-          </select>
+          <label className="flex items-center">
+            <span className="sr-only">Filter by status</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'live' | 'draft')}
+              className="ef-input"
+            >
+              <option value="all">All</option>
+              <option value="live">Live only</option>
+              <option value="draft">Drafts only</option>
+            </select>
+          </label>
+          <label className="flex items-center">
+            <span className="sr-only">Sort by</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="ef-input"
+            >
+              <option value="updatedAt">Last Updated</option>
+              <option value="name">Name</option>
+              <option value="heaviness">Heaviness</option>
+              <option value="portionSize">Portion Size</option>
+              <option value="fineDining">Fine Dining</option>
+            </select>
+          </label>
           <button
             onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
             className="px-3 py-2 bg-surface border border-border rounded-lg hover:bg-surface-hover transition-colors"
@@ -197,7 +203,7 @@ export default function AdminPage() {
           <p className="text-text-secondary mb-4">No restaurants found.</p>
           <button
             onClick={() => router.push('/admin/new')}
-            className="px-6 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
+            className="ef-btn ef-btn--primary"
           >
             Add Your First Restaurant
           </button>
@@ -336,7 +342,7 @@ export default function AdminPage() {
                             </button>
                             <button
                               onClick={() => setEditingId(null)}
-                              className="px-3 py-1 bg-surface-hover hover:bg-border border border-border rounded text-sm transition-colors"
+                              className="ef-btn ef-btn--ghost"
                             >
                               Cancel
                             </button>
@@ -345,13 +351,13 @@ export default function AdminPage() {
                           <>
                             <button
                               onClick={() => handleEdit(restaurant)}
-                              className="px-3 py-1 bg-primary text-on-primary hover:bg-primary-hover text-on-primary rounded text-sm transition-colors"
+                              className="ef-btn ef-btn--primary"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => router.push(`/admin/${restaurant.id}`)}
-                              className="px-3 py-1 bg-surface-hover hover:bg-border border border-border rounded text-sm transition-colors"
+                              className="ef-btn ef-btn--ghost"
                             >
                               View
                             </button>

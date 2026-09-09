@@ -130,7 +130,7 @@ function StatusBadge({ status }: { status: AdminPhoto['status'] }) {
       ? 'bg-success-soft text-success'
       : status === 'rejected'
         ? 'bg-error-soft text-error'
-        : 'bg-primary-soft text-primary'
+        : 'bg-warning-soft text-warning'
   return <span className={`px-2 py-0.5 rounded text-xs font-semibold capitalize ${cls}`}>{status}</span>
 }
 
@@ -146,7 +146,13 @@ function PhotoCard({
   return (
     <div className="ef-card overflow-hidden flex flex-col">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={photo.url} alt={photo.caption || photo.restaurantName} className="aspect-square w-full object-cover" />
+      <img
+        src={photo.url}
+        alt={photo.caption || photo.restaurantName}
+        loading="lazy"
+        decoding="async"
+        className="aspect-square w-full object-cover"
+      />
 
       <div className="p-4 flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">

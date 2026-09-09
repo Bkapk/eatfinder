@@ -92,7 +92,13 @@ export default function AccountView({ locale }: { locale: Locale }) {
                 <Link href={`/r/${r.slug}`} className="ef-card block overflow-hidden">
                   {r.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={r.image} alt={r.name} className="aspect-square w-full object-cover" />
+                    <img
+                      src={r.image}
+                      alt={r.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="aspect-square w-full object-cover"
+                    />
                   ) : (
                     <div className="grid aspect-square w-full place-items-center bg-surface-muted text-text-secondary">
                       <Heart size={20} aria-hidden />
@@ -122,6 +128,8 @@ export default function AccountView({ locale }: { locale: Locale }) {
                   <img
                     src={p.url}
                     alt={p.caption || p.restaurantName}
+                    loading="lazy"
+                    decoding="async"
                     className="aspect-square w-full object-cover"
                   />
                 </Link>

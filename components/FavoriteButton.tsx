@@ -39,8 +39,11 @@ export default function FavoriteButton({
     <button
       type="button"
       onClick={click}
-      aria-pressed={on}
-      aria-label={label ? undefined : text}
+      // Icon-only: the name stays put and aria-pressed carries the state,
+      // otherwise it announces "Remove from favourites, pressed". With a
+      // visible label that text is the state, so aria-pressed would say it twice.
+      aria-pressed={label ? undefined : on}
+      aria-label={label ? undefined : t(locale, 'card.favoriteAdd')}
       className={className}
     >
       <Heart size={size} aria-hidden className={on ? 'fill-accent text-accent' : ''} />

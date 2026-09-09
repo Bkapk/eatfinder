@@ -61,16 +61,17 @@ export default function TopBar({
           <span className="hidden sm:inline">{t(locale, 'nav.switchTo')}</span>
         </Link>
 
+        {/* Hidden below sm: at 320px it and the language pill squeeze the
+            search input to nothing. The count is on /account. */}
         <Link
           href="/account"
-          className="ef-pill"
+          className="ef-pill hidden sm:inline-flex"
           aria-label={t(locale, 'nav.favoritesCount', { n: ids.length })}
         >
           <Heart size={15} aria-hidden className={ids.length ? 'fill-accent text-accent' : ''} />
           <span className="tabular-nums">{ids.length}</span>
         </Link>
 
-        {/* /account/* lands in Phase 5. Linked now so the header is finished. */}
         <Link
           href="/account/login"
           className="hidden h-9 items-center rounded-full px-3.5 text-[13px] font-bold text-text transition-colors duration-200 hover:bg-surface-hover lg:inline-flex"

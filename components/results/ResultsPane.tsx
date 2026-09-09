@@ -57,12 +57,14 @@ export default function ResultsPane({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
+    // pb-24 below md: the floating map/list pill is fixed at bottom-5 and
+    // centred, exactly over "Load more" and the last row's bottom edge.
+    <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-24 pt-4 sm:px-5 md:pb-4">
       <ul
         className={
           view === 'list'
             ? 'flex flex-col gap-3'
-            : 'grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-2 2xl:grid-cols-3'
+            : 'grid grid-cols-2 gap-3 sm:gap-4 2xl:grid-cols-3'
         }
       >
         {items.map((item) => (

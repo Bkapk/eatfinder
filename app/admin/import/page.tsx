@@ -124,7 +124,7 @@ export default function ImportPage() {
           <button
             onClick={handleImport}
             disabled={!file || importing}
-            className="px-6 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="ef-btn ef-btn--primary"
           >
             {importing ? 'Importing...' : 'Import CSV'}
           </button>
@@ -163,9 +163,9 @@ export default function ImportPage() {
         <p className="text-text-secondary mb-4">
           Download all restaurants as a CSV file.
         </p>
-        <button 
-          onClick={handleExport} 
-          className="px-6 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors"
+        <button
+          onClick={handleExport}
+          className="ef-btn ef-btn--primary"
         >
           Export CSV
         </button>
@@ -180,10 +180,10 @@ export default function ImportPage() {
         <p className="text-text-secondary mb-4">
           Create 10 sample restaurants with varied values for testing.
         </p>
-        <button 
-          onClick={handleSeed} 
-          disabled={importing} 
-          className="px-6 py-2 bg-primary text-on-primary hover:bg-primary-hover rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        <button
+          onClick={handleSeed}
+          disabled={importing}
+          className="ef-btn ef-btn--primary"
         >
           {importing ? 'Creating...' : 'Create Sample Data'}
         </button>
@@ -228,7 +228,7 @@ export default function ImportPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="mt-6 px-4 py-3 bg-error-soft border border-error rounded-lg text-error">
+        <div role="alert" className="mt-6 px-4 py-3 bg-error-soft border border-error rounded-lg text-error">
           {error}
         </div>
       )}
