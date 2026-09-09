@@ -11,6 +11,8 @@ import {
   FilePenLine,
   Trash2,
   SlidersHorizontal,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import Link from 'next/link'
 import { PageHeader, EmptyState, LoadingState, ScoreMeter } from './components/AdminUI'
@@ -51,6 +53,8 @@ export default function AdminPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'live' | 'draft'>('all')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingValues, setEditingValues] = useState<Partial<Restaurant>>({})
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkBusy, setBulkBusy] = useState(false)
 
   useEffect(() => {
     fetchRestaurants()
@@ -80,6 +84,70 @@ export default function AdminPage() {
     if (statusFilter === 'draft') return !r.isActive
     return true
   })
+
+  // A selection the admin can no longer see must not be acted on: searching or
+  // switching the status filter would otherwise let a bulk delete hit rows that
+  // scrolled out of the list.
+  const visibleIds = new Set(visibleRestaurants.map((r) => r.id))
+  const selectedVisible = [...selected].filter((id) => visibleIds.has(id))
+  const allVisibleSelected =
+    visibleRestaurants.length > 0 && selectedVisible.length === visibleRestaurants.length
+
+  const toggleOne = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+
+  const toggleAllVisible = () =>
+    setSelected(allVisibleSelected ? new Set() : new Set(visibleRestaurants.map((r) => r.id)))
+
+  const setPublished = async (id: string, isActive: boolean) => {
+    const res = await fetch(`/api/restaurants/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error || 'Failed to change status')
+      return
+    }
+    fetchRestaurants()
+  }
+
+  const runBulk = async (action: 'publish' | 'unpublish' | 'delete') => {
+    if (selectedVisible.length === 0) return
+    if (
+      action === 'delete' &&
+      !confirm(
+        `Delete ${selectedVisible.length} restaurant${selectedVisible.length === 1 ? '' : 's'}? ` +
+          'Their photos are deleted too. This cannot be undone.'
+      )
+    ) {
+      return
+    }
+
+    setBulkBusy(true)
+    try {
+      const res = await fetch('/api/admin/restaurants/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedVisible, action }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert(data.error || 'Bulk action failed')
+        return
+      }
+      setSelected(new Set())
+      await fetchRestaurants()
+    } finally {
+      setBulkBusy(false)
+    }
+  }
 
   const handleEdit = (restaurant: Restaurant) => {
     setEditingId(restaurant.id)
@@ -272,11 +340,55 @@ export default function AdminPage() {
         </EmptyState>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-border bg-surface">
-          <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
-            <h2 className="text-sm font-bold">Restaurant directory</h2>
-            <span className="text-xs text-text-secondary">
-              {visibleRestaurants.length} listing{visibleRestaurants.length === 1 ? '' : 's'}
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+            {selectedVisible.length > 0 ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-bold">
+                    {selectedVisible.length} selected
+                  </span>
+                  <button
+                    onClick={() => setSelected(new Set())}
+                    className="text-xs font-semibold text-text-secondary underline hover:text-primary"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => runBulk('publish')}
+                    disabled={bulkBusy}
+                    className="ef-btn ef-btn--primary"
+                  >
+                    <Eye size={15} aria-hidden />
+                    Publish
+                  </button>
+                  <button
+                    onClick={() => runBulk('unpublish')}
+                    disabled={bulkBusy}
+                    className="ef-btn ef-btn--ghost"
+                  >
+                    <EyeOff size={15} aria-hidden />
+                    Unpublish
+                  </button>
+                  <button
+                    onClick={() => runBulk('delete')}
+                    disabled={bulkBusy}
+                    className="ef-btn ef-btn--ghost !text-error hover:!bg-error-soft"
+                  >
+                    <Trash2 size={15} aria-hidden />
+                    Delete
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-sm font-bold">Restaurant directory</h2>
+                <span className="text-xs text-text-secondary">
+                  {visibleRestaurants.length} listing{visibleRestaurants.length === 1 ? '' : 's'}
+                </span>
+              </>
+            )}
           </div>
           <div className="overflow-x-auto">
             <table className="admin-table">
@@ -285,7 +397,19 @@ export default function AdminPage() {
               </caption>
               <thead>
                 <tr>
-                  <th scope="col">Restaurant</th>
+                  <th scope="col">
+                    <span className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        onChange={toggleAllVisible}
+                        aria-label={
+                          allVisibleSelected ? 'Deselect all listings' : 'Select all listings'
+                        }
+                      />
+                      Restaurant
+                    </span>
+                  </th>
                   <th scope="col">Profile · 0–100</th>
                   <th scope="col">Price</th>
                   <th scope="col">Status</th>
@@ -297,6 +421,12 @@ export default function AdminPage() {
                   <tr key={restaurant.id}>
                     <td>
                       <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(restaurant.id)}
+                          onChange={() => toggleOne(restaurant.id)}
+                          aria-label={'Select ' + restaurant.name}
+                        />
                         <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-surface-muted text-primary">
                           {restaurant.image ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -410,6 +540,27 @@ export default function AdminPage() {
                             <Link href={'/admin/' + restaurant.id} className="ef-btn ef-btn--ghost">
                               Edit details
                             </Link>
+                            <button
+                              onClick={() => setPublished(restaurant.id, !restaurant.isActive)}
+                              className="ef-btn ef-btn--ghost"
+                              title={
+                                restaurant.isActive
+                                  ? 'Hide from the public site'
+                                  : 'Publish to the public site'
+                              }
+                            >
+                              {restaurant.isActive ? (
+                                <>
+                                  <EyeOff size={15} aria-hidden />
+                                  Unpublish
+                                </>
+                              ) : (
+                                <>
+                                  <Eye size={15} aria-hidden />
+                                  Publish
+                                </>
+                              )}
+                            </button>
                             <button
                               onClick={() => handleEdit(restaurant)}
                               className="admin-icon-button"

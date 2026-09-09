@@ -6,7 +6,12 @@ import { photoToDTO } from '@/lib/types'
 const STATUSES = ['pending', 'approved', 'rejected'] as const
 
 /**
- * requireAdmin only. Filterable by status, but "approved" here includes both
+ * requireAdmin only. Filterable by status and by restaurantId — the latter is
+ * what PhotoGalleryManager passes to show ONE restaurant's gallery. Ignoring it
+ * used to return the newest 200 photos across every restaurant, so every
+ * gallery rendered the same mixed set.
+ *
+ * Filterable by status, but "approved" here includes both
  * auto-published and human-approved photos — the owner must be able to see
  * what the AI let through, not just what is still pending (docs/PLAN.md,
  * "Trust and safety boundaries").
@@ -16,10 +21,15 @@ export async function GET(request: NextRequest) {
     await requireAdmin()
 
     const requestedStatus = request.nextUrl.searchParams.get('status')
-    const where =
-      requestedStatus && (STATUSES as readonly string[]).includes(requestedStatus)
-        ? { status: requestedStatus }
-        : {}
+    const restaurantId = request.nextUrl.searchParams.get('restaurantId')
+
+    const where: { status?: string; restaurantId?: string } = {}
+    if (requestedStatus && (STATUSES as readonly string[]).includes(requestedStatus)) {
+      where.status = requestedStatus
+    }
+    if (restaurantId) {
+      where.restaurantId = restaurantId
+    }
 
     const photos = await prisma.restaurantPhoto.findMany({
       where,

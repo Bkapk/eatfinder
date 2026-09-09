@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { toDTO, slugify, openHoursSchema } from '@/lib/types'
-import { deleteUpload } from '@/lib/storage'
+import { deleteRestaurantsWithFiles } from '@/lib/restaurants'
 import { z } from 'zod'
 
 const restaurantSchema = z.object({
@@ -107,13 +107,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await requireAdmin()
 
     const { id } = await params
-    const restaurant = await prisma.restaurant.findUnique({ where: { id } })
-    if (restaurant?.image) {
-      await deleteUpload(restaurant.image)
+    // Shared with the bulk route so both paths clean up gallery files, not just
+    // the hero image — a plain prisma.delete() cascades the rows and orphans
+    // every uploaded file behind them.
+    const deleted = await deleteRestaurantsWithFiles([id])
+    if (deleted === 0) {
+      return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 })
     }
-    await prisma.restaurant.delete({
-      where: { id },
-    })
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
