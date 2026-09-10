@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
-import { Layer, Source } from 'react-map-gl/mapbox'
+import { useEffect, useMemo, useState } from 'react'
+import { Layer, Source, useMap } from 'react-map-gl/mapbox'
 import type { MapPoint } from '@/lib/types'
 
 export const CLUSTER_LAYER = 'ef-clusters'
@@ -48,6 +48,7 @@ export default function PointsLayer({
   selectedId: string | null
 }) {
   const c = useMemo(() => tokens(), [])
+  const { current: map } = useMap()
 
   const data = useMemo(
     () => ({
@@ -61,16 +62,49 @@ export default function PointsLayer({
     [points]
   )
 
+  const activeId = selectedId ?? hoveredId
+
   /**
-   * The accent layer draws EVERY pin and hides the ones that are not active,
-   * rather than filtering down to the one that is. That is the whole reason
-   * the colour change can be animated at all: a filter change is instant —
-   * the feature simply is or is not there — whereas an opacity that Mapbox
-   * evaluates per feature is a paint property it will interpolate on the GPU.
-   * Accent fading in over the blue dot beneath it IS the colour transition.
+   * The id the accent layer is FILTERED to, which is not the same as the id
+   * that is active: it holds the last active pin after the pointer leaves, so
+   * there is still a feature on screen to fade out. Clearing the filter would
+   * delete it mid-fade.
    */
-  const isActive = ['in', ['get', 'id'], ['literal', [hoveredId ?? NO_MATCH, selectedId ?? NO_MATCH]]]
-  const isSelected = ['==', ['get', 'id'], selectedId ?? NO_MATCH]
+  const [shown, setShown] = useState<string | null>(null)
+  // Adjusted during render, not in an effect: React re-runs this component
+  // immediately and nothing paints in between, so the filter and the paint
+  // effect below always agree on which feature is on screen.
+  if (activeId && activeId !== shown) setShown(activeId)
+
+  /**
+   * Mapbox does not transition data-driven paint properties — only constant
+   * ones. A `['case', ...]` expression is data-driven, which is why the last
+   * version snapped instead of fading: the values were right and the
+   * interpolation was never going to happen. So the layer is filtered down to
+   * one feature and its paint values are plain numbers, set imperatively.
+   *
+   * The curve is Mapbox's own; there is no way to hand it a bezier. Duration
+   * and delay are ours: colour first, then the dot grows into its place.
+   */
+  useEffect(() => {
+    const m = map?.getMap()
+    if (!m || !m.getLayer(ACTIVE_LAYER)) return
+
+    const lit = shown != null && shown === activeId
+    type Prop = 'circle-opacity' | 'circle-stroke-opacity' | 'circle-radius'
+    const set = (prop: Prop, value: number, delay = 0) => {
+      // `<property>-transition` is a real paint key that mapbox-gl reads, but
+      // the generated style-spec types only list the properties themselves.
+      const transition = `${prop}-transition` as Prop
+      m.setPaintProperty(ACTIVE_LAYER, transition, { duration: DUR, delay } as never)
+      m.setPaintProperty(ACTIVE_LAYER, prop, value)
+    }
+
+    set('circle-opacity', lit ? 1 : 0)
+    set('circle-stroke-opacity', lit ? 1 : 0)
+    // Only a selection grows; a hover just recolours.
+    set('circle-radius', lit && shown === selectedId ? R_ACTIVE : R, DUR)
+  }, [map, shown, activeId, selectedId])
 
   return (
     <Source
@@ -126,17 +160,17 @@ export default function PointsLayer({
       <Layer
         id={ACTIVE_LAYER}
         type="circle"
-        filter={['!', ['has', 'point_count']]}
+        filter={['all', ['!', ['has', 'point_count']], ['==', ['get', 'id'], shown ?? NO_MATCH]]}
+        // Starting values only — everything animated is set in the effect
+        // above. This object is deliberately constant so react-map-gl never
+        // diffs it and resets the paint mid-fade.
         paint={{
           'circle-color': c.accent,
-          'circle-opacity': ['case', isActive, 1, 0],
-          'circle-opacity-transition': { duration: DUR, delay: 0 },
-          'circle-radius': ['case', isSelected, R_ACTIVE, R],
-          'circle-radius-transition': { duration: DUR, delay: DUR },
+          'circle-opacity': 0,
+          'circle-radius': R,
           'circle-stroke-width': 3,
           'circle-stroke-color': c.surface,
-          'circle-stroke-opacity': ['case', isActive, 1, 0],
-          'circle-stroke-opacity-transition': { duration: DUR, delay: 0 },
+          'circle-stroke-opacity': 0,
         }}
       />
     </Source>

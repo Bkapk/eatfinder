@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react'
 import Spinner from '@/components/Spinner'
+import { useDrawer } from '@/components/useDrawer'
 import './admin.css'
 
 /**
@@ -106,18 +107,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [user, setUser] = useState<{ username: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [navOpen, setNavOpen] = useState(false)
-  const navRef = useRef<HTMLDialogElement>(null)
-
   // showModal() is what brings the focus trap, Escape, the inert background and
-  // focus restoration to the hamburger. `open` stays a React boolean so the
-  // slide is driven purely by the [open] attribute in CSS — no isClosing flag,
-  // no timeout racing the transition.
-  useEffect(() => {
-    const el = navRef.current
-    if (!el) return
-    if (navOpen && !el.open) el.showModal()
-    if (!navOpen && el.open) el.close()
-  }, [navOpen])
+  // focus restoration to the hamburger; useDrawer adds the slide and shares
+  // every fix with the public filter panel.
+  const navDrawer = useDrawer(navOpen, () => setNavOpen(false))
+
 
   // Navigating is the point of the sheet, so arriving somewhere closes it.
   useEffect(() => setNavOpen(false), [pathname])
@@ -196,12 +190,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* The same nav as a left-anchored sheet below lg. It shares .ef-drawer
           with the public filter panel, so both slide on translate alone. */}
       <dialog
-        ref={navRef}
+        {...navDrawer}
         aria-label="Admin navigation"
         onClose={() => setNavOpen(false)}
-        onClick={(e) => {
-          if (e.target === navRef.current) setNavOpen(false)
-        }}
         className="ef-drawer ef-drawer--left lg:hidden"
       >
         <div className="admin-nav-sheet">

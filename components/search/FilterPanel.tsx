@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useDrawer } from '../useDrawer'
 import { X } from 'lucide-react'
 import { priceGlyphs, t, tVocab, type Locale } from '@/lib/i18n'
 import type { ParsedFilters } from '@/lib/filters'
@@ -88,32 +88,19 @@ export default function FilterPanel({
   onClearAll: () => void
   onClose: () => void
 }) {
-  const ref = useRef<HTMLDialogElement>(null)
-
   // A native <dialog> opened with showModal() brings the focus trap, Escape to
   // close, ::backdrop, inert background and focus restoration with it. Every
   // one of those was hand-rolled work on the previous div-with-role="dialog",
-  // and three of the four were simply missing.
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    if (open && !el.open) el.showModal()
-    if (!open && el.open) el.close()
-  }, [open])
+  // and three of the four were simply missing. useDrawer adds the slide.
+  const drawer = useDrawer(open, onClose)
 
   const priceOptions = [1, 2, 3, 4]
 
   return (
     <dialog
-      ref={ref}
+      {...drawer}
       aria-label={t(locale, 'filters.title')}
       onClose={onClose}
-      // Escape fires `close`; a click on the backdrop lands on the dialog
-      // element itself rather than any child, which is the standard test for
-      // "outside the panel".
-      onClick={(e) => {
-        if (e.target === ref.current) onClose()
-      }}
       className="ef-drawer"
     >
       <aside
@@ -121,7 +108,6 @@ export default function FilterPanel({
         // large blurred shadow on the element that is travelling is a full
         // repaint on every frame of the slide.
         className="flex h-full w-full max-w-md flex-col bg-surface"
-        onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="ef-heading">

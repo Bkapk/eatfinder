@@ -626,52 +626,11 @@
     @apply justify-start;
   }
 
-  /* The whole slide, in one place: one property, one curve, two durations.
-
-     `overflow: hidden` is not cosmetic. The sheet parks at translate:100%,
-     which is a full panel width past the right edge of a full-viewport
-     element; unclipped, that is a horizontal scrollbar on the site for as
-     long as the drawer is closed.
-
-     allow-discrete keeps `display` and the top layer alive long enough for the
-     exit to be seen, and @starting-style supplies the frame the entrance
-     animates FROM. Those two are the entire reason this needs no JS and no
-     isClosing flag. Everything else is `translate` — composited, never laid
-     out — on --ease-drawer, which leaves fast and lands slow.
-
-     Declarations here are the EXIT state, since they are the ones in force
-     while the panel is closing. */
+  /* The sheet parks a full panel width past the right edge of a full-viewport
+     element, so this clip is load-bearing, not cosmetic. The slide itself
+     lives unlayered at the bottom of this file. */
   .ef-drawer {
     overflow: hidden;
-    transition:
-      display var(--dur-drawer-out) allow-discrete,
-      overlay var(--dur-drawer-out) allow-discrete;
-  }
-
-  .ef-drawer > * {
-    translate: 100% 0;
-    /* Only ever painted while the dialog is open, so the layer promotion
-       costs nothing at rest. */
-    will-change: translate;
-    transition: translate var(--dur-drawer-out) var(--ease-drawer);
-  }
-
-  .ef-drawer--left > * {
-    translate: -100% 0;
-  }
-
-  .ef-drawer[open] > * {
-    translate: 0 0;
-    transition-duration: var(--dur-drawer-in);
-  }
-
-  @starting-style {
-    .ef-drawer[open] > * {
-      translate: 100% 0;
-    }
-    .ef-drawer--left[open] > * {
-      translate: -100% 0;
-    }
   }
 
   /* The search field. focus-within, not :focus — the field owns a chip rail and
@@ -860,32 +819,90 @@
   border-top-color: var(--surface);
 }
 
-/* The backdrop is a separate element with its own transition — it does not
-   inherit the dialog's. Same allow-discrete trick so it fades out too.
+/* The drawer slide. Keyframes, not transitions.
 
-   No backdrop-filter here, deliberately. A blur on this element is re-computed
-   over the whole viewport every frame, and on /eat the thing being blurred is a
-   live WebGL map canvas — that, not the panel's own travel, is what made the
-   drawer stutter on open. A scrim this dark separates the panel perfectly well
-   on its own. background-color, not the `background` shorthand: only the colour
-   is animatable, and naming it keeps the transition on the cheap path. */
-.ef-drawer::backdrop {
-  background-color: rgb(11 18 32 / 0);
-  transition:
-    background-color var(--dur-drawer-out) var(--ease-drawer),
-    display var(--dur-drawer-out) allow-discrete,
-    overlay var(--dur-drawer-out) allow-discrete;
+   The previous version used transition + `transition-behavior: allow-discrete`
+   + @starting-style, which is the elegant no-JS way to animate a <dialog> and
+   is also why this was unreliable. All three depend on the sheet counting as
+   "newly rendered" at the exact commit the dialog's display flips, and they
+   are silently inert on any engine missing one of the three — so the panel
+   animated, half-animated or snapped depending on browser and on how fast you
+   clicked. A keyframe has none of that state: it runs when the rule matches.
+
+   `data-state` rather than `[open]`, because the exit has to run BEFORE
+   close() takes the dialog out of the top layer. useDrawer sets the attribute
+   and waits for animationend. Nothing here depends on display at all.
+
+   Unlayered on purpose: @keyframes inside a Tailwind @layer is subject to that
+   layer's tree-shaking, and these have no class name for it to find.
+
+   No backdrop-filter, deliberately: a blur here is recomputed over the whole
+   viewport every frame, and on /eat what sits behind it is a live WebGL map
+   canvas. That, not the panel's travel, is what made this stutter. */
+@keyframes ef-drawer-in {
+  from {
+    translate: 100% 0;
+  }
 }
 
-.ef-drawer[open]::backdrop {
-  background-color: rgb(11 18 32 / 0.35);
-  transition-duration: var(--dur-drawer-in);
+@keyframes ef-drawer-out {
+  to {
+    translate: 100% 0;
+  }
 }
 
-@starting-style {
-  .ef-drawer[open]::backdrop {
+@keyframes ef-drawer-in-left {
+  from {
+    translate: -100% 0;
+  }
+}
+
+@keyframes ef-drawer-out-left {
+  to {
+    translate: -100% 0;
+  }
+}
+
+@keyframes ef-scrim-in {
+  from {
     background-color: rgb(11 18 32 / 0);
   }
+}
+
+@keyframes ef-scrim-out {
+  to {
+    background-color: rgb(11 18 32 / 0);
+  }
+}
+
+.ef-drawer[data-state='open'] > * {
+  animation: ef-drawer-in var(--dur-drawer-in) var(--ease-drawer) both;
+}
+
+.ef-drawer[data-state='closed'] > * {
+  animation: ef-drawer-out var(--dur-drawer-out) var(--ease-drawer) both;
+}
+
+/* After the two above, so the name simply wins on order — the timing and the
+   curve are the same sheet, only the edge it leaves by changes. */
+.ef-drawer--left[data-state='open'] > * {
+  animation-name: ef-drawer-in-left;
+}
+
+.ef-drawer--left[data-state='closed'] > * {
+  animation-name: ef-drawer-out-left;
+}
+
+.ef-drawer::backdrop {
+  background-color: rgb(11 18 32 / 0.35);
+}
+
+.ef-drawer[data-state='open']::backdrop {
+  animation: ef-scrim-in var(--dur-drawer-in) var(--ease-drawer) both;
+}
+
+.ef-drawer[data-state='closed']::backdrop {
+  animation: ef-scrim-out var(--dur-drawer-out) var(--ease-drawer) both;
 }
 
 /* Custom select chrome. Unlayered on purpose: Tailwind's px-3/px-4 utilities
