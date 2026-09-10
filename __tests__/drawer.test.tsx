@@ -1,4 +1,4 @@
-import { render, fireEvent } from '@testing-library/react'
+import { act, render, fireEvent } from '@testing-library/react'
 import { useDrawer } from '@/components/useDrawer'
 
 function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -23,10 +23,34 @@ beforeAll(() => {
 
 const dialogOf = (c: HTMLElement) => c.querySelector('dialog') as HTMLDialogElement
 
+/** The two frames useDrawer waits out before it starts the opening slide. */
+function frames() {
+  act(() => {
+    jest.advanceTimersByTime(32)
+  })
+}
+
+test('opening waits for a painted frame before it starts the slide', () => {
+  jest.useFakeTimers()
+  const { container } = render(<Drawer open onClose={jest.fn()} />)
+  const dialog = dialogOf(container)
+
+  // Open and parked off-screen, but not yet animating: the frame that takes
+  // the dialog out of display:none is the expensive one.
+  expect(dialog.open).toBe(true)
+  expect(dialog.dataset.state).toBe('opening')
+
+  frames()
+  expect(dialog.dataset.state).toBe('open')
+  jest.useRealTimers()
+})
+
 test('closing waits for the sheet animation before leaving the top layer', () => {
+  jest.useFakeTimers()
   const onClose = jest.fn()
   const { container, rerender } = render(<Drawer open onClose={onClose} />)
   const dialog = dialogOf(container)
+  frames()
   expect(dialog.open).toBe(true)
   expect(dialog.dataset.state).toBe('open')
 
@@ -38,6 +62,7 @@ test('closing waits for the sheet animation before leaving the top layer', () =>
   const sheet = dialog.firstElementChild!
   sheet.dispatchEvent(new Event('animationend', { bubbles: true }))
   expect(dialog.open).toBe(false)
+  jest.useRealTimers()
 })
 
 test('a drag released over the backdrop does not dismiss the drawer', () => {

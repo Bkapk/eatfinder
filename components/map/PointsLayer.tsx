@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Layer, Source, useMap } from 'react-map-gl/mapbox'
 import type { MapPoint } from '@/lib/types'
 
@@ -16,7 +16,7 @@ const ACTIVE_LAYER = 'ef-point-active'
 const R = 8
 const R_ACTIVE = 10
 
-/** 0.2s for both, with the growth waiting out the colour change. */
+/** 0.2s, and colour and size run on it together. */
 const DUR = 200
 
 /**
@@ -76,34 +76,58 @@ export default function PointsLayer({
   // effect below always agree on which feature is on screen.
   if (activeId && activeId !== shown) setShown(activeId)
 
+  /** Where the paint actually is right now, so an interrupted run continues
+   *  from the current frame instead of snapping back to a resting value. */
+  const at = useRef({ o: 0, r: R })
+  const was = useRef<string | null>(null)
+  const frame = useRef(0)
+
   /**
-   * Mapbox does not transition data-driven paint properties — only constant
-   * ones. A `['case', ...]` expression is data-driven, which is why the last
-   * version snapped instead of fading: the values were right and the
-   * interpolation was never going to happen. So the layer is filtered down to
-   * one feature and its paint values are plain numbers, set imperatively.
-   *
-   * The curve is Mapbox's own; there is no way to hand it a bezier. Duration
-   * and delay are ours: colour first, then the dot grows into its place.
+   * Interpolated here rather than by Mapbox. Two of its rules make its own
+   * transitions the wrong tool: they apply only to CONSTANT paint properties,
+   * not the `['case', ...]` expressions an earlier version used — which is why
+   * that one snapped — and the curve is Mapbox's, with no way to hand it a
+   * bezier. Driving the numbers directly gets one code path that behaves
+   * identically opening and closing, and colour and size on the same clock.
    */
   useEffect(() => {
     const m = map?.getMap()
     if (!m || !m.getLayer(ACTIVE_LAYER)) return
 
     const lit = shown != null && shown === activeId
-    type Prop = 'circle-opacity' | 'circle-stroke-opacity' | 'circle-radius'
-    const set = (prop: Prop, value: number, delay = 0) => {
-      // `<property>-transition` is a real paint key that mapbox-gl reads, but
-      // the generated style-spec types only list the properties themselves.
-      const transition = `${prop}-transition` as Prop
-      m.setPaintProperty(ACTIVE_LAYER, transition, { duration: DUR, delay } as never)
-      m.setPaintProperty(ACTIVE_LAYER, prop, value)
+    const to = { o: lit ? 1 : 0, r: lit && shown === selectedId ? R_ACTIVE : R }
+
+    // Moving straight from one pin to another swaps which feature the filter
+    // matches while the paint is still fully opaque, so the new pin would
+    // arrive already lit. Start it from nothing and it fades in like any other.
+    const moved = shown !== was.current
+    was.current = shown
+    const from = moved ? { ...at.current, o: 0 } : { ...at.current }
+
+    const paint = (o: number, r: number) => {
+      at.current = { o, r }
+      m.setPaintProperty(ACTIVE_LAYER, 'circle-opacity', o)
+      m.setPaintProperty(ACTIVE_LAYER, 'circle-stroke-opacity', o)
+      m.setPaintProperty(ACTIVE_LAYER, 'circle-radius', r)
     }
 
-    set('circle-opacity', lit ? 1 : 0)
-    set('circle-stroke-opacity', lit ? 1 : 0)
-    // Only a selection grows; a hover just recolours.
-    set('circle-radius', lit && shown === selectedId ? R_ACTIVE : R, DUR)
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      paint(to.o, to.r)
+      return
+    }
+
+    const start = performance.now()
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / DUR)
+      // Ease-out cubic: leaves immediately, settles at the end.
+      const e = 1 - (1 - p) ** 3
+      paint(from.o + (to.o - from.o) * e, from.r + (to.r - from.r) * e)
+      if (p < 1) frame.current = requestAnimationFrame(tick)
+    }
+
+    cancelAnimationFrame(frame.current)
+    frame.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame.current)
   }, [map, shown, activeId, selectedId])
 
   return (
@@ -151,12 +175,8 @@ export default function PointsLayer({
         }}
       />
       {/* Hovered or selected, in one layer: both mean "this one", and a second
-          layer would only let them disagree.
-
-          Hover only recolours. Selection also grows the dot by 25%, and its
-          radius transition is delayed by exactly the length of the fade so the
-          two read as one gesture — colour first, then the dot takes its place —
-          instead of a single blurry event. */}
+          layer would only let them disagree. Hover recolours; a selection also
+          grows the dot 25%, on the same 200ms as the colour. */}
       <Layer
         id={ACTIVE_LAYER}
         type="circle"
@@ -164,13 +184,21 @@ export default function PointsLayer({
         // Starting values only — everything animated is set in the effect
         // above. This object is deliberately constant so react-map-gl never
         // diffs it and resets the paint mid-fade.
+        //
+        // The three zero durations are required, not tidiness: Mapbox applies
+        // a 300ms transition to every paint change by default, so each frame
+        // of the loop above would start its own animation toward the next
+        // frame's value and the whole thing would smear.
         paint={{
           'circle-color': c.accent,
           'circle-opacity': 0,
+          'circle-opacity-transition': { duration: 0 },
           'circle-radius': R,
+          'circle-radius-transition': { duration: 0 },
           'circle-stroke-width': 3,
           'circle-stroke-color': c.surface,
           'circle-stroke-opacity': 0,
+          'circle-stroke-opacity-transition': { duration: 0 },
         }}
       />
     </Source>

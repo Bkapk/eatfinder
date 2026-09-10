@@ -36,9 +36,36 @@ export function useDrawer(open: boolean, onClose: () => void) {
     if (!el) return
 
     if (open) {
-      el.dataset.state = 'open'
-      if (!el.open) el.showModal()
-      return
+      if (el.open) {
+        el.dataset.state = 'open'
+        return
+      }
+
+      // Why the opening jank was one-sided: closing animates an element the
+      // browser has already laid out and painted, but opening takes the dialog
+      // out of display:none, and THAT frame is also the first layout, first
+      // style resolution and first paint of the entire panel — plus the top
+      // layer promotion. An animation started on that frame spends its opening
+      // frames waiting for all of it, which is the jump.
+      //
+      // So: park the sheet off-screen with no animation, open, and let the
+      // browser get that expensive frame out of the way. Two rAFs, because one
+      // only buys the layout — the second is the one that runs after it has
+      // actually painted. Then the slide starts on an element it has already
+      // dealt with, and it is a composited translate from there.
+      el.dataset.state = 'opening'
+      el.showModal()
+
+      let paint = 0
+      const layout = requestAnimationFrame(() => {
+        paint = requestAnimationFrame(() => {
+          el.dataset.state = 'open'
+        })
+      })
+      return () => {
+        cancelAnimationFrame(layout)
+        cancelAnimationFrame(paint)
+      }
     }
 
     if (!el.open) return

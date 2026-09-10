@@ -875,6 +875,27 @@
   }
 }
 
+/* Parked, not animating. This is the state the panel sits in for the two
+   frames useDrawer spends letting the browser lay the thing out. */
+.ef-drawer[data-state='opening'] > * {
+  translate: 100% 0;
+}
+
+.ef-drawer--left[data-state='opening'] > * {
+  translate: -100% 0;
+}
+
+.ef-drawer[data-state='opening']::backdrop {
+  background-color: rgb(11 18 32 / 0);
+}
+
+/* Promoted for the duration of the slide. The sheet only exists while the
+   dialog is displayed, so this costs nothing at rest — and without it the
+   translate competes with a live map canvas repainting behind the scrim. */
+.ef-drawer > * {
+  will-change: translate;
+}
+
 .ef-drawer[data-state='open'] > * {
   animation: ef-drawer-in var(--dur-drawer-in) var(--ease-drawer) both;
 }
