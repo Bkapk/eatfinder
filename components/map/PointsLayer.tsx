@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
-import { Layer, Source, useMap } from 'react-map-gl/mapbox'
+import { useMemo } from 'react'
+import { Layer, Source } from 'react-map-gl/mapbox'
 import type { MapPoint } from '@/lib/types'
 
 export const CLUSTER_LAYER = 'ef-clusters'
@@ -11,11 +11,13 @@ const COUNT_LAYER = 'ef-cluster-count'
 const NO_MATCH = ''
 
 const ACTIVE_LAYER = 'ef-point-active'
-const PLATE_LAYER = 'ef-point-plate'
 
-/** Where the rim comes to rest, and how far above the pin it starts. */
-const PLATE_R = 17
-const PLATE_DROP = 13
+/** Resting radius, and the selected radius — 25% larger. */
+const R = 8
+const R_ACTIVE = 10
+
+/** 0.2s for both, with the growth waiting out the colour change. */
+const DUR = 200
 
 /**
  * Mapbox GL cannot read a CSS variable, so the token values are resolved from
@@ -25,7 +27,7 @@ const PLATE_DROP = 13
  */
 function tokens() {
   const fallback = { primary: '#0b6bb0', accent: '#d9480f', onPrimary: '#ffffff', surface: '#ffffff' }
-  if (typeof window === 'undefined') return { ...fallback, durPanel: 320 }
+  if (typeof window === 'undefined') return fallback
   const s = getComputedStyle(document.documentElement)
   const read = (name: string, d: string) => s.getPropertyValue(name).trim() || d
   return {
@@ -33,8 +35,6 @@ function tokens() {
     accent: read('--accent', fallback.accent),
     onPrimary: read('--on-primary', fallback.onPrimary),
     surface: read('--surface', fallback.surface),
-    // Same trick for the motion ladder: "320ms" -> 320.
-    durPanel: parseFloat(read('--dur-panel', '320ms')) || 320,
   }
 }
 
@@ -48,7 +48,6 @@ export default function PointsLayer({
   selectedId: string | null
 }) {
   const c = useMemo(() => tokens(), [])
-  const { current: map } = useMap()
 
   const data = useMemo(
     () => ({
@@ -63,38 +62,15 @@ export default function PointsLayer({
   )
 
   /**
-   * "The plate lands." Selecting a pin drops an ember rim onto it from above —
-   * it settles inward and stays as the marker of what the popup is about,
-   * rather than radiating outward and dying like every pulse on every map.
-   * It runs once, on exactly one feature, so density and point count cost
-   * nothing; a rejected alternative was animating the whole point layer.
-   *
-   * Mapbox interpolates paint properties itself, on the GPU — there is no
-   * per-frame JS here and no way to hand it `--ease`, so the duration comes
-   * from the token and the curve is Mapbox's own.
+   * The accent layer draws EVERY pin and hides the ones that are not active,
+   * rather than filtering down to the one that is. That is the whole reason
+   * the colour change can be animated at all: a filter change is instant —
+   * the feature simply is or is not there — whereas an opacity that Mapbox
+   * evaluates per feature is a paint property it will interpolate on the GPU.
+   * Accent fading in over the blue dot beneath it IS the colour transition.
    */
-  useEffect(() => {
-    const m = map?.getMap()
-    if (!m || !selectedId || !m.getLayer(PLATE_LAYER)) return
-
-    const set = (radius: number, opacity: number, duration: number) => {
-      m.setPaintProperty(PLATE_LAYER, 'circle-radius-transition', { duration, delay: 0 })
-      m.setPaintProperty(PLATE_LAYER, 'circle-stroke-opacity-transition', { duration, delay: 0 })
-      m.setPaintProperty(PLATE_LAYER, 'circle-radius', radius)
-      m.setPaintProperty(PLATE_LAYER, 'circle-stroke-opacity', opacity)
-    }
-
-    // Resting state is the visible one: no motion preference means the rim is
-    // simply there, never a pin left wearing an invisible ring.
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      set(PLATE_R, 1, 0)
-      return
-    }
-
-    set(PLATE_R + PLATE_DROP, 0, 0)
-    const frame = requestAnimationFrame(() => set(PLATE_R, 1, c.durPanel))
-    return () => cancelAnimationFrame(frame)
-  }, [map, selectedId, c.durPanel])
+  const isActive = ['in', ['get', 'id'], ['literal', [hoveredId ?? NO_MATCH, selectedId ?? NO_MATCH]]]
+  const isSelected = ['==', ['get', 'id'], selectedId ?? NO_MATCH]
 
   return (
     <Source
@@ -135,47 +111,32 @@ export default function PointsLayer({
         filter={['!', ['has', 'point_count']]}
         paint={{
           'circle-color': c.primary,
-          'circle-radius': 8,
+          'circle-radius': R,
           'circle-stroke-width': 3,
           'circle-stroke-color': c.surface,
-        }}
-      />
-      {/* The rim, under the dot. Fill is fully transparent so it never dims the
-          map beneath it and never becomes a second click target. */}
-      <Layer
-        id={PLATE_LAYER}
-        type="circle"
-        filter={['all', ['!', ['has', 'point_count']], ['==', ['get', 'id'], selectedId ?? NO_MATCH]]}
-        paint={{
-          'circle-color': c.accent,
-          'circle-opacity': 0,
-          'circle-radius': PLATE_R,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': c.accent,
-          'circle-stroke-opacity': 1,
         }}
       />
       {/* Hovered or selected, in one layer: both mean "this one", and a second
-          layer would only let them disagree. A filter that can never match is
-          cheaper than mounting and unmounting a layer on every mouse move.
+          layer would only let them disagree.
 
-          Deliberately the same radius and stroke as POINT_LAYER — the pin's
-          silhouette is also its hit area, and a halo wider than the thing you
-          can click is how a click on a highlighted pin misses. Only the colour
-          changes. */}
+          Hover only recolours. Selection also grows the dot by 25%, and its
+          radius transition is delayed by exactly the length of the fade so the
+          two read as one gesture — colour first, then the dot takes its place —
+          instead of a single blurry event. */}
       <Layer
         id={ACTIVE_LAYER}
         type="circle"
-        filter={[
-          'all',
-          ['!', ['has', 'point_count']],
-          ['in', ['get', 'id'], ['literal', [hoveredId ?? NO_MATCH, selectedId ?? NO_MATCH]]],
-        ]}
+        filter={['!', ['has', 'point_count']]}
         paint={{
           'circle-color': c.accent,
-          'circle-radius': 8,
+          'circle-opacity': ['case', isActive, 1, 0],
+          'circle-opacity-transition': { duration: DUR, delay: 0 },
+          'circle-radius': ['case', isSelected, R_ACTIVE, R],
+          'circle-radius-transition': { duration: DUR, delay: DUR },
           'circle-stroke-width': 3,
           'circle-stroke-color': c.surface,
+          'circle-stroke-opacity': ['case', isActive, 1, 0],
+          'circle-stroke-opacity-transition': { duration: DUR, delay: 0 },
         }}
       />
     </Source>

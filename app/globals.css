@@ -57,6 +57,9 @@
     --shadow-sm: 0 1px 2px rgb(11 18 32 / 0.06), 0 1px 3px rgb(11 18 32 / 0.04);
     --shadow-md: 0 2px 6px rgb(11 18 32 / 0.07), 0 8px 20px rgb(11 18 32 / 0.06);
     --shadow-lg: 0 4px 12px rgb(11 18 32 / 0.08), 0 16px 40px rgb(11 18 32 / 0.10);
+    /* Same geometry as --shadow-md, two alphas. See .ef-card. */
+    --shadow-card: 0 2px 6px rgb(11 18 32 / 0.04), 0 8px 20px rgb(11 18 32 / 0.03);
+    --shadow-card-hover: 0 2px 6px rgb(11 18 32 / 0.08), 0 8px 20px rgb(11 18 32 / 0.07);
 
     /* One easing and a duration ladder for everything that moves, so "make it
        smoother" is a few lines here and not forty call sites. The curve is
@@ -75,6 +78,13 @@
     --dur: 220ms;
     --dur-panel: 320ms;
     --dur-exit: 180ms;
+    /* The drawer slide owns its own pair. It travels further than anything
+       else in the app, so it needs to leave the edge fast and settle slowly
+       rather than ease evenly the whole way — that curve is the difference
+       between "snappy" and "sliding". */
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+    --dur-drawer-in: 280ms;
+    --dur-drawer-out: 200ms;
 
     /* One control height for every interactive box the user reads as part of
        the same row: the search capsule, the pills beside it, the sort select,
@@ -260,9 +270,16 @@
     @apply h-5 w-5 cursor-pointer rounded-full border-0 bg-primary transition-colors hover:bg-primary-hover;
   }
 
+  /* Firefox has no ::-webkit pseudo-elements; `thin` is the only knob it gives
+     and it lands at roughly the same weight as the 6px track below. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -402,12 +419,17 @@
      hairline to Control Edge and the shadow deepening one step, both at
      feedback speed — enough to say "this one", not enough to notice as motion.
      Both cues are colour/shadow, so nothing re-lays-out the grid either. */
+  /* Resting and hover shadows share their offsets and blur radii exactly and
+     differ only in alpha. Interpolating sm -> md grew a 3px blur into a 20px
+     one on every frame, over a card that is also cross-fading a photo — that
+     widening blur is the jitter. Alpha-only is a flat repaint at a fixed
+     radius, which is why these two are their own tokens and not the ladder. */
   .ef-card {
     @apply rounded-2xl border border-border bg-surface;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-card);
     transition:
-      box-shadow var(--dur-fast) var(--ease),
-      border-color var(--dur-fast) var(--ease);
+      box-shadow var(--dur) var(--ease),
+      border-color var(--dur) var(--ease);
   }
 
   /* focus-within as well as hover: the card's title is the link, so a keyboard
@@ -415,7 +437,7 @@
   .ef-card:hover,
   .ef-card:focus-within {
     border-color: var(--border-strong);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-card-hover);
   }
 
   /* Admin shares this vocabulary. Adding it here rather than restyling ~3200
@@ -604,23 +626,34 @@
     @apply justify-start;
   }
 
-  /* Slide the sheet in and out with no JS and no "isClosing" state flag:
-     allow-discrete keeps `display` and the top layer alive for the exit, and
-     @starting-style supplies the frame the panel animates FROM on entry.
-     Browsers without either simply snap, which is today's behaviour.
-     The timing here is the EXIT timing, because these declarations are the
-     ones in force while the panel is closing. */
+  /* The whole slide, in one place: one property, one curve, two durations.
+
+     `overflow: hidden` is not cosmetic. The sheet parks at translate:100%,
+     which is a full panel width past the right edge of a full-viewport
+     element; unclipped, that is a horizontal scrollbar on the site for as
+     long as the drawer is closed.
+
+     allow-discrete keeps `display` and the top layer alive long enough for the
+     exit to be seen, and @starting-style supplies the frame the entrance
+     animates FROM. Those two are the entire reason this needs no JS and no
+     isClosing flag. Everything else is `translate` — composited, never laid
+     out — on --ease-drawer, which leaves fast and lands slow.
+
+     Declarations here are the EXIT state, since they are the ones in force
+     while the panel is closing. */
   .ef-drawer {
+    overflow: hidden;
     transition:
-      display var(--dur-exit) allow-discrete,
-      overlay var(--dur-exit) allow-discrete;
+      display var(--dur-drawer-out) allow-discrete,
+      overlay var(--dur-drawer-out) allow-discrete;
   }
 
-  /* translate, not left/right/width: those three are laid out by the engine on
-     every frame and are what made the panel stutter on a mid-range phone. */
   .ef-drawer > * {
     translate: 100% 0;
-    transition: translate var(--dur-exit) var(--ease);
+    /* Only ever painted while the dialog is open, so the layer promotion
+       costs nothing at rest. */
+    will-change: translate;
+    transition: translate var(--dur-drawer-out) var(--ease-drawer);
   }
 
   .ef-drawer--left > * {
@@ -629,10 +662,7 @@
 
   .ef-drawer[open] > * {
     translate: 0 0;
-    /* Entrance: slower and deeply decelerated, so the panel looks certain
-       about where it stops. */
-    transition:
-      translate var(--dur-panel) var(--ease-out);
+    transition-duration: var(--dur-drawer-in);
   }
 
   @starting-style {
@@ -842,14 +872,14 @@
 .ef-drawer::backdrop {
   background-color: rgb(11 18 32 / 0);
   transition:
-    background-color var(--dur-exit) var(--ease),
-    display var(--dur-exit) allow-discrete,
-    overlay var(--dur-exit) allow-discrete;
+    background-color var(--dur-drawer-out) var(--ease-drawer),
+    display var(--dur-drawer-out) allow-discrete,
+    overlay var(--dur-drawer-out) allow-discrete;
 }
 
 .ef-drawer[open]::backdrop {
   background-color: rgb(11 18 32 / 0.35);
-  transition-duration: var(--dur-panel);
+  transition-duration: var(--dur-drawer-in);
 }
 
 @starting-style {
