@@ -223,8 +223,10 @@ export default function SearchShell({
             showResults ? 'flex' : 'hidden md:flex'
           }`}
         >
-          {/* Fixed width: the content must not reflow while the pane collapses. */}
-          <div className="flex h-full w-full flex-col md:w-[40vw]">
+          {/* shrink-0 is the whole trick: the pane keeps its full width while the
+              section around it collapses, so it slides out to the right under
+              the clip instead of squashing and reflowing the cards. */}
+          <div className="flex h-full w-full shrink-0 flex-col md:w-[40vw]">
             <SortHeader
               locale={locale}
               total={total}
