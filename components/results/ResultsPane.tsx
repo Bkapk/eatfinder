@@ -34,11 +34,15 @@ export default function ResultsPane({
   if (error) {
     return (
       <div className="ef-enter flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
-        <p className="text-[16px] font-extrabold text-text">{t(locale, 'results.error.title')}</p>
+        {/* .ef-heading, not a bespoke 16px/extrabold: the admin's <EmptyState>
+            and this one are the same message in the same product. */}
+        <p className="ef-heading">{t(locale, 'results.error.title')}</p>
         <p className="max-w-xs text-[14px] text-text-secondary">
           {t(locale, 'results.error.body')}
         </p>
-        <button type="button" onClick={onRetry} className="ef-pill ef-pill--active mt-1">
+        {/* h-11 like "Load more": the one control in an otherwise empty pane is
+            not the place to ship the search rail's compact 36px pill. */}
+        <button type="button" onClick={onRetry} className="ef-pill ef-pill--active mt-1 h-11 px-5">
           {t(locale, 'results.error.retry')}
         </button>
       </div>
@@ -49,11 +53,11 @@ export default function ResultsPane({
     return (
       <div className="ef-enter flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
         <SearchX size={28} aria-hidden className="text-text-secondary" />
-        <p className="text-[16px] font-extrabold text-text">{t(locale, 'results.empty.title')}</p>
+        <p className="ef-heading">{t(locale, 'results.empty.title')}</p>
         <p className="max-w-xs text-[14px] text-text-secondary">
           {t(locale, 'results.empty.body')}
         </p>
-        <button type="button" onClick={onClearAll} className="ef-pill mt-1">
+        <button type="button" onClick={onClearAll} className="ef-pill mt-1 h-11 px-5">
           {t(locale, 'results.empty.reset')}
         </button>
       </div>

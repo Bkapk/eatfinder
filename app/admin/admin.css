@@ -111,8 +111,11 @@
 .admin-table tbody tr[data-selected='true']:hover {
   background-color: var(--primary-soft);
 }
+/* Height is deliberately NOT set here: `.admin-shell .ef-btn` below is the same
+   specificity and comes later, so a min-h-9 written here silently lost and the
+   row buttons were 44px anyway. Only the metrics that actually win. */
 .admin-table .ef-btn {
-  @apply min-h-9 px-3 text-xs;
+  @apply px-3 text-xs;
 }
 .admin-form {
   @apply pb-24;
@@ -211,8 +214,13 @@
     content: attr(data-label);
     display: block;
     margin-bottom: 8px;
+    /* The same .ef-label metrics as .admin-table th: this IS the column header,
+       relocated into the card. At 11px/600/no-tracking it was the one place the
+       header of a column changed typographic register with the viewport. */
     color: var(--text-secondary);
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
 }

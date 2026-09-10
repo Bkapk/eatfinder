@@ -248,7 +248,7 @@ function ProposalCard({
   if (!payload) return null
 
   return (
-    <div className="ef-panel admin-proposal">
+    <div className="ef-panel">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-5">
         <div className="min-w-0">
           <Link
@@ -527,9 +527,10 @@ function VocabPicker({
           onClick={() => toggle(v)}
           aria-pressed={selected.includes(v)}
           // .ef-pill: the app already has a toggleable pill, and this one was
-          // 26px tall — half the 44px minimum, in the one admin view whose whole
-          // job is tapping twenty of them in a row.
-          className={`ef-pill ${selected.includes(v) ? 'ef-pill--active' : ''}`}
+          // 26px tall. min-h-11 on top of it because .ef-pill's own 36px is a
+          // dense search rail's height, and this is the one admin view whose
+          // whole job is tapping twenty of them in a row on a phone.
+          className={`ef-pill min-h-11 ${selected.includes(v) ? 'ef-pill--active' : ''}`}
         >
           {v}
         </button>

@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-10T00:00:00.000Z",
+  "title": "Design System: EatFinder",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Signal Blue",
+        "canonical": "#0b6bb0",
+        "contrast": "5.4:1 on #ffffff; white text on it is 5.4:1",
+        "tonalRamp": ["#04243c", "#063352", "#084869", "#0b6bb0", "#3a8cc7", "#7ab3dc", "#b6d6ee", "#e6f1fa"]
+      },
+      "primary-hover": { "role": "primary", "displayName": "Signal Blue Deep", "canonical": "#095a95" },
+      "primary-soft": { "role": "primary", "displayName": "Blue Wash", "canonical": "#e6f1fa" },
+      "on-primary": { "role": "primary", "displayName": "On Signal", "canonical": "#ffffff" },
+      "accent": {
+        "role": "secondary",
+        "displayName": "Ember",
+        "canonical": "#b83b09",
+        "contrast": "5.7:1 on #ffffff; 5.1:1 on #fdefe7",
+        "tonalRamp": ["#2d0e02", "#4a1704", "#7a2606", "#b83b09", "#d9601f", "#ec9163", "#f7c2a5", "#fdefe7"]
+      },
+      "accent-hover": { "role": "secondary", "displayName": "Ember Deep", "canonical": "#9c320a" },
+      "accent-soft": { "role": "secondary", "displayName": "Ember Wash", "canonical": "#fdefe7" },
+      "success": { "role": "tertiary", "displayName": "Field Green", "canonical": "#157347", "tonalRamp": ["#04180e", "#082b1a", "#0d4a2c", "#157347", "#2c9b67", "#63bd93", "#a6dcc0", "#e7f4ed"] },
+      "success-hover": { "role": "tertiary", "displayName": "Field Green Deep", "canonical": "#10603a" },
+      "success-soft": { "role": "tertiary", "displayName": "Green Wash", "canonical": "#e7f4ed" },
+      "error": { "role": "tertiary", "displayName": "Signal Red", "canonical": "#c2261d", "tonalRamp": ["#2b0806", "#480d09", "#7c1710", "#c2261d", "#dc574d", "#ea8a83", "#f5bcb8", "#fdeceb"] },
+      "error-hover": { "role": "tertiary", "displayName": "Signal Red Deep", "canonical": "#9f1d16" },
+      "error-soft": { "role": "tertiary", "displayName": "Red Wash", "canonical": "#fdeceb" },
+      "warning": { "role": "tertiary", "displayName": "Harvest Amber", "canonical": "#a16207", "tonalRamp": ["#221402", "#3b2404", "#6b4105", "#a16207", "#cf8a1e", "#e0ae60", "#efd3a0", "#fdf5e3"] },
+      "warning-soft": { "role": "tertiary", "displayName": "Amber Wash", "canonical": "#fdf5e3" },
+      "background": { "role": "neutral", "displayName": "Cool Paper", "canonical": "#f4f6f8" },
+      "surface": { "role": "neutral", "displayName": "Card White", "canonical": "#ffffff" },
+      "surface-hover": { "role": "neutral", "displayName": "Hover Mist", "canonical": "#eef1f5" },
+      "surface-muted": { "role": "neutral", "displayName": "Muted Mist", "canonical": "#f0f3f7" },
+      "text": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#0b1220",
+        "contrast": "18.4:1 on #ffffff",
+        "tonalRamp": ["#050810", "#0b1220", "#1b2540", "#333f5e", "#55617a", "#8793a4", "#c7d0dc", "#f4f6f8"]
+      },
+      "text-secondary": { "role": "neutral", "displayName": "Slate", "canonical": "#55617a", "contrast": "6.6:1 on #ffffff" },
+      "border": { "role": "neutral", "displayName": "Hairline", "canonical": "#e3e7ed", "contrast": "1.24:1 on #ffffff — decorative only" },
+      "border-strong": { "role": "neutral", "displayName": "Hairline Strong", "canonical": "#c7d0dc" },
+      "border-control": { "role": "neutral", "displayName": "Control Edge", "canonical": "#8793a4", "contrast": "3.12:1 on #ffffff — WCAG 1.4.11 compliant control boundary" }
+    },
+    "typographyMeta": {
+      "title": { "displayName": "Title", "purpose": "The page <h1> only. .ef-title. Steps 26px → 32px at ≥640px." },
+      "heading": { "displayName": "Heading", "purpose": "Heading of a card, panel, drawer or form section. .ef-heading." },
+      "body": { "displayName": "Body", "purpose": "Set on <body> and inherited. Long-form prose steps to 15px/relaxed, capped at 68ch." },
+      "meta": { "displayName": "Meta", "purpose": "The working size: buttons, table cells, form labels, card meta, hints (13–14px)." },
+      "label": { "displayName": "Label", "purpose": "Eyebrows, table column headers, uppercase micro-labels. .ef-label." }
+    },
+    "shadows": [
+      { "name": "resting", "value": "0 1px 2px rgb(11 18 32 / 0.06), 0 1px 3px rgb(11 18 32 / 0.04)", "purpose": "Cards, panels, pills, search capsule, primary buttons. A contact edge, not elevation." },
+      { "name": "lifted", "value": "0 2px 6px rgb(11 18 32 / 0.07), 0 8px 20px rgb(11 18 32 / 0.06)", "purpose": "Card hover/focus-within, the fixed admin form action bar, Mapbox control clusters." },
+      { "name": "floating", "value": "0 4px 12px rgb(11 18 32 / 0.08), 0 16px 40px rgb(11 18 32 / 0.10)", "purpose": "Truly detached elements: the mobile nav sheet, the mobile map toggle." },
+      { "name": "ring", "value": "0 0 0 3px color-mix(in srgb, var(--primary) 24%, transparent)", "purpose": "The one focus halo. Used by inputs, the search capsule, checkboxes and radios instead of a Tailwind ring." },
+      { "name": "backdrop", "value": "background: rgb(11 18 32 / 0.35); backdrop-filter: blur(3px)", "purpose": "Drawer ::backdrop. Transitions independently of the dialog." }
+    ],
+    "motion": [
+      { "name": "ease", "value": "cubic-bezier(0.2, 0.8, 0.2, 1)", "purpose": "The default curve. Fast-out/slow-in: motion settles, it does not coast." },
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Deep deceleration for panels and entrances that should look certain about where they land. Deliberately not elastic." },
+      { "name": "dur-fast", "value": "130ms", "purpose": "Acknowledges a press or a hover: button colour, scale, table row tint." },
+      { "name": "dur", "value": "220ms", "purpose": "Routine state change: toggle, tint, dim, card lift, meter fill, entrance animations." },
+      { "name": "dur-panel", "value": "320ms", "purpose": "Overlays and panels that travel a real distance: drawer entrance, backdrop fade-in." },
+      { "name": "dur-exit", "value": "180ms", "purpose": "Every dismissal. An exit is faster than its entrance — a slow close reads as lag." },
+      { "name": "stagger-step", "value": "40ms", "purpose": "Per-row delay on .ef-stagger, capped by the caller so the last card is never more than ~360ms behind the first." },
+      { "name": "reduced-motion", "value": "@media (prefers-reduced-motion: reduce) { animation-duration: 0.01ms; transition-duration: 0.01ms }", "purpose": "Global kill switch. No animated element ever rests at opacity: 0." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" },
+      { "name": "2xl", "value": "1536px" },
+      { "name": "results-grid-2col", "value": "@container (min-width: 390px)" },
+      { "name": "results-grid-3col", "value": "@container (min-width: 740px)" }
+    ],
+    "zIndex": [
+      { "name": "overlay", "value": "10" },
+      { "name": "sticky", "value": "20" },
+      { "name": "drawer", "value": "30" },
+      { "name": "modal", "value": "50" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one main action on a screen. .ef-btn .ef-btn--primary.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Save changes</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; border: 1px solid transparent; border-radius: 12px; padding: 8px 16px; min-height: 44px; font: 600 14px/1.4 Manrope, system-ui, sans-serif; cursor: pointer; transition: background-color 130ms cubic-bezier(0.2,0.8,0.2,1), border-color 130ms cubic-bezier(0.2,0.8,0.2,1), color 130ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 130ms cubic-bezier(0.2,0.8,0.2,1), scale 130ms cubic-bezier(0.2,0.8,0.2,1); } .ds-btn-primary { background: var(--primary, #0b6bb0); color: var(--on-primary, #fff); box-shadow: 0 1px 2px rgb(11 18 32 / 0.06), 0 1px 3px rgb(11 18 32 / 0.04); } .ds-btn-primary:hover { background: var(--primary-hover, #095a95); } .ds-btn-primary:active { scale: 0.97; } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--surface, #fff), 0 0 0 4px var(--primary, #0b6bb0); } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "The default for anything that is not the one main action. .ef-btn .ef-btn--ghost.",
+      "html": "<button class=\"ds-btn ds-btn-ghost\">Cancel</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 12px; padding: 8px 16px; min-height: 44px; font: 600 14px/1.4 Manrope, system-ui, sans-serif; cursor: pointer; transition: background-color 130ms cubic-bezier(0.2,0.8,0.2,1), color 130ms cubic-bezier(0.2,0.8,0.2,1), scale 130ms cubic-bezier(0.2,0.8,0.2,1); } .ds-btn-ghost { background: var(--surface, #fff); border-color: var(--border, #e3e7ed); color: var(--text, #0b1220); } .ds-btn-ghost:hover { background: var(--surface-hover, #eef1f5); } .ds-btn-ghost:active { scale: 0.97; } .ds-btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--surface, #fff), 0 0 0 4px var(--primary, #0b6bb0); }"
+    },
+    {
+      "name": "Icon Button",
+      "kind": "button",
+      "refersTo": "icon-button",
+      "description": "Every icon-only control in the app: toolbar, table row, drawer close. Always 44 x 44px. .ef-icon-btn.",
+      "html": "<button class=\"ds-icon-btn\" aria-label=\"Close\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M18 6 6 18M6 6l12 12\"/></svg></button>",
+      "css": ".ds-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: none; border: 1px solid var(--border, #e3e7ed); border-radius: 12px; background: var(--surface, #fff); color: var(--text-secondary, #55617a); cursor: pointer; transition: background-color 220ms cubic-bezier(0.2,0.8,0.2,1), color 220ms cubic-bezier(0.2,0.8,0.2,1), scale 130ms cubic-bezier(0.2,0.8,0.2,1); } .ds-icon-btn:hover { background: var(--surface-hover, #eef1f5); color: var(--text, #0b1220); } .ds-icon-btn:active { scale: 0.94; } .ds-icon-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--surface, #fff), 0 0 0 4px var(--primary, #0b6bb0); }"
+    },
+    {
+      "name": "Filter Pill",
+      "kind": "chip",
+      "refersTo": "pill",
+      "description": "The search UI's currency: filter openers, sort, language switch, map actions. .ef-pill / .ef-pill--active.",
+      "html": "<div style=\"display:flex;gap:8px\"><button class=\"ds-pill\">Filters</button><button class=\"ds-pill ds-pill-active\">Open now</button></div>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; white-space: nowrap; border: 1px solid var(--border, #e3e7ed); border-radius: 9999px; background: var(--surface, #fff); color: var(--text, #0b1220); font: 600 13px/1 Manrope, system-ui, sans-serif; cursor: pointer; box-shadow: 0 1px 2px rgb(11 18 32 / 0.06), 0 1px 3px rgb(11 18 32 / 0.04); transition: background-color 220ms cubic-bezier(0.2,0.8,0.2,1), border-color 220ms cubic-bezier(0.2,0.8,0.2,1), color 220ms cubic-bezier(0.2,0.8,0.2,1), scale 130ms cubic-bezier(0.2,0.8,0.2,1); } .ds-pill:hover { background: var(--surface-hover, #eef1f5); } .ds-pill:active { scale: 0.96; } .ds-pill:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--surface, #fff), 0 0 0 4px var(--primary, #0b6bb0); } .ds-pill-active { background: var(--primary, #0b6bb0); border-color: var(--primary, #0b6bb0); color: var(--on-primary, #fff); } .ds-pill-active:hover { background: var(--primary-hover, #095a95); }"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "An applied filter, with its 24px remove target. .ef-chip + .ef-chip-remove.",
+      "html": "<span class=\"ds-chip\">Pizza<button class=\"ds-chip-remove\" aria-label=\"Remove Pizza\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"><path d=\"M18 6 6 18M6 6l12 12\"/></svg></button></span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 4px 0 10px; white-space: nowrap; border-radius: 9999px; background: var(--primary-soft, #e6f1fa); color: var(--primary, #0b6bb0); font: 600 12px/1 Manrope, system-ui, sans-serif; } .ds-chip-remove { display: grid; place-items: center; width: 24px; height: 24px; border: 0; border-radius: 9999px; background: transparent; color: inherit; cursor: pointer; transition: background-color 220ms cubic-bezier(0.2,0.8,0.2,1), color 220ms cubic-bezier(0.2,0.8,0.2,1); } .ds-chip-remove:hover { background: var(--primary, #0b6bb0); color: var(--on-primary, #fff); } .ds-chip-remove:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--surface, #fff), 0 0 0 4px var(--primary, #0b6bb0); }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge-success",
+      "description": "Status, never action. Five tones sharing one shape: success, warning, error, info, neutral. .ef-badge.",
+      "html": "<div style=\"display:flex;gap:8px;flex-wrap:wrap\"><span class=\"ds-badge ds-badge-success\">Published</span><span class=\"ds-badge ds-badge-warning\">Pending</span><span class=\"ds-badge ds-badge-error\">Rejected</span><span class=\"ds-badge ds-badge-neutral\">Draft</span></div>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font: 700 11px/1.3 Manrope, system-ui, sans-serif; } .ds-badge-success { background: var(--success-soft, #e7f4ed); color: var(--success, #157347); } .ds-badge-warning { background: var(--warning-soft, #fdf5e3); color: var(--warning, #a16207); } .ds-badge-error { background: var(--error-soft, #fdeceb); color: var(--error, #c2261d); } .ds-badge-neutral { background: var(--surface-hover, #eef1f5); color: var(--text-secondary, #55617a); font-weight: 600; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Every text field. Border is Control Edge (3.12:1), focus draws the halo with no offset ring. .ef-field-label + .ef-input.",
+      "html": "<label class=\"ds-field-label\" for=\"ds-name\">Restaurant name</label><input class=\"ds-input\" id=\"ds-name\" placeholder=\"Search restaurants, cuisines…\">",
+      "css": ".ds-field-label { display: block; margin-bottom: 8px; font: 600 13px/1.4 Manrope, system-ui, sans-serif; color: var(--text, #0b1220); } .ds-input { width: 100%; min-height: 44px; padding: 8px 16px; border: 1px solid var(--border-control, #8793a4); border-radius: 12px; background: var(--surface, #fff); color: var(--text, #0b1220); font: 400 14px/1.5 Manrope, system-ui, sans-serif; transition: border-color 130ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 130ms cubic-bezier(0.2,0.8,0.2,1); } .ds-input::placeholder { color: var(--text-secondary, #55617a); } .ds-input:focus { outline: none; border-color: var(--primary, #0b6bb0); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #0b6bb0) 24%, transparent); }"
+    },
+    {
+      "name": "Search Capsule",
+      "kind": "input",
+      "refersTo": "searchbar",
+      "description": "The signature control: icon, field, applied-filter chip rail and a quiet clear button in one 44px round capsule that lights up on focus-within. .ef-searchbar.",
+      "html": "<div class=\"ds-searchbar\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" style=\"color:#55617a;flex:none\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-3.5-3.5\"/></svg><input class=\"ds-searchbar-input\" placeholder=\"Search restaurants, cuisines, neighbourhoods…\"><button class=\"ds-btn-quiet\">Clear all</button></div>",
+      "css": ".ds-searchbar { display: flex; align-items: center; gap: 8px; height: 44px; min-width: 0; padding: 0 8px 0 16px; border: 1px solid var(--border, #e3e7ed); border-radius: 9999px; background: var(--surface, #fff); box-shadow: 0 1px 2px rgb(11 18 32 / 0.06), 0 1px 3px rgb(11 18 32 / 0.04); transition: border-color 220ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 220ms cubic-bezier(0.2,0.8,0.2,1); } .ds-searchbar:focus-within { border-color: var(--primary, #0b6bb0); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #0b6bb0) 24%, transparent); } .ds-searchbar-input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; color: var(--text, #0b1220); font: 400 14px/1.5 Manrope, system-ui, sans-serif; } .ds-searchbar-input::placeholder { color: var(--text-secondary, #55617a); } .ds-btn-quiet { border: 0; border-radius: 9999px; padding: 6px 12px; background: transparent; color: var(--text-secondary, #55617a); font: 700 12px/1.3 Manrope, system-ui, sans-serif; cursor: pointer; transition: background-color 130ms cubic-bezier(0.2,0.8,0.2,1), color 130ms cubic-bezier(0.2,0.8,0.2,1); } .ds-btn-quiet:hover { background: var(--surface-hover, #eef1f5); color: var(--text, #0b1220); }"
+    },
+    {
+      "name": "Result Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Lifts 2px on hover AND focus-within, because the card's title is the link. .ef-card.",
+      "html": "<article class=\"ds-card\"><div class=\"ds-card-media\"></div><div class=\"ds-card-body\"><h3 class=\"ds-heading\">Te Sanija</h3><p class=\"ds-meta\">Grill · €€ · 400 m away</p><span class=\"ds-badge ds-badge-ember\">92% match</span></div></article>",
+      "css": ".ds-card { display: flex; flex-direction: column; width: 260px; overflow: hidden; border: 1px solid var(--border, #e3e7ed); border-radius: 16px; background: var(--surface, #fff); box-shadow: 0 1px 2px rgb(11 18 32 / 0.06), 0 1px 3px rgb(11 18 32 / 0.04); transition: box-shadow 220ms cubic-bezier(0.2,0.8,0.2,1), translate 220ms cubic-bezier(0.2,0.8,0.2,1); } .ds-card:hover, .ds-card:focus-within { box-shadow: 0 2px 6px rgb(11 18 32 / 0.07), 0 8px 20px rgb(11 18 32 / 0.06); translate: 0 -2px; } .ds-card:active { translate: 0 0; transition-duration: 130ms; } .ds-card-media { aspect-ratio: 3 / 2; background: var(--surface-muted, #f0f3f7); } .ds-card-body { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 16px; } .ds-heading { margin: 0; font: 700 17px/1.375 Manrope, system-ui, sans-serif; letter-spacing: -0.01em; color: var(--text, #0b1220); } .ds-meta { margin: 0; font: 500 13px/1.5 Manrope, system-ui, sans-serif; color: var(--text-secondary, #55617a); } .ds-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; font: 700 11px/1.3 Manrope, system-ui, sans-serif; } .ds-badge-ember { background: var(--accent-soft, #fdefe7); color: var(--accent, #b83b09); }"
+    },
+    {
+      "name": "Status Message",
+      "kind": "custom",
+      "refersTo": "notice",
+      "description": "The success notice (auto-dismisses at 6s) and its error twin (never auto-dismisses, items-start for two-line messages). .ef-notice / .ef-alert.",
+      "html": "<div class=\"ds-notice\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"flex:none\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"m8.5 12 2.5 2.5 4.5-5\"/></svg>3 restaurants published.</div><div class=\"ds-alert\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" style=\"flex:none;margin-top:2px\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7.5v5.5M12 16.5h.01\"/></svg>That email is already registered. Sign in instead, or use a different address.</div>",
+      "css": ".ds-notice, .ds-alert { display: flex; gap: 8px; margin-bottom: 20px; padding: 12px 16px; border-radius: 12px; font: 600 14px/1.5 Manrope, system-ui, sans-serif; animation: ds-enter 220ms cubic-bezier(0.16,1,0.3,1) both; } .ds-notice { align-items: center; border: 1px solid var(--success, #157347); background: var(--success-soft, #e7f4ed); color: var(--success, #157347); } .ds-alert { align-items: flex-start; border: 1px solid var(--error, #c2261d); background: var(--error-soft, #fdeceb); color: var(--error, #c2261d); line-height: 1.625; } @keyframes ds-enter { from { opacity: 0; transform: translateY(8px); } } @media (prefers-reduced-motion: reduce) { .ds-notice, .ds-alert { animation: none; } }"
+    },
+    {
+      "name": "Score Meter",
+      "kind": "custom",
+      "refersTo": "meter",
+      "description": "Determinate bar — profile score, AI confidence, mood axis. Fills with scaleX from a left origin, never width. .ef-meter.",
+      "html": "<span class=\"ds-meter-row\"><span class=\"ds-meter\"><span style=\"transform:scaleX(0.72)\"></span></span><span class=\"ds-meter-value\">72</span></span>",
+      "css": ".ds-meter-row { display: inline-flex; align-items: center; gap: 8px; } .ds-meter { display: block; width: 48px; height: 6px; overflow: hidden; border-radius: 9999px; background: var(--surface-hover, #eef1f5); } .ds-meter > * { display: block; width: 100%; height: 100%; transform-origin: left; border-radius: 9999px; background: var(--primary, #0b6bb0); transition: transform 220ms cubic-bezier(0.2,0.8,0.2,1); } .ds-meter-value { min-width: 24px; text-align: right; font: 600 12px/1.3 Manrope, system-ui, sans-serif; font-variant-numeric: tabular-nums; color: var(--text, #0b1220); }"
+    },
+    {
+      "name": "Admin Nav Row",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "The admin rail row: 44px minimum, 12px inset, tinted when current. .admin-nav-link.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link ds-nav-link-active\" href=\"#\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z\"/></svg>Dashboard</a><a class=\"ds-nav-link\" href=\"#\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 6h16M4 12h16M4 18h10\"/></svg>Restaurants</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 2px; width: 224px; padding: 8px; background: var(--surface, #fff); border-right: 1px solid var(--border, #e3e7ed); } .ds-nav-link { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 12px; border-radius: 12px; color: var(--text-secondary, #55617a); text-decoration: none; font: 600 13px/1.4 Manrope, system-ui, sans-serif; transition: background-color 220ms cubic-bezier(0.2,0.8,0.2,1), color 220ms cubic-bezier(0.2,0.8,0.2,1); } .ds-nav-link:hover { background: var(--surface-hover, #eef1f5); color: var(--text, #0b1220); } .ds-nav-link:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--surface, #fff), 0 0 0 4px var(--primary, #0b6bb0); } .ds-nav-link-active { background: var(--primary-soft, #e6f1fa); color: var(--primary, #0b6bb0); }"
+    },
+    {
+      "name": "Empty State",
+      "kind": "custom",
+      "refersTo": "empty-state",
+      "description": "The <EmptyState> primitive from AdminUI.tsx: bordered icon tile, heading, one sentence, room for one action. .admin-empty.",
+      "html": "<div class=\"ds-empty\"><span class=\"ds-empty-icon\"><svg width=\"25\" height=\"25\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 8h16M6 8v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8M9 8V6a3 3 0 0 1 6 0v2\"/></svg></span><h2 class=\"ds-heading\">Nothing to eat here</h2><p class=\"ds-empty-body\">No place in this stretch of the map matches your filters. Widen the area, or drop a filter.</p><button class=\"ds-btn ds-btn-primary\" style=\"margin-top:20px\">Clear filters</button></div>",
+      "css": ".ds-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 288px; padding: 56px 20px; border: 1px solid var(--border, #e3e7ed); border-radius: 16px; background: var(--surface, #fff); text-align: center; } .ds-empty-icon { display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: 20px; border: 1px solid var(--border, #e3e7ed); border-radius: 16px; background: var(--background, #f4f6f8); color: var(--primary, #0b6bb0); } .ds-heading { margin: 0; font: 700 17px/1.375 Manrope, system-ui, sans-serif; letter-spacing: -0.01em; color: var(--text, #0b1220); } .ds-empty-body { max-width: 28rem; margin: 8px 0 0; font: 400 14px/1.625 Manrope, system-ui, sans-serif; color: var(--text-secondary, #55617a); } .ds-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 16px; border: 1px solid transparent; border-radius: 12px; font: 600 14px/1.4 Manrope, system-ui, sans-serif; cursor: pointer; transition: background-color 130ms cubic-bezier(0.2,0.8,0.2,1); } .ds-btn-primary { background: var(--primary, #0b6bb0); color: var(--on-primary, #fff); } .ds-btn-primary:hover { background: var(--primary-hover, #095a95); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Daylight Directory",
+    "overview": "EatFinder is a map and a list, side by side, in a room with the lights on. The product's job is to get a hungry person from \"somewhere near here\" to a decision in under a minute, so the interface behaves like good signage rather than like a magazine: cool paper surfaces, one blue that means \"you can act on this\", one warm ember that means \"this is the food part\", and nothing decorative competing with either. Density is moderate — cards breathe, but the results pane is a working list, not a gallery.\n\nEvery value in this system is a CSS custom property in app/globals.css, mapped into Tailwind in tailwind.config.ts. No component names a literal hex. That is not tidiness for its own sake: it is what keeps a future dark mode a second block of variable assignments rather than a rewrite. The same discipline applies to shape and motion — there is one easing curve, one duration ladder, one focus halo, and one set of .ef-* component classes shared by the public app and the admin. When the public side and the admin disagreed about what a delete button or a \"pending\" badge looked like, the disagreement was resolved by deleting one of them, not by adding a third.\n\nContrast was measured, not eyeballed, and the ratios are recorded next to the tokens. Motion is short, settles rather than coasts, and never animates a property that triggers layout. Anything that moves is wrapped in prefers-reduced-motion: no-preference, and nothing has a resting state of opacity: 0 — if the animation never runs, the content is still there.",
+    "keyCharacteristics": [
+      "Light, slightly cool paper (#f4f6f8) with white cards; depth from soft shadow plus a hairline border, never from heavy elevation.",
+      "One action blue, one appetite ember, and semantic soft-tint pairs for status.",
+      "Manrope throughout, in exactly three heading steps chosen by semantic level.",
+      "Rounded-but-not-soft geometry: 12px controls, 16px cards, full-round pills.",
+      "Motion ladder of 130 / 220 / 320 / 180ms — feedback, state, panel, exit.",
+      "44px touch targets on everything a finger is meant to hit."
+    ],
+    "rules": [
+      { "name": "The No Literal Hex Rule", "body": "A component may not write a colour value. It names a token (bg-primary, text-text-secondary) or it is wrong. The only exceptions are data-URI SVGs (a url() cannot read a custom property) and they carry a comment saying which token they spell out.", "section": "colors" },
+      { "name": "The Two Voices Rule", "body": "Blue means \"act\", Ember means \"food quality\". A screen never introduces a third chromatic colour to mean a third thing; if something needs to stand out, it earns size, weight or whitespace instead.", "section": "colors" },
+      { "name": "The Control Edge Rule", "body": "If the boundary is the affordance, the border is --border-control, not --border. A text input drawn in --border is white-on-white at 1.2:1.", "section": "colors" },
+      { "name": "The Three Steps Rule", "body": "Every heading in the app is Title, Heading or Label, and the step is chosen by semantic level — never by how important the page felt the day it was written. Six pages once shipped the same <h1> at 22, 24, 26, 28, 30 and 34px.", "section": "typography" },
+      { "name": "The 17px Tracking Floor", "body": "Negative letter-spacing only from 17px up. Below that it closes Manrope's already tight letterfit.", "section": "typography" },
+      { "name": "The Tabular Numbers Rule", "body": "Any number that updates in place — favourite counts, score meters, result totals — uses tabular-nums so it does not jitter.", "section": "typography" },
+      { "name": "The No-Reflow Rule", "body": "Anything that toggles reserves its space. The admin table's top bar has a min-h-[68px] floor so ticking one checkbox cannot swap a 20px heading for a 44px button row and shove the table down the page. A refetching list dims in place rather than being replaced by a spinner that collapses the page height.", "section": "layout" },
+      { "name": "The Lift Is Transform Rule", "body": "A hovered card rises with translate: 0 -2px and a shadow swap — never a margin, border-width or size change. The grid around it must not re-lay-out. The same rule makes buttons and pills press with scale, and pills specifically use the independent scale property rather than transform so it composes with an existing -translate-x-1/2 centring instead of destroying it.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do reach for an existing .ef-* class first — .ef-btn, .ef-icon-btn, .ef-pill, .ef-chip, .ef-badge, .ef-card, .ef-panel, .ef-input, .ef-notice/.ef-alert, .ef-meter, .ef-drawer, .ef-title/.ef-heading/.ef-label. If one nearly fits, add a modifier to it in globals.css.",
+      "Do use the motion ladder: --dur-fast (130ms) for press/hover feedback, --dur (220ms) for a state change, --dur-panel (320ms) for a panel that travels, --dur-exit (180ms) for every dismissal. An exit is always faster than its entrance.",
+      "Do animate transform, translate, scale, opacity and colour only.",
+      "Do wrap every animation in @media (prefers-reduced-motion: no-preference) and make sure the resting state is the visible one.",
+      "Do give anything a finger touches 44px (h-11/min-h-11).",
+      "Do let the one global focus halo do its job; controls that draw their own (--ring plus a Signal Blue border) opt out of the offset ring.",
+      "Do put every user-facing string in both dictionaries as a dot-namespaced key.",
+      "Do state a measured contrast ratio in a comment when adding a colour token."
+    ],
+    "donts": [
+      "Don't write a literal colour, shadow, easing or duration value in a component. Name the token.",
+      "Don't introduce a second button, badge, empty state or icon-button implementation. Two definitions of the same thing is exactly what this system was consolidated to remove.",
+      "Don't animate width, height, top/left, margin or padding — use scaleX, translate or a shadow swap.",
+      "Don't add a Tailwind ring-* to a control that already has the halo; that is where the doubled, detached outline came from.",
+      "Don't border a control with --border when the border is the only thing identifying it. Use --border-control.",
+      "Don't invent a fourth heading size. Pick the semantic level, then the step.",
+      "Don't let a toggle, refetch or selection change an element's height — reserve the space.",
+      "Don't auto-dismiss an error, and don't fake a determinate progress bar.",
+      "Don't hand a form control back to the OS with accent-color; the drawn checkbox/radio/select chrome is the product on every platform.",
+      "Don't write a raw z-index; use the overlay/sticky/drawer/modal scale."
+    ]
+  }
+}
