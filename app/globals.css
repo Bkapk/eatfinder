@@ -78,9 +78,9 @@
     --dur: 220ms;
     --dur-panel: 320ms;
     --dur-exit: 180ms;
-    --ease-drawer: cubic-bezier(0.25, 0.1, 0.25, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
     --dur-drawer-in: 280ms;
-    --dur-drawer-out: 200ms;
+    --dur-drawer-out: 280ms;
 
     /* One control height for every interactive box the user reads as part of
        the same row: the search capsule, the pills beside it, the sort select,
