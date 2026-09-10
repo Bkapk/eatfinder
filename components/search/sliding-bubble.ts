@@ -140,8 +140,11 @@ export function initSlidingBubble(root: ParentNode = document): () => void {
       attributes: true,
       attributeFilter: [CONFIG.activeAttr, 'class'],
     })
-    const ro = new ResizeObserver(schedule) // font loading, container reflow
-    ro.observe(strip)
+    // Font loading and container reflow. Guarded: this module is imported into
+    // environments without one (jsdom, older Safari) and a throw here would
+    // take the whole tab strip down with it.
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule)
+    ro?.observe(strip)
     window.addEventListener('resize', schedule)
 
     placeActive(true)
@@ -149,7 +152,7 @@ export function initSlidingBubble(root: ParentNode = document): () => void {
     return () => {
       cancelAnimationFrame(raf)
       mo.disconnect()
-      ro.disconnect()
+      ro?.disconnect()
       window.removeEventListener('resize', schedule)
       strip.removeEventListener('click', schedule)
       strip.removeEventListener('mouseover', onPointer)

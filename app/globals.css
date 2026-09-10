@@ -80,6 +80,7 @@
     --dur-exit: 180ms;
     --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
     --dur-drawer-in: 200ms;
+    --dur-split: 320ms;
     --dur-drawer-out: 200ms;
 
     /* One control height for every interactive box the user reads as part of
@@ -860,12 +861,8 @@
    canvas in step for every frame of it. */
 .ef-split-pane {
   overflow: clip;
-  transition: width var(--dur-drawer-out) var(--ease-drawer);
+  transition: width var(--dur-split) var(--ease-drawer);
   will-change: width;
-}
-
-.ef-split-pane[data-state='open'] {
-  transition-duration: var(--dur-drawer-in);
 }
 
 @media (min-width: 768px) {

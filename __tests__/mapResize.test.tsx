@@ -29,23 +29,29 @@ import MapPane from '../components/map/MapPane'
 
 const noop = () => {}
 let observed: Element[] = []
-let fire: () => void = noop
+let callbacks: Array<() => void> = []
+const fire = () => callbacks.forEach((cb) => cb())
 
 beforeAll(() => {
-  // jsdom has no ResizeObserver. This one just hands the callback back.
+  // jsdom has no ResizeObserver. This one hands every callback back — the pane
+  // is not the only thing inside MapPane that observes its own box.
   ;(global as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
     constructor(cb: () => void) {
-      fire = cb
+      callbacks.push(cb)
     }
     observe(el: Element) {
       observed.push(el)
     }
     disconnect() {}
   }
+  jest.useFakeTimers()
 })
+
+afterAll(() => jest.useRealTimers())
 
 beforeEach(() => {
   observed = []
+  callbacks = []
   mockResize.mockClear()
 })
 
@@ -69,8 +75,14 @@ it('resizes the map when its container resizes', () => {
   )
 
   // The pane itself is observed, not the window and not the canvas.
-  expect(observed).toEqual([container.firstChild])
+  expect(observed).toContain(container.firstChild)
 
+  // Debounced: many observed frames must collapse into one buffer realloc, or
+  // the map strobes for the length of every slide and every window drag.
   fire()
+  fire()
+  fire()
+  expect(mockResize).not.toHaveBeenCalled()
+  jest.runAllTimers()
   expect(mockResize).toHaveBeenCalledTimes(1)
 })

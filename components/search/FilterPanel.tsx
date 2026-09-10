@@ -133,6 +133,39 @@ export default function FilterPanel({
         </header>
 
         <div className="flex-1 overflow-y-auto">
+          {/* Mood first. It is the reason the product exists — you say how you
+              feel and it matches — so it opens the panel rather than sitting
+              under five conventional facets where nobody scrolled to it. */}
+          <Section title={t(locale, 'filters.mood')}>
+            <Mood
+              locale={locale}
+              name="heavy"
+              label={t(locale, 'filters.heavy')}
+              min={t(locale, 'mood.heavy.min')}
+              max={t(locale, 'mood.heavy.max')}
+              value={filters.heavy}
+              onChange={(v) => onPatch({ heavy: v })}
+            />
+            <Mood
+              locale={locale}
+              name="hungry"
+              label={t(locale, 'filters.hungry')}
+              min={t(locale, 'mood.hungry.min')}
+              max={t(locale, 'mood.hungry.max')}
+              value={filters.hungry}
+              onChange={(v) => onPatch({ hungry: v })}
+            />
+            <Mood
+              locale={locale}
+              name="fine"
+              label={t(locale, 'filters.fine')}
+              min={t(locale, 'mood.fine.min')}
+              max={t(locale, 'mood.fine.max')}
+              value={filters.fine}
+              onChange={(v) => onPatch({ fine: v })}
+            />
+          </Section>
+
           <Section title={t(locale, 'filters.cuisine')}>
             <div className="flex flex-wrap gap-2">
               {options(facets.cuisines, filters.cuisines ?? []).map((c) => {
@@ -307,36 +340,6 @@ export default function FilterPanel({
                 className="disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
-          </Section>
-
-          <Section title={t(locale, 'filters.mood')}>
-            <Mood
-              locale={locale}
-              name="heavy"
-              label={t(locale, 'filters.heavy')}
-              min={t(locale, 'mood.heavy.min')}
-              max={t(locale, 'mood.heavy.max')}
-              value={filters.heavy}
-              onChange={(v) => onPatch({ heavy: v })}
-            />
-            <Mood
-              locale={locale}
-              name="hungry"
-              label={t(locale, 'filters.hungry')}
-              min={t(locale, 'mood.hungry.min')}
-              max={t(locale, 'mood.hungry.max')}
-              value={filters.hungry}
-              onChange={(v) => onPatch({ hungry: v })}
-            />
-            <Mood
-              locale={locale}
-              name="fine"
-              label={t(locale, 'filters.fine')}
-              min={t(locale, 'mood.fine.min')}
-              max={t(locale, 'mood.fine.max')}
-              value={filters.fine}
-              onChange={(v) => onPatch({ fine: v })}
-            />
           </Section>
         </div>
       </aside>

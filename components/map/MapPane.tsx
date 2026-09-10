@@ -22,6 +22,10 @@ import PopupCard from './PopupCard'
 
 type Bbox = [number, number, number, number]
 
+/** Quiet time before the canvas is reallocated. Longer than one animation frame,
+ *  shorter than anyone notices the stretch. */
+const RESIZE_SETTLE_MS = 120
+
 /** Roughly a tenth of a city block — below this a "move" is just jitter. */
 const BBOX_EPSILON = 0.0015
 
@@ -99,12 +103,26 @@ export default function MapPane({
   // revealed strip blank until a refresh. Observing the container covers all of
   // them at once — the grid/map toggle, the filter drawer, the mobile switch —
   // where a resize() in the toggle handler would only ever cover the one.
+  //
+  // Trailing edge only. resize() reallocates the WebGL drawing buffer, and the
+  // cleared buffer gets painted once before mapbox redraws into it: one white
+  // flash per call. Running it per observed frame — the whole split-pane slide,
+  // every frame of a window drag — strobed. The canvas stretches to its
+  // container in the meantime, which is a far cheaper artefact than the flash,
+  // so wait for the size to settle and pay for exactly one.
   useEffect(() => {
     const el = shellRef.current
     if (!el) return
-    const ro = new ResizeObserver(() => mapRef.current?.resize())
+    let timer = 0
+    const ro = new ResizeObserver(() => {
+      clearTimeout(timer)
+      timer = window.setTimeout(() => mapRef.current?.resize(), RESIZE_SETTLE_MS)
+    })
     ro.observe(el)
-    return () => ro.disconnect()
+    return () => {
+      clearTimeout(timer)
+      ro.disconnect()
+    }
   }, [])
 
   const onMoveEnd = useCallback(
@@ -243,6 +261,9 @@ export default function MapPane({
         onMoveEnd={onMoveEnd}
         onClick={onClick}
         reuseMaps
+        // The ResizeObserver above already covers window resizes, and is
+        // debounced; mapbox's own window listener is not, and would flash.
+        trackResize={false}
         style={{ width: '100%', height: '100%' }}
         aria-label={t(locale, 'map.label')}
       >
