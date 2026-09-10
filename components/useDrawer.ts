@@ -10,7 +10,7 @@ import { useEffect, useRef } from 'react'
  * 1. The exit has to run before close(). close() removes the dialog from the
  *    top layer in the same tick, so anything keyed off [open] gets zero frames
  *    to animate out. `data-state` is set first and close() waits for
- *    animationend.
+ *    transitionend.
  * 2. Escape must go the same way. The native `cancel` event closes the dialog
  *    itself, so Escape used to snap shut while the X button animated —
  *    preventDefault sends it back through the app's own open state instead.
@@ -41,18 +41,7 @@ export function useDrawer(open: boolean, onClose: () => void) {
         return
       }
 
-      // Why the opening jank was one-sided: closing animates an element the
-      // browser has already laid out and painted, but opening takes the dialog
-      // out of display:none, and THAT frame is also the first layout, first
-      // style resolution and first paint of the entire panel — plus the top
-      // layer promotion. An animation started on that frame spends its opening
-      // frames waiting for all of it, which is the jump.
-      //
-      // So: park the sheet off-screen with no animation, open, and let the
-      // browser get that expensive frame out of the way. Two rAFs, because one
-      // only buys the layout — the second is the one that runs after it has
-      // actually painted. Then the slide starts on an element it has already
-      // dealt with, and it is a composited translate from there.
+      // Paint the off-screen starting position before changing the transform.
       el.dataset.state = 'opening'
       el.showModal()
 
@@ -69,16 +58,28 @@ export function useDrawer(open: boolean, onClose: () => void) {
     }
 
     if (!el.open) return
+    const wasOpening = el.dataset.state === 'opening'
     el.dataset.state = 'closed'
+
+    // No slide has started yet, or the user has asked to skip motion.
+    if (wasOpening || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      el.close()
+      return
+    }
 
     // The sheet, not a descendant: the panel is full of controls with their own
     // transitions and any of them finishing would close the drawer early.
     const sheet = el.firstElementChild
-    const done = (e: AnimationEvent) => {
-      if (e.target === sheet) el.close()
+    const done = (e: TransitionEvent) => {
+      if (e.target === sheet && e.propertyName === 'transform') el.close()
     }
-    el.addEventListener('animationend', done)
-    return () => el.removeEventListener('animationend', done)
+    el.addEventListener('transitionend', done)
+    // A cancelled or skipped transition must not leave an invisible modal.
+    const fallback = window.setTimeout(() => el.close(), 400)
+    return () => {
+      el.removeEventListener('transitionend', done)
+      window.clearTimeout(fallback)
+    }
   }, [open])
 
   const downOnBackdrop = useRef(false)

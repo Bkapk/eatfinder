@@ -78,11 +78,7 @@
     --dur: 220ms;
     --dur-panel: 320ms;
     --dur-exit: 180ms;
-    /* The drawer slide owns its own pair. It travels further than anything
-       else in the app, so it needs to leave the edge fast and settle slowly
-       rather than ease evenly the whole way — that curve is the difference
-       between "snappy" and "sliding". */
-    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-drawer: cubic-bezier(0.25, 0.1, 0.25, 1);
     --dur-drawer-in: 280ms;
     --dur-drawer-out: 200ms;
 
@@ -626,11 +622,10 @@
     @apply justify-start;
   }
 
-  /* The sheet parks a full panel width past the right edge of a full-viewport
-     element, so this clip is load-bearing, not cosmetic. The slide itself
-     lives unlayered at the bottom of this file. */
+  /* Clip without creating a scroll container: focusing the off-screen sheet
+     must not scroll the dialog sideways during its entrance. */
   .ef-drawer {
-    overflow: hidden;
+    overflow: clip;
   }
 
   /* The search field. focus-within, not :focus — the field owns a chip rail and
@@ -819,111 +814,43 @@
   border-top-color: var(--surface);
 }
 
-/* The drawer slide. Keyframes, not transitions.
-
-   The previous version used transition + `transition-behavior: allow-discrete`
-   + @starting-style, which is the elegant no-JS way to animate a <dialog> and
-   is also why this was unreliable. All three depend on the sheet counting as
-   "newly rendered" at the exact commit the dialog's display flips, and they
-   are silently inert on any engine missing one of the three — so the panel
-   animated, half-animated or snapped depending on browser and on how fast you
-   clicked. A keyframe has none of that state: it runs when the rule matches.
-
-   `data-state` rather than `[open]`, because the exit has to run BEFORE
-   close() takes the dialog out of the top layer. useDrawer sets the attribute
-   and waits for animationend. Nothing here depends on display at all.
-
-   Unlayered on purpose: @keyframes inside a Tailwind @layer is subject to that
-   layer's tree-shaking, and these have no class name for it to find.
-
-   No backdrop-filter, deliberately: a blur here is recomputed over the whole
-   viewport every frame, and on /eat what sits behind it is a live WebGL map
-   canvas. That, not the panel's travel, is what made this stutter. */
-@keyframes ef-drawer-in {
-  from {
-    translate: 100% 0;
-  }
+/* Transition from the current position so interrupted slides reverse smoothly.
+   useDrawer keeps the native dialog open until the exit finishes. */
+.ef-drawer {
+  --drawer-offset: 100%;
 }
 
-@keyframes ef-drawer-out {
-  to {
-    translate: 100% 0;
-  }
+.ef-drawer--left {
+  --drawer-offset: -100%;
 }
 
-@keyframes ef-drawer-in-left {
-  from {
-    translate: -100% 0;
-  }
-}
-
-@keyframes ef-drawer-out-left {
-  to {
-    translate: -100% 0;
-  }
-}
-
-@keyframes ef-scrim-in {
-  from {
-    background-color: rgb(11 18 32 / 0);
-  }
-}
-
-@keyframes ef-scrim-out {
-  to {
-    background-color: rgb(11 18 32 / 0);
-  }
-}
-
-/* Parked, not animating. This is the state the panel sits in for the two
-   frames useDrawer spends letting the browser lay the thing out. */
-.ef-drawer[data-state='opening'] > * {
-  translate: 100% 0;
-}
-
-.ef-drawer--left[data-state='opening'] > * {
-  translate: -100% 0;
-}
-
-.ef-drawer[data-state='opening']::backdrop {
-  background-color: rgb(11 18 32 / 0);
-}
-
-/* Promoted for the duration of the slide. The sheet only exists while the
-   dialog is displayed, so this costs nothing at rest — and without it the
-   translate competes with a live map canvas repainting behind the scrim. */
 .ef-drawer > * {
-  will-change: translate;
+  transform: translateX(var(--drawer-offset));
+  transition: transform var(--dur-drawer-out) var(--ease-drawer);
+  will-change: transform;
 }
 
 .ef-drawer[data-state='open'] > * {
-  animation: ef-drawer-in var(--dur-drawer-in) var(--ease-drawer) both;
-}
-
-.ef-drawer[data-state='closed'] > * {
-  animation: ef-drawer-out var(--dur-drawer-out) var(--ease-drawer) both;
-}
-
-/* After the two above, so the name simply wins on order — the timing and the
-   curve are the same sheet, only the edge it leaves by changes. */
-.ef-drawer--left[data-state='open'] > * {
-  animation-name: ef-drawer-in-left;
-}
-
-.ef-drawer--left[data-state='closed'] > * {
-  animation-name: ef-drawer-out-left;
+  transform: translateX(0);
+  transition-duration: var(--dur-drawer-in);
 }
 
 .ef-drawer::backdrop {
   background-color: rgb(11 18 32 / 0.35);
+  opacity: 0;
+  transition: opacity var(--dur-drawer-out) var(--ease-drawer);
 }
 
 .ef-drawer[data-state='open']::backdrop {
-  animation: ef-scrim-in var(--dur-drawer-in) var(--ease-drawer) both;
+  opacity: 1;
+  transition-duration: var(--dur-drawer-in);
 }
 
-.ef-drawer[data-state='closed']::backdrop {
-  animation: ef-scrim-out var(--dur-drawer-out) var(--ease-drawer) both;
+@media (prefers-reduced-motion: reduce) {
+  .ef-drawer > *,
+  .ef-drawer::backdrop {
+    transition: none;
+  }
 }
 
 /* Custom select chrome. Unlayered on purpose: Tailwind's px-3/px-4 utilities

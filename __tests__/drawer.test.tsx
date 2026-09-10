@@ -5,7 +5,7 @@ function Drawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const drawer = useDrawer(open, onClose)
   return (
     <dialog {...drawer} className="ef-drawer">
-      <aside data-testid="sheet">panel</aside>
+      <aside data-testid="sheet"><button>panel</button></aside>
     </dialog>
   )
 }
@@ -23,6 +23,20 @@ beforeAll(() => {
 
 const dialogOf = (c: HTMLElement) => c.querySelector('dialog') as HTMLDialogElement
 
+beforeEach(() => {
+  jest.useFakeTimers()
+  window.matchMedia = jest.fn().mockReturnValue({ matches: false })
+})
+
+afterEach(() => {
+  jest.useRealTimers()
+})
+
+// jsdom has no TransitionEvent constructor, so supply its property explicitly.
+function transitionEnd(element: Element, propertyName: string) {
+  fireEvent(element, Object.assign(new Event('transitionend', { bubbles: true }), { propertyName }))
+}
+
 /** The two frames useDrawer waits out before it starts the opening slide. */
 function frames() {
   act(() => {
@@ -31,7 +45,6 @@ function frames() {
 }
 
 test('opening waits for a painted frame before it starts the slide', () => {
-  jest.useFakeTimers()
   const { container } = render(<Drawer open onClose={jest.fn()} />)
   const dialog = dialogOf(container)
 
@@ -42,11 +55,9 @@ test('opening waits for a painted frame before it starts the slide', () => {
 
   frames()
   expect(dialog.dataset.state).toBe('open')
-  jest.useRealTimers()
 })
 
-test('closing waits for the sheet animation before leaving the top layer', () => {
-  jest.useFakeTimers()
+test('closing waits for the sheet transform before leaving the top layer', () => {
   const onClose = jest.fn()
   const { container, rerender } = render(<Drawer open onClose={onClose} />)
   const dialog = dialogOf(container)
@@ -60,9 +71,59 @@ test('closing waits for the sheet animation before leaving the top layer', () =>
   expect(dialog.open).toBe(true)
 
   const sheet = dialog.firstElementChild!
-  sheet.dispatchEvent(new Event('animationend', { bubbles: true }))
+  transitionEnd(sheet.firstElementChild!, 'transform')
+  transitionEnd(sheet, 'opacity')
+  expect(dialog.open).toBe(true)
+  transitionEnd(sheet, 'transform')
   expect(dialog.open).toBe(false)
-  jest.useRealTimers()
+})
+
+test('closing before the opening frame does not leave an invisible modal', () => {
+  const { container, rerender } = render(<Drawer open onClose={jest.fn()} />)
+  const dialog = dialogOf(container)
+  rerender(<Drawer open={false} onClose={jest.fn()} />)
+  frames()
+  expect(dialog.open).toBe(false)
+  expect(dialog.dataset.state).toBe('closed')
+})
+
+test('reopening cancels the pending close without restarting off-screen', () => {
+  const { container, rerender } = render(<Drawer open onClose={jest.fn()} />)
+  const dialog = dialogOf(container)
+  frames()
+  rerender(<Drawer open={false} onClose={jest.fn()} />)
+  rerender(<Drawer open onClose={jest.fn()} />)
+  transitionEnd(dialog.firstElementChild!, 'transform')
+  act(() => jest.advanceTimersByTime(500))
+  expect(dialog.open).toBe(true)
+  expect(dialog.dataset.state).toBe('open')
+})
+
+test('closing still completes if no transition event arrives', () => {
+  const { container, rerender } = render(<Drawer open onClose={jest.fn()} />)
+  frames()
+  rerender(<Drawer open={false} onClose={jest.fn()} />)
+  act(() => jest.advanceTimersByTime(500))
+  expect(dialogOf(container).open).toBe(false)
+})
+
+test('reduced motion closes immediately', () => {
+  window.matchMedia = jest.fn().mockReturnValue({ matches: true })
+  const { container, rerender } = render(<Drawer open onClose={jest.fn()} />)
+  frames()
+  rerender(<Drawer open={false} onClose={jest.fn()} />)
+  expect(dialogOf(container).open).toBe(false)
+})
+
+test('Escape requests the animated close instead of closing natively', () => {
+  const onClose = jest.fn()
+  const { container } = render(<Drawer open onClose={onClose} />)
+  const dialog = dialogOf(container)
+  const event = new Event('cancel', { cancelable: true })
+  fireEvent(dialog, event)
+  expect(event.defaultPrevented).toBe(true)
+  expect(onClose).toHaveBeenCalledTimes(1)
+  expect(dialog.open).toBe(true)
 })
 
 test('a drag released over the backdrop does not dismiss the drawer', () => {
