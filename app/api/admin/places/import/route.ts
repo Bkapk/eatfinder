@@ -4,6 +4,7 @@ import { adminServerError } from '@/lib/apiError'
 import { requireAdmin } from '@/lib/auth'
 import { slugify } from '@/lib/types'
 import { saveImage } from '@/lib/storage'
+import { moderatePhoto, AiDisabledError } from '@/lib/gemini'
 import {
   assertPlacesEnabled,
   placeDetails,
@@ -19,7 +20,11 @@ const importSchema = z.object({
   placeIds: z.array(z.string().min(1)).min(1).max(20),
 })
 
-const MAX_PHOTOS_PER_PLACE = 6
+// Google returns up to 10 photos per place and they are worth having: the
+// gallery is one of the few things on a listing that is genuinely ours to
+// show. The AI pass below is what makes the extra ones safe to take — the
+// weak ones sink to the end of the gallery instead of leading it.
+const MAX_PHOTOS_PER_PLACE = 12
 
 type ImportResult =
   | { placeId: string; status: 'ok'; restaurantId: string; name: string }
@@ -131,26 +136,95 @@ async function createDraftRestaurant(placeId: string, draft: RestaurantDraft) {
 }
 
 async function importPhotos(restaurantId: string, photos: PlacePhoto[]): Promise<string[]> {
-  const urls: string[] = []
-  for (const photo of photos.slice(0, MAX_PHOTOS_PER_PLACE)) {
+  const saved: Array<{ url: string; quality: number; data: Parameters<typeof prisma.restaurantPhoto.create>[0]['data'] }> = []
+
+  for (const [index, photo] of photos.slice(0, MAX_PHOTOS_PER_PLACE).entries()) {
     try {
       const buffer = await downloadPhotoMedia(photo.name)
-      const { url } = await saveImage(buffer)
+      const image = await saveImage(buffer)
       const attributions = (photo.authorAttributions ?? []).map((a) => a.displayName).filter(Boolean)
-      await prisma.restaurantPhoto.create({
+
+      // The same moderator the community upload path uses, run here for its
+      // qualityScore rather than its verdict: these photos are Google's and
+      // already published, so the model ranks them, it does not gate them.
+      // Falling back to Google's own ordering keeps the import working with
+      // no AI key at all.
+      const quality = await ratePhoto(restaurantId, buffer, image.ext, MAX_PHOTOS_PER_PLACE - index)
+
+      saved.push({
+        url: image.url,
+        quality,
         data: {
           restaurantId,
-          url,
+          url: image.url,
+          width: image.width,
+          height: image.height,
+          blurDataUrl: image.blurDataUrl,
           source: 'google',
           status: 'approved',
           attributions: JSON.stringify(attributions),
         },
       })
-      urls.push(url)
     } catch (error) {
       // One failed photo skips, never fails the place.
       console.error(`Places photo download failed for restaurant ${restaurantId}:`, error)
     }
   }
-  return urls
+
+  // Best first. sortOrder is what app/r/[slug] orders the gallery by, so this
+  // is the whole of "the AI picks which photos lead" — nothing is discarded.
+  saved.sort((a, b) => b.quality - a.quality)
+  for (const [sortOrder, row] of saved.entries()) {
+    await prisma.restaurantPhoto.create({ data: { ...row.data, sortOrder } })
+  }
+
+  return saved.map((row) => row.url)
+}
+
+const RATE_MIME: Record<string, string> = {
+  jpg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  avif: 'image/avif',
+}
+
+/**
+ * 0-100 for how good a shot this is of this venue. `fallback` is Google's own
+ * position, preserved when the model is off or fails — it is always below the
+ * lowest real score a rated photo can beat it with, so an unrated photo never
+ * jumps ahead of a rated one on a technicality.
+ */
+async function ratePhoto(
+  restaurantId: string,
+  buffer: Buffer,
+  ext: string,
+  fallback: number
+): Promise<number> {
+  try {
+    const restaurant = await prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { name: true, cuisines: true },
+    })
+    if (!restaurant) return fallback
+
+    const result = await moderatePhoto({
+      restaurantName: restaurant.name,
+      cuisines: JSON.parse(restaurant.cuisines || '[]'),
+      photo: { data: buffer, mimeType: RATE_MIME[ext] ?? 'application/octet-stream' },
+      existingPhotos: [],
+    })
+    if (!result.ok) return fallback
+
+    const v = result.data
+    // A photo the moderator would have rejected still gets shown (it is
+    // Google's own listing photo) but it is pushed behind everything rated.
+    if (v.isNsfw || v.isSpamOrPromotional || !v.depictsFoodOrVenue) return 0
+    return v.qualityScore
+  } catch (error) {
+    if (!(error instanceof AiDisabledError)) {
+      console.error(`Photo rating failed for restaurant ${restaurantId}:`, error)
+    }
+    return fallback
+  }
 }

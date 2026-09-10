@@ -1,6 +1,6 @@
 import fs from 'fs/promises'
 import path from 'path'
-import { saveImage, saveUpload, deleteUpload, sniffExt, UnsupportedImageError } from '@/lib/storage'
+import { imageMeta, saveImage, saveUpload, deleteUpload, sniffExt, UnsupportedImageError } from '@/lib/storage'
 
 // These run against the local-disk backend on purpose: R2 needs credentials and
 // a network, and the thing worth locking in here is that a url produced by
@@ -55,4 +55,28 @@ test('sniffExt reads magic bytes, not extensions', () => {
   expect(sniffExt(Buffer.from([0xff, 0xd8, 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0]))).toBe('jpg')
   expect(sniffExt(Buffer.from('RIFF____WEBP'))).toBe('webp')
   expect(sniffExt(Buffer.from('too short'))).toBeNull()
+})
+
+test('imageMeta reads dimensions and inlines a tiny blurred placeholder', async () => {
+  const sharp = (await import('sharp')).default
+  const real = await sharp({
+    create: { width: 400, height: 250, channels: 3, background: { r: 200, g: 60, b: 20 } },
+  })
+    .png()
+    .toBuffer()
+
+  const meta = await imageMeta(real)
+
+  expect(meta.width).toBe(400)
+  expect(meta.height).toBe(250)
+  expect(meta.blurDataUrl).toMatch(/^data:image\/webp;base64,/)
+  // The whole point of the placeholder is that it ships inside the HTML. If it
+  // ever stops being tiny it is costing more than the request it saves.
+  expect(meta.blurDataUrl!.length).toBeLessThan(1024)
+})
+
+test('imageMeta degrades to nulls rather than failing an upload', async () => {
+  // PNG magic bytes with no image behind them: sniffExt accepts it, sharp
+  // cannot decode it, and the upload still has to go through.
+  await expect(imageMeta(PNG)).resolves.toEqual({ width: null, height: null, blurDataUrl: null })
 })

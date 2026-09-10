@@ -13,6 +13,7 @@ import TopBar from '@/components/TopBar'
 import FavoriteButton from '@/components/FavoriteButton'
 import MiniMap from '@/components/map/MiniMap'
 import PhotoUpload from '@/components/community/PhotoUpload'
+import PhotoGallery from '@/components/detail/PhotoGallery'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,6 +37,10 @@ const load = cache(async (slug: string) => {
   if (!row || !row.isActive) return null
   return {
     dto: toDTO(row),
+    // Not on RestaurantDTO: /api/recommend selects that shape for every result
+    // in a list and has no use for review counts. Read straight off the row
+    // here instead of widening the DTO for one page.
+    google: { rating: row.googleRating, count: row.googleRatingCount },
     // displayName is the public identity for a community submission
     // (Decisions log 5) — never username or email.
     photos: row.photos.map((p) => ({
@@ -59,20 +64,35 @@ export async function generateMetadata({
 }
 
 /**
- * Google Places attribution HTML is an anchor tag. Rendering it raw would mean
- * dangerouslySetInnerHTML on third-party markup; the obligation is to credit
- * the author, and the text alone does that without opening an XSS surface.
+ * A static panel, not a card: no shadow, and no hover state either. The
+ * listing page is a column of these and .ef-card's hover cue would have every
+ * one of them light up as the pointer travelled down the page.
  */
-function attributionText(html: string): string {
-  return html.replace(/<[^>]*>/g, '').trim()
-}
-
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="ef-card p-5">
+    <section className="ef-panel ef-panel--tight">
       <h2 className="ef-label mb-3">{title}</h2>
       {children}
     </section>
+  )
+}
+
+/**
+ * Five glyphs, each wholly on or wholly off, rounded to the nearest half only
+ * for the .5 threshold. A partial-fill star needs a clip path per instance to
+ * be honest at any width; the exact figure is printed next to it anyway.
+ */
+function Stars({ value }: { value: number }) {
+  return (
+    <span className="inline-flex gap-0.5" aria-hidden>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Star
+          key={i}
+          size={15}
+          className={value >= i + 0.5 ? 'fill-accent text-accent' : 'text-border-strong'}
+        />
+      ))}
+    </span>
   )
 }
 
@@ -136,13 +156,16 @@ export default async function RestaurantPage({
   const data = await load(slug)
   if (!data) notFound()
 
-  const { dto: r, photos } = data
+  const { dto: r, google, photos } = data
   const mapboxToken = process.env.MAPBOX_TOKEN || null
   const open = isOpenAt(r.openHours)
   const hasContact = Boolean(
     r.address || r.phone || r.websiteUrl || r.instagramUrl || r.woltUrl || r.gmapsUrl
   )
   const hasSidebar = hasContact || Boolean(r.openHours) || (r.lat != null && r.lng != null)
+  // Google's is the one a visitor recognises and the one with a count behind
+  // it; the editorial figure stands in only where a place has no Google score.
+  const stars = google.rating ?? r.rating
 
   return (
     <div className="flex min-h-[100dvh] flex-col">
@@ -161,9 +184,22 @@ export default async function RestaurantPage({
 
         <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="ef-title">
-              {r.name}
-            </h1>
+            <h1 className="ef-title">{r.name}</h1>
+
+            {/* The rating is the first thing under the name, on its own line —
+                buried in the meta run it read as one more grey attribute. */}
+            {stars != null && (
+              <p className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[14px]">
+                <Stars value={stars} />
+                <span className="font-bold tabular-nums text-text">{stars.toFixed(1)}</span>
+                <span className="text-text-secondary">
+                  {google.rating != null && google.count
+                    ? t(locale, 'detail.reviews', { n: google.count })
+                    : t(locale, 'detail.ourRating')}
+                </span>
+              </p>
+            )}
+
             <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px] font-semibold text-text-secondary">
               <span>{priceGlyphs(r.priceLevel)}</span>
               {r.cuisines.length > 0 && (
@@ -173,15 +209,6 @@ export default async function RestaurantPage({
                 <span className="inline-flex items-center gap-1">
                   <MapPin size={13} aria-hidden />
                   {r.neighborhood}
-                </span>
-              )}
-              {r.rating != null && (
-                <span
-                  className="inline-flex items-center gap-1 text-accent"
-                  aria-label={t(locale, 'card.rating', { n: r.rating })}
-                >
-                  <Star size={13} aria-hidden className="fill-accent" />
-                  {r.rating.toFixed(1)}
                 </span>
               )}
               <span className={open === true ? 'text-success' : open === false ? 'text-error' : ''}>
@@ -229,36 +256,20 @@ export default async function RestaurantPage({
               </Panel>
             )}
 
+            {/* Above the gallery: this is the one thing on the page that
+                answers "is this the kind of place I am in the mood for", which
+                is the question the whole app is built around. */}
+            <Panel title={t(locale, 'detail.mood')}>
+              <MoodBar label={t(locale, 'filters.heavy')} value={r.heaviness} />
+              <MoodBar label={t(locale, 'filters.hungry')} value={r.portionSize} />
+              <MoodBar label={t(locale, 'filters.fine')} value={r.fineDining} />
+            </Panel>
+
             <Panel title={t(locale, 'detail.gallery')}>
               {photos.length === 0 ? (
                 <p className="text-[14px] text-text-secondary">{t(locale, 'detail.noPhotos')}</p>
               ) : (
-                <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {photos.map((p) => (
-                    <li key={p.id} className="overflow-hidden rounded-xl border border-border">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={p.url}
-                        alt={p.caption || r.name}
-                        loading="lazy"
-                        decoding="async"
-                        className="aspect-square w-full object-cover"
-                      />
-                      {/* 11px is the type scale's floor (.ef-label); these two
-                          credits were 10px in a 2px-tall padding box. */}
-                      {p.attributions.length > 0 && (
-                        <p className="px-2.5 pb-1 pt-1.5 text-[11px] leading-snug text-text-secondary">
-                          {p.attributions.map(attributionText).filter(Boolean).join(', ')}
-                        </p>
-                      )}
-                      {p.submittedByName && (
-                        <p className="px-2.5 pb-1.5 pt-1 text-[11px] leading-snug text-text-secondary">
-                          {p.submittedByName}
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                <PhotoGallery photos={photos} alt={r.name} locale={locale} />
               )}
 
               {user ? (
@@ -287,16 +298,20 @@ export default async function RestaurantPage({
                 </div>
               )}
             </Panel>
-
-            <Panel title={t(locale, 'detail.mood')}>
-              <MoodBar label={t(locale, 'filters.heavy')} value={r.heaviness} />
-              <MoodBar label={t(locale, 'filters.hungry')} value={r.portionSize} />
-              <MoodBar label={t(locale, 'filters.fine')} value={r.fineDining} />
-            </Panel>
           </div>
 
           {hasSidebar && (
-            <aside className="flex min-w-0 flex-col gap-5">
+            /* self-start is what makes the sticky stop: the aside shrinks to
+               its own content instead of stretching to the grid row, so it
+               travels down with the page and comes to rest when its bottom
+               meets the end of the left column. Only from lg — below that the
+               sidebar is stacked under the content and has nothing to stick to.
+
+               The max-height is not decoration: contact + hours + a map is
+               taller than a 768px laptop viewport, and a sticky element taller
+               than its viewport pins its top and puts the rest permanently out
+               of reach. It only ever scrolls when it actually overflows. */
+            <aside className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain">
               {hasContact && (
                 <Panel title={t(locale, 'detail.contact')}>
                   {r.address && (

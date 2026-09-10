@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     const buf = Buffer.from(await file.arrayBuffer())
 
-    let saved: { url: string; ext: string }
+    let saved: Awaited<ReturnType<typeof saveImage>>
     try {
       saved = await saveImage(buf)
     } catch (error) {
@@ -150,6 +150,9 @@ export async function POST(request: NextRequest) {
       data: {
         restaurantId,
         url: saved.url,
+        width: saved.width,
+        height: saved.height,
+        blurDataUrl: saved.blurDataUrl,
         caption,
         source: 'community',
         submittedById: user.id,

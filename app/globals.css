@@ -57,9 +57,13 @@
     --shadow-sm: 0 1px 2px rgb(11 18 32 / 0.06), 0 1px 3px rgb(11 18 32 / 0.04);
     --shadow-md: 0 2px 6px rgb(11 18 32 / 0.07), 0 8px 20px rgb(11 18 32 / 0.06);
     --shadow-lg: 0 4px 12px rgb(11 18 32 / 0.08), 0 16px 40px rgb(11 18 32 / 0.10);
-    /* Same geometry as --shadow-md, two alphas. See .ef-card. */
-    --shadow-card: 0 2px 6px rgb(11 18 32 / 0.04), 0 8px 20px rgb(11 18 32 / 0.03);
-    --shadow-card-hover: 0 2px 6px rgb(11 18 32 / 0.08), 0 8px 20px rgb(11 18 32 / 0.07);
+    /* Same geometry as --shadow-md, two alphas. See .ef-card.
+       Halved from what shipped first: on a page that is mostly cards, twenty
+       of these read as grey haze behind the grid rather than as twenty
+       separate objects. The hairline border is the separation; the shadow only
+       has to keep white-on-white from going flat. */
+    --shadow-card: 0 1px 3px rgb(11 18 32 / 0.025), 0 6px 16px rgb(11 18 32 / 0.02);
+    --shadow-card-hover: 0 1px 3px rgb(11 18 32 / 0.05), 0 6px 16px rgb(11 18 32 / 0.045);
 
     /* One easing and a duration ladder for everything that moves, so "make it
        smoother" is a few lines here and not forty call sites. The curve is
@@ -513,9 +517,19 @@
     @apply bg-error-soft text-error;
   }
 
+  /* No shadow. A panel is a region of a page, not an object floating above it,
+     and a column of six stacked panels each with its own elevation was the
+     "too many shadows" complaint at its worst. White inside a hairline on cool
+     paper is already separation; nothing here is picked up or dragged, so
+     nothing here needs to look liftable. */
   .ef-panel {
     @apply rounded-2xl border border-border bg-surface p-6;
-    box-shadow: var(--shadow-sm);
+  }
+
+  /* Panels on a listing page sit in a narrower column than the admin forms
+     .ef-panel was sized for. */
+  .ef-panel--tight {
+    @apply p-5;
   }
 
   .ef-input {
@@ -627,6 +641,47 @@
      must not scroll the dialog sideways during its entrance. */
   .ef-drawer {
     overflow: clip;
+  }
+
+  /* A gallery tile is a button wrapping a photo, so it needs the focus ring and
+     the hairline the card vocabulary gives everything else — and a muted fill
+     underneath, for the moment before a lazy photo arrives on a row that has no
+     blur placeholder stored (rows that predate that column). */
+  .ef-photo-tile {
+    @apply border border-border bg-surface-muted;
+    transition: border-color var(--dur-fast) var(--ease);
+  }
+
+  .ef-photo-tile:hover {
+    border-color: var(--border-strong);
+  }
+
+  /* The lightbox. Same <dialog>, same useDrawer script as the sheets — only the
+     entrance differs, so this is a sibling of .ef-drawer and not a second
+     modal implementation. */
+  .ef-lightbox {
+    @apply m-0 h-full max-h-none w-full max-w-none items-center justify-center bg-transparent p-0;
+  }
+
+  .ef-lightbox[open] {
+    @apply flex;
+  }
+
+  /* The frame, not the dialog, carries the padding: the backdrop has to stay
+     clickable right up to the edge of the photo, and useDrawer only treats a
+     press that STARTED on the dialog itself as a dismissal. */
+  .ef-lightbox-frame {
+    @apply relative m-0 flex h-full max-h-[100dvh] w-full flex-col p-10 sm:p-14;
+  }
+
+  .ef-lightbox-btn {
+    @apply grid h-11 w-11 place-items-center rounded-full border border-transparent text-white;
+    background-color: rgb(11 18 32 / 0.55);
+    transition: background-color var(--dur-fast) var(--ease);
+  }
+
+  .ef-lightbox-btn:hover {
+    background-color: rgb(11 18 32 / 0.8);
   }
 
   /* The search field. focus-within, not :focus — the field owns a chip rail and
@@ -850,6 +905,43 @@
 @media (prefers-reduced-motion: reduce) {
   .ef-drawer > *,
   .ef-drawer::backdrop {
+    transition: none;
+  }
+}
+
+/* The lightbox rises rather than slides. Same contract as .ef-drawer: useDrawer
+   watches for a `transform` transition on the dialog's first child before it
+   calls close(), so the exit gets frames to run in. */
+.ef-lightbox > * {
+  transform: scale(0.97);
+  opacity: 0;
+  transition:
+    transform var(--dur-exit) var(--ease),
+    opacity var(--dur-exit) var(--ease);
+}
+
+.ef-lightbox[data-state='open'] > * {
+  transform: scale(1);
+  opacity: 1;
+  transition-duration: var(--dur-panel);
+  transition-timing-function: var(--ease-out);
+}
+
+/* Darker than the sheets': a photo needs the page around it gone, not dimmed. */
+.ef-lightbox::backdrop {
+  background-color: rgb(11 18 32 / 0.88);
+  opacity: 0;
+  transition: opacity var(--dur-exit) var(--ease);
+}
+
+.ef-lightbox[data-state='open']::backdrop {
+  opacity: 1;
+  transition-duration: var(--dur-panel);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ef-lightbox > *,
+  .ef-lightbox::backdrop {
     transition: none;
   }
 }

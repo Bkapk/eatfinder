@@ -226,4 +226,20 @@ export const en: Record<keyof typeof sq, string> = {
   'photoUpload.error.tooLarge': 'Photo must be under 5 MB.',
   'photoUpload.error.rateLimited': "You've hit the upload limit. Try again in {minutes} min.",
   'photoUpload.cancel': 'Cancel',
+
+  'gallery.open': 'Open photo {n} of {total}',
+  'gallery.close': 'Close',
+  'gallery.prev': 'Previous photo',
+  'gallery.next': 'Next photo',
+  'gallery.counter': '{n} of {total}',
+  'gallery.showAll': 'Show all {n} photos',
+
+  'detail.reviews': '{n} Google reviews',
+  'detail.noReviews': 'No Google reviews yet',
+  'detail.ourRating': 'Our rating',
+
+  'photoUpload.selected': '{n} selected',
+  'photoUpload.tooMany': 'Up to {n} photos at a time.',
+  'photoUpload.progress': 'Uploading {n} of {total}…',
+  'photoUpload.success.batch': '{approved} live, {pending} in review.',
 }

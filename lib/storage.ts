@@ -147,17 +147,53 @@ export function sniffExt(buf: Buffer): string | null {
 
 export class UnsupportedImageError extends Error {}
 
+export interface ImageMeta {
+  width: number | null
+  height: number | null
+  /** ~16px WebP of the same frame as a data: URI, under 1KB. */
+  blurDataUrl: string | null
+}
+
+/**
+ * Pixel dimensions and the blurred placeholder, in one decode.
+ *
+ * Best effort by design: a photo sharp cannot read still uploads, it just
+ * renders without a placeholder and without a reserved aspect ratio. sharp is
+ * imported dynamically for the same reason the AWS SDK is — its native binary
+ * is not loadable under the jsdom test environment, and no test needs it.
+ */
+export async function imageMeta(buffer: Buffer): Promise<ImageMeta> {
+  try {
+    const sharp = (await import('sharp')).default
+    const img = sharp(buffer)
+    const { width, height } = await img.metadata()
+    // 16px on the long edge: the whole point is that it carries colour and
+    // gross shape, nothing recognisable. Blurred at render time by CSS.
+    const tiny = await img.resize(16, 16, { fit: 'inside' }).webp({ quality: 40 }).toBuffer()
+    return {
+      width: width ?? null,
+      height: height ?? null,
+      blurDataUrl: `data:image/webp;base64,${tiny.toString('base64')}`,
+    }
+  } catch (error) {
+    console.error('Image metadata/placeholder generation failed:', error)
+    return { width: null, height: null, blurDataUrl: null }
+  }
+}
+
 /**
  * Sniffs, rejects unsupported types, names randomly and writes. One
  * validator, every upload caller (admin upload, community submission,
  * Places photo download) goes through this rather than a half-copy of it.
  */
-export async function saveImage(buffer: Buffer): Promise<{ url: string; ext: string }> {
+export async function saveImage(
+  buffer: Buffer
+): Promise<{ url: string; ext: string } & ImageMeta> {
   const ext = sniffExt(buffer)
   if (!ext) {
     throw new UnsupportedImageError('Unsupported image type. Allowed: jpg, png, gif, webp, avif')
   }
   const filename = `${randomBytes(16).toString('hex')}.${ext}`
-  const url = await saveUpload(buffer, filename)
-  return { url, ext }
+  const [url, meta] = await Promise.all([saveUpload(buffer, filename), imageMeta(buffer)])
+  return { url, ext, ...meta }
 }

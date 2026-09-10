@@ -228,4 +228,20 @@ export const sq = {
   'photoUpload.error.tooLarge': 'Foto duhet të jetë nën 5 MB.',
   'photoUpload.error.rateLimited': 'Ke arritur kufirin e ngarkimeve. Provo përsëri pas {minutes} minutash.',
   'photoUpload.cancel': 'Anulo',
+
+  'gallery.open': 'Hap foton {n} nga {total}',
+  'gallery.close': 'Mbyll',
+  'gallery.prev': 'Fotoja e mëparshme',
+  'gallery.next': 'Fotoja tjetër',
+  'gallery.counter': '{n} nga {total}',
+  'gallery.showAll': 'Shfaq të {n} fotot',
+
+  'detail.reviews': '{n} vlerësime në Google',
+  'detail.noReviews': 'Ende pa vlerësime në Google',
+  'detail.ourRating': 'Vlerësimi ynë',
+
+  'photoUpload.selected': '{n} të zgjedhura',
+  'photoUpload.tooMany': 'Deri në {n} foto njëherësh.',
+  'photoUpload.progress': 'Duke ngarkuar {n} nga {total}…',
+  'photoUpload.success.batch': '{approved} live, {pending} në shqyrtim.',
 }

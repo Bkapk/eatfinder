@@ -117,6 +117,12 @@ model RestaurantPhoto {
   height  Int?
   caption String @default("")
 
+  /// A ~16px WebP of the same frame, inlined as a data: URI (<1KB). Rendered
+  /// blurred under the real <img> so a lazy-loaded gallery tile has something
+  /// of the right colour in it before the photo arrives. Null for rows that
+  /// predate this column, and for anything sharp could not decode.
+  blurDataUrl String?
+
   // "admin" | "community" | "google"
   source String
 

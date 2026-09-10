@@ -191,6 +191,8 @@ export interface RestaurantPhotoDTO {
   url: string
   width: number | null
   height: number | null
+  /** Inline ~16px WebP data: URI, blurred under the real photo while it loads. */
+  blurDataUrl: string | null
   caption: string
   source: string
   attributions: string[]
@@ -206,6 +208,7 @@ export function photoToDTO(p: RestaurantPhoto): RestaurantPhotoDTO {
     url: p.url,
     width: p.width,
     height: p.height,
+    blurDataUrl: p.blurDataUrl,
     caption: p.caption,
     source: p.source,
     attributions: parseJson<string[]>(p.attributions, []),
