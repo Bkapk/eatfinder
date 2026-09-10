@@ -78,14 +78,34 @@ export default function MapPane({
   onLocate: (lat: number, lng: number) => void
 }) {
   const mapRef = useRef<MapRef>(null)
+  const shellRef = useRef<HTMLDivElement>(null)
   const [pending, setPending] = useState<{ bbox: Bbox; against?: Bbox } | null>(null)
   const [selected, setSelected] = useState<MapPoint | null>(null)
+
+  // A re-search can drop the selected pin out of the result set. Derive the
+  // popup from what is actually on the map rather than clearing it in an
+  // effect: the pin is gone, so the card that describes it goes with it.
+  const live = selected && points.some((p) => p.id === selected.id) ? selected : null
   const [cursor, setCursor] = useState<string>('grab')
 
   // Derived rather than cleared in an effect: the offer to re-search is only
   // meaningful while the shell is still showing the bounds it was measured
   // against, so the moment those change the pill is simply not rendered.
   const pendingBbox = pending && sameBbox(pending.against, queriedBbox) ? pending.bbox : null
+
+  // mapbox-gl watches the window, not its container (there is no ResizeObserver
+  // anywhere in the library), so every layout change that resizes this pane
+  // without resizing the window leaves the canvas at its old size and the
+  // revealed strip blank until a refresh. Observing the container covers all of
+  // them at once — the grid/map toggle, the filter drawer, the mobile switch —
+  // where a resize() in the toggle handler would only ever cover the one.
+  useEffect(() => {
+    const el = shellRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => mapRef.current?.resize())
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   const onMoveEnd = useCallback(
     (e: ViewStateChangeEvent) => {
@@ -141,6 +161,20 @@ export default function MapPane({
     })
   }, [])
 
+  // The card -> pin direction was wired from the start; this is the return leg.
+  // mouseenter/mouseleave alone cannot carry it: moving straight from one pin
+  // to the next never leaves the interactive layer, so the highlight would stay
+  // stuck on the pin the pointer left. react-map-gl already queries features on
+  // every mousemove for the cursor, so this is the same work, read twice.
+  const onMouseMove = useCallback(
+    (e: MapMouseEvent) => {
+      const f = e.features?.[0] as { layer?: { id?: string }; properties?: Record<string, unknown> } | undefined
+      const id = f && f.layer?.id === POINT_LAYER ? String(f.properties?.id) : null
+      onHover(id)
+    },
+    [onHover]
+  )
+
   // Mapbox's own popup has no keyboard dismissal once closeButton is off, and
   // the markers are canvas-drawn so there is nothing to Shift+Tab back to.
   useEffect(() => {
@@ -166,7 +200,7 @@ export default function MapPane({
               const next = on ? selectedCuisines.filter((x) => x !== c) : [...selectedCuisines, c]
               onPatch({ cuisines: next.length ? next : undefined })
             }}
-            className={`ef-pill shadow-md ${on ? 'ef-pill--active' : ''}`}
+            className={`ef-pill ${on ? 'ef-pill--active' : ''}`}
           >
             {tVocab(locale, 'cuisine', c)}
           </button>
@@ -192,7 +226,7 @@ export default function MapPane({
   }
 
   return (
-    <div className="relative h-full w-full">
+    <div ref={shellRef} className="relative h-full w-full">
       <Map
         ref={mapRef}
         mapboxAccessToken={token}
@@ -201,7 +235,11 @@ export default function MapPane({
         interactiveLayerIds={[CLUSTER_LAYER, POINT_LAYER]}
         cursor={cursor}
         onMouseEnter={() => setCursor('pointer')}
-        onMouseLeave={() => setCursor('grab')}
+        onMouseMove={onMouseMove}
+        onMouseLeave={() => {
+          setCursor('grab')
+          onHover(null)
+        }}
         onMoveEnd={onMoveEnd}
         onClick={onClick}
         reuseMaps
@@ -215,13 +253,17 @@ export default function MapPane({
           onGeolocate={(e) => onLocate(e.coords.latitude, e.coords.longitude)}
         />
 
-        <PointsLayer points={points} hoveredId={hoveredId} />
+        <PointsLayer points={points} hoveredId={hoveredId} selectedId={live?.id ?? null} />
 
-        {selected && (
+        {live && (
           <PopupCard
+            // Keyed by pin: react-map-gl only ever calls addTo() on mount, so a
+            // popup instance that has been closed once can never come back.
+            // A fresh instance per selection also replays the entrance.
+            key={live.id}
             locale={locale}
-            point={selected}
-            item={items.find((i) => i.id === selected.id)}
+            point={live}
+            item={items.find((i) => i.id === live.id)}
             onClose={() => setSelected(null)}
           />
         )}

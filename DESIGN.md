@@ -110,8 +110,8 @@ components:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
     rounded: "{rounded.full}"
-    padding: "0 14px"
-    height: "36px"
+    padding: "0 16px"
+    height: "44px"
   pill-active:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.on-primary}"
@@ -362,6 +362,17 @@ table's top bar has a `min-h-[68px]` floor so ticking one checkbox cannot swap a
 refetching list dims in place (`.admin-refreshing`) rather than being replaced by
 a spinner that collapses the page height.
 
+**The One Control Height Rule.** `--control-h: 2.75rem` (44px) is the height of
+every interactive thing in a toolbar row: the search capsule, pills, selects,
+the view toggle, buttons and inputs. A row where the search box is one height,
+the filter opener another and the language switch a third does not read as a
+toolbar, it reads as three widgets that happened to land next to each other.
+`--topbar-h: 4.5rem` (72px) is the header that contains them, applied through
+`.ef-topbar` — including every Suspense fallback that stands in for a header, so
+the bar does not resize when the client component hydrates and does not change
+height between `/eat`, `/r`, `/account` and the auth pages. Reach for the token,
+never a one-off `h-11`.
+
 ## Elevation & Depth
 
 Nearly flat, and layered by tone first. A surface is separated from the page by
@@ -370,21 +381,35 @@ top of that, not the mechanism. Only three shadows exist, and the largest is
 reserved for things in the top layer.
 
 ### Shadow Vocabulary
-- **Resting** (`--shadow-sm`): cards, panels, pills, the search capsule, primary
-  buttons, the range thumb. Effectively a soft contact edge.
+- **Resting** (`--shadow-sm`): cards, panels, primary buttons, the range thumb,
+  the favourite disc that sits on a photo. Effectively a soft contact edge.
+  Toolbar controls are NOT on this list: pills, the search capsule and the view
+  toggle rest flat. Five of them in a row each casting a shadow reads as a grey
+  smear behind the rail, and inside `.ef-scroll-fade` the scroller and the mask
+  slice that smear into a hard diagonal cut-off. White inside a hairline is the
+  separation; a toolbar is a surface, not a shelf of floating widgets.
 - **Lifted** (`--shadow-md`): the hover/focus-within state of a card, the fixed
   admin form action bar, Mapbox control clusters.
 - **Floating** (`--shadow-lg`): the mobile navigation sheet and the mobile map
   toggle — elements genuinely detached from the page.
 
-The drawer backdrop is its own layer: `rgb(11 18 32 / 0.35)` plus a 3px blur,
+The drawer backdrop is its own layer: `rgb(11 18 32 / 0.35)`, no blur,
 transitioned independently of the dialog because a `::backdrop` does not inherit
-the dialog's transition.
+the dialog's transition. The blur was removed deliberately — a `backdrop-filter`
+here is recomputed across the whole viewport every frame, and on `/eat` what sits
+under it is a live WebGL map canvas, which is what made the filter drawer stutter
+on open. A scrim this dark separates the panel without it. For the same reason
+the sliding sheet itself carries no shadow: a large blurred shadow on the element
+that is travelling is a full repaint per frame.
 
 ### Named Rules
-**The Lift Is Transform Rule.** A hovered card rises with `translate: 0 -2px` and
-a shadow swap — never a margin, border-width or size change. The grid around it
-must not re-lay-out. The same rule makes buttons and pills press with `scale`,
+**The Cards Do Not Travel Rule.** A hovered card does not move. It answers with
+its border going hairline → Control Edge and one shadow step, at `--dur-fast`,
+and its photo scaling 1.015. A results list is read by sweeping a pointer down
+it; anything that lifts and drifts under that pointer makes the whole column
+feel loose. Whatever a state change does, it is never a margin, border-width or
+size change — the grid around it must not re-lay-out. Buttons and pills still
+press with `scale`,
 and pills specifically use the independent `scale` property rather than
 `transform` so it composes with an existing `-translate-x-1/2` centring instead
 of destroying it.
@@ -439,9 +464,10 @@ that already draws its own edge; `--danger` tints Signal Red on hover. Presses a
 
 ### Pills — `.ef-pill`
 The search UI's currency: filter openers, sort, the language switch, the
-favourites counter, the map's "search this area". 36px tall, fully round,
-hairline border, white fill, 13px semibold, resting shadow. `--active` fills
-Signal Blue. Pills live in horizontal rails that fade at the right edge
+favourites counter, the map's "search this area". `--control-h` tall via
+`.ef-pill--lg`, fully round, hairline border, white fill, 13px semibold, and no
+resting shadow. `--active` fills Signal Blue; `--quiet` drops the border until
+hover, for a secondary action standing next to a filled one. Pills live in horizontal rails that fade at the right edge
 (`.ef-scroll-fade`) rather than showing a clipped chip.
 
 ### Chips — `.ef-chip`

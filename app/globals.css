@@ -76,6 +76,17 @@
     --dur-panel: 320ms;
     --dur-exit: 180ms;
 
+    /* One control height for every interactive box the user reads as part of
+       the same row: the search capsule, the pills beside it, the sort select,
+       the view toggle, buttons and inputs. It is also the 44px touch minimum,
+       so there is one number here and not a 36/40/44/48 argument per screen.
+       --topbar-h is that control plus its 14px of breathing room, fixed so the
+       public header is the same height on /eat, /account, /r and both auth
+       pages — it used to be 64px where the search capsule rendered and 56px
+       everywhere else, and the wordmark jumped on every navigation. */
+    --control-h: 2.75rem;
+    --topbar-h: 4.5rem;
+
     /* The one focus halo. Every control uses this instead of a Tailwind ring,
        which is what stopped inputs drawing two rings on top of each other. */
     --ring: 0 0 0 3px color-mix(in srgb, var(--primary) 24%, transparent);
@@ -285,9 +296,12 @@
      not as a component library. */
   /* transform, never a size or margin change: a pill that grows on press
      reflows the rail it sits in and shoves its neighbours sideways. */
+  /* No resting shadow. A pill is separated from the page by being white inside
+     a hairline, and five of them in a row each casting their own shadow read as
+     a grey smear behind the rail — worse inside .ef-scroll-fade, where the
+     scroll box clips those shadows into a band with a hard edge. Border only. */
   .ef-pill {
-    @apply inline-flex h-9 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-surface px-3.5 text-[13px] font-semibold text-text hover:bg-surface-hover;
-    box-shadow: var(--shadow-sm);
+    @apply inline-flex h-9 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-surface px-3.5 text-[13px] font-semibold text-text hover:border-border-strong hover:bg-surface-hover;
     transition:
       background-color var(--dur) var(--ease),
       border-color var(--dur) var(--ease),
@@ -305,7 +319,38 @@
   }
 
   .ef-pill--active {
-    @apply border-primary bg-primary text-[color:var(--on-primary)] hover:bg-primary-hover;
+    @apply border-primary bg-primary text-[color:var(--on-primary)] hover:border-primary-hover hover:bg-primary-hover;
+  }
+
+  /* The full-height pill: anything standing in a row beside the search capsule
+     (top-bar chrome, sort, view toggle) or alone in an empty pane. The 36px
+     base is for rails of many pills; this is for a row of a few controls that
+     must line up with the 44px capsule. Five call sites had written `h-11` plus
+     their own padding to get here. */
+  .ef-pill--lg {
+    @apply px-4;
+    height: var(--control-h);
+  }
+
+  /* A pill with no box until you touch it — the "sign in" beside "register",
+     where two filled outlines side by side both read as the main action. */
+  .ef-pill--quiet {
+    @apply border-transparent bg-transparent hover:border-transparent;
+  }
+
+  /* A <select> cannot be trusted with .ef-pill's inline-flex, so the sort
+     control takes the same metrics as a block. */
+  select.ef-pill {
+    display: block;
+  }
+
+  /* The chevron's room. The bare `select` rule at the foot of this file sets
+     it too, but a class-level px-* out-specifies an element selector, so any
+     select wearing one of our control classes lost it and ran its longest
+     option straight under the arrow. */
+  select.ef-pill,
+  select.ef-input {
+    padding-inline-end: 2.25rem;
   }
 
   .ef-chip {
@@ -351,28 +396,26 @@
     @apply bg-surface-hover font-semibold text-text-secondary;
   }
 
-  /* The lift is 2px of transform, not a margin or a border-width change, so a
-     hovered card never re-lays-out the grid around it. */
+  /* The card does not move. It used to rise 2px into a deeper shadow, and in a
+     grid where the pointer crosses three cards on its way anywhere that read as
+     the whole list shuffling. The hover cue is now the border going from
+     hairline to Control Edge and the shadow deepening one step, both at
+     feedback speed — enough to say "this one", not enough to notice as motion.
+     Both cues are colour/shadow, so nothing re-lays-out the grid either. */
   .ef-card {
     @apply rounded-2xl border border-border bg-surface;
     box-shadow: var(--shadow-sm);
     transition:
-      box-shadow var(--dur) var(--ease),
-      translate var(--dur) var(--ease);
+      box-shadow var(--dur-fast) var(--ease),
+      border-color var(--dur-fast) var(--ease);
   }
 
   /* focus-within as well as hover: the card's title is the link, so a keyboard
      user tabbing the list gets the same "this one" cue a mouse does. */
   .ef-card:hover,
   .ef-card:focus-within {
+    border-color: var(--border-strong);
     box-shadow: var(--shadow-md);
-    translate: 0 -2px;
-  }
-
-  /* Press settles it back down, faster than it rose. */
-  .ef-card:active {
-    translate: 0 0;
-    transition-duration: var(--dur-fast);
   }
 
   /* Admin shares this vocabulary. Adding it here rather than restyling ~3200
@@ -380,8 +423,12 @@
      (text-on-primary) cannot be forgotten at a call site. */
   /* transform, never margin/padding — a press that reflows its neighbours is
      the "everything jumps" complaint in miniature. */
+  /* min-height is the shared control height, not the admin's own min-h-11: a
+     submit button was 48px on the two auth forms, 44 in the admin and 38 in the
+     public app for the same job. */
   .ef-btn {
     @apply inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-transparent px-4 py-2 text-[14px] font-semibold disabled:cursor-not-allowed disabled:opacity-50;
+    min-height: var(--control-h);
     transition:
       background-color var(--dur-fast) var(--ease),
       border-color var(--dur-fast) var(--ease),
@@ -409,6 +456,9 @@
      .ef-btn so the smaller metrics win when both classes are present. */
   .ef-btn--quiet {
     @apply rounded-full px-3 py-1.5 text-[12px] font-bold text-text-secondary hover:bg-surface-hover hover:text-text;
+    /* Opts out of the shared control height: it sits INSIDE a 44px capsule, and
+       at 44px its hover fill became a slab filling the whole field. */
+    min-height: 0;
   }
 
   /* Square icon-only control — toolbar, table row, drawer close. Was
@@ -451,6 +501,7 @@
 
   .ef-input {
     @apply w-full rounded-xl border bg-surface px-4 py-2 text-[14px] text-text placeholder:text-text-secondary;
+    min-height: var(--control-h);
     border-color: var(--border-control);
     transition:
       border-color var(--dur-fast) var(--ease),
@@ -596,9 +647,13 @@
   /* The search field. focus-within, not :focus — the field owns a chip rail and
      a clear button, so the whole capsule is the control as far as the eye is
      concerned and it should light up as one thing. */
+  /* Same height token as every pill standing beside it, and no resting shadow —
+     the capsule and the Filters pill next to it were two different elevations
+     in the same 44px row. It still lights up on focus, which is the only state
+     in this row that earns a halo. */
   .ef-searchbar {
-    @apply flex h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-border bg-surface pl-4 pr-2;
-    box-shadow: var(--shadow-sm);
+    @apply flex min-w-0 flex-1 items-center gap-2 rounded-full border border-border bg-surface pl-4 pr-2;
+    height: var(--control-h);
     transition:
       border-color var(--dur) var(--ease),
       box-shadow var(--dur) var(--ease);
@@ -607,6 +662,33 @@
   .ef-searchbar:focus-within {
     border-color: var(--primary);
     box-shadow: var(--ring);
+  }
+
+  /* The public header, one height on every route. It carries the search capsule
+     on /eat and nothing but pills on /account, /r and the auth pages, so its
+     height used to be whatever its tallest child happened to be that day. The
+     Suspense fallback that stands in for it should use this same class, so the
+     bar does not resize when the client component hydrates either. */
+  .ef-topbar {
+    @apply z-sticky flex w-full shrink-0 items-center gap-3 border-b border-border bg-surface px-4 py-3 sm:gap-4 sm:px-5;
+    min-height: var(--topbar-h);
+  }
+
+  /* The favourite heart where it sits ON a photo (result card, list row, map
+     popup). It was a translucent white disc with secondary ink on it: over a
+     dark photo the disc darkened and the icon went to roughly 2:1. Opaque
+     surface, full-strength ink, and a hairline so the disc still has an edge
+     over a pale photo. Ember when it is on — 5.7:1 on this white. */
+  .ef-favorite-overlay {
+    @apply grid h-9 w-9 place-items-center rounded-full border border-border bg-surface text-text;
+    box-shadow: var(--shadow-sm);
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease);
+  }
+
+  .ef-favorite-overlay:hover {
+    @apply bg-surface-hover text-accent;
   }
 
   /* An indeterminate bar, because fetch() reports no upload progress. It says
@@ -661,6 +743,19 @@
   .ef-scroll-fade {
     /* Horizontal rails fade at the right edge instead of showing a cut-off chip. */
     mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+  }
+
+  /* A rail is a scroll box AND a masked box, so anything inside it casting a
+     drop shadow gets that shadow sliced twice: flat against the bottom of the
+     scroller and diagonally by the mask. That is the "grey background with a
+     weird cut-off" behind the cuisine rail — the shadow, not a background.
+     No call site passes a shadow into a rail any more; this stays as the guard,
+     and !important is what lets it beat a Tailwind utility if one comes back.
+     :not(:focus-visible), because the global focus halo is itself a box-shadow
+     and a blanket rule here would leave every pill in the rail with no visible
+     focus at all. */
+  .ef-scroll-fade > *:not(:focus-visible) {
+    box-shadow: none !important;
   }
 }
 
@@ -736,27 +831,30 @@
 }
 
 /* The backdrop is a separate element with its own transition — it does not
-   inherit the dialog's. Same allow-discrete trick so it fades out too. */
+   inherit the dialog's. Same allow-discrete trick so it fades out too.
+
+   No backdrop-filter here, deliberately. A blur on this element is re-computed
+   over the whole viewport every frame, and on /eat the thing being blurred is a
+   live WebGL map canvas — that, not the panel's own travel, is what made the
+   drawer stutter on open. A scrim this dark separates the panel perfectly well
+   on its own. background-color, not the `background` shorthand: only the colour
+   is animatable, and naming it keeps the transition on the cheap path. */
 .ef-drawer::backdrop {
-  background: rgb(11 18 32 / 0);
-  backdrop-filter: blur(0px);
+  background-color: rgb(11 18 32 / 0);
   transition:
-    background var(--dur-exit) var(--ease),
-    backdrop-filter var(--dur-exit) var(--ease),
+    background-color var(--dur-exit) var(--ease),
     display var(--dur-exit) allow-discrete,
     overlay var(--dur-exit) allow-discrete;
 }
 
 .ef-drawer[open]::backdrop {
-  background: rgb(11 18 32 / 0.35);
-  backdrop-filter: blur(3px);
+  background-color: rgb(11 18 32 / 0.35);
   transition-duration: var(--dur-panel);
 }
 
 @starting-style {
   .ef-drawer[open]::backdrop {
-    background: rgb(11 18 32 / 0);
-    backdrop-filter: blur(0px);
+    background-color: rgb(11 18 32 / 0);
   }
 }
 

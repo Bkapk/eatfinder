@@ -33,7 +33,7 @@ export default async function Home({
   // is driven by this shell's client state.
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden">
-      <Suspense fallback={<div className="h-14 border-b border-border bg-surface" />}>
+      <Suspense fallback={<div className="ef-topbar" />}>
         <SearchShell locale={locale} mapboxToken={mapboxToken} />
       </Suspense>
     </div>

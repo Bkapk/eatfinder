@@ -24,7 +24,7 @@ export default async function AccountLoginPage({
 
   return (
     <div className="flex min-h-[100dvh] flex-col">
-      <Suspense fallback={<div className="h-14 border-b border-border bg-surface" />}>
+      <Suspense fallback={<div className="ef-topbar" />}>
         <TopBar locale={locale} />
       </Suspense>
 

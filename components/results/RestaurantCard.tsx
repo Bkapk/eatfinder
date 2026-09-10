@@ -63,7 +63,10 @@ export default function RestaurantCard({
             alt={item.name}
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            // 1.015, not 1.03: with the card itself no longer lifting, the
+            // photo is the only thing that moves, and at 3% it read as the card
+            // wobbling under the pointer.
+            className="h-full w-full object-cover transition-transform duration-[var(--dur)] group-hover:scale-[1.015]"
           />
         ) : (
           <div
@@ -77,7 +80,7 @@ export default function RestaurantCard({
         <FavoriteButton
           id={item.id}
           locale={locale}
-          className="absolute left-2 top-2 z-overlay grid h-9 w-9 place-items-center rounded-full bg-surface/90 text-text-secondary shadow-sm backdrop-blur transition-colors duration-200 hover:bg-surface hover:text-accent"
+          className="ef-favorite-overlay absolute left-2 top-2 z-overlay"
         />
 
         {item.isFeatured && !popup && (

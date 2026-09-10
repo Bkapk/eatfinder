@@ -149,7 +149,7 @@ export default function SearchBar({
       <button
         type="button"
         onClick={onOpenFilters}
-        className="ef-pill shrink-0"
+        className="ef-pill ef-pill--lg shrink-0"
         aria-label={t(locale, 'search.filters')}
       >
         <SlidersHorizontal size={15} aria-hidden />

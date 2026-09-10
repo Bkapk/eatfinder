@@ -35,11 +35,11 @@ export default function TopBar({
   toggleParams.set('lang', other)
 
   return (
-    // px-4 sm:px-5 matches the inset every page body under this header uses
-    // (results pane, /account, /r). At px-3 the chrome was tighter than the
-    // content it framed, which is visible on the detail and account pages where
-    // the wordmark sits directly above the page's own left edge.
-    <header className="z-sticky flex w-full shrink-0 items-center gap-3 border-b border-border bg-surface px-4 py-2.5 sm:gap-4 sm:px-5">
+    // .ef-topbar carries the inset (px-4 sm:px-5, matching every page body
+    // under this header) and the fixed --topbar-h. The height is in the class
+    // and not here because the four Suspense fallbacks that stand in for this
+    // component render <div className="ef-topbar" /> and have to agree with it.
+    <header className="ef-topbar">
       <Link
         href="/"
         className="flex shrink-0 items-center gap-2 text-text"
@@ -58,7 +58,7 @@ export default function TopBar({
       <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
         <Link
           href={`${pathname}?${toggleParams.toString()}`}
-          className="ef-pill"
+          className="ef-pill ef-pill--lg"
           aria-label={t(locale, 'nav.language')}
         >
           <Languages size={15} aria-hidden />
@@ -69,7 +69,7 @@ export default function TopBar({
             search input to nothing. The count is on /account. */}
         <Link
           href="/account"
-          className="ef-pill hidden sm:inline-flex"
+          className="ef-pill ef-pill--lg hidden sm:inline-flex"
           aria-label={t(locale, 'nav.favoritesCount', { n: ids.length })}
         >
           <Heart size={15} aria-hidden className={ids.length ? 'fill-accent text-accent' : ''} />
@@ -78,11 +78,14 @@ export default function TopBar({
 
         <Link
           href="/account/login"
-          className="hidden h-9 items-center rounded-full px-3.5 text-[13px] font-bold text-text transition-colors duration-200 hover:bg-surface-hover lg:inline-flex"
+          className="ef-pill ef-pill--lg ef-pill--quiet hidden lg:inline-flex"
         >
           {t(locale, 'nav.signIn')}
         </Link>
-        <Link href="/account/register" className="ef-pill ef-pill--active hidden sm:inline-flex">
+        <Link
+          href="/account/register"
+          className="ef-pill ef-pill--lg ef-pill--active hidden sm:inline-flex"
+        >
           {t(locale, 'nav.register')}
         </Link>
       </div>

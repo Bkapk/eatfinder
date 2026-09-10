@@ -146,7 +146,7 @@ export default async function RestaurantPage({
 
   return (
     <div className="flex min-h-[100dvh] flex-col">
-      <Suspense fallback={<div className="h-14 border-b border-border bg-surface" />}>
+      <Suspense fallback={<div className="ef-topbar" />}>
         <TopBar locale={locale} />
       </Suspense>
 
@@ -197,7 +197,7 @@ export default async function RestaurantPage({
             </p>
           </div>
 
-          <FavoriteButton id={r.id} locale={locale} label className="ef-pill h-11 shrink-0 px-4" />
+          <FavoriteButton id={r.id} locale={locale} label className="ef-pill ef-pill--lg shrink-0" />
         </header>
 
         <div className={`grid gap-5 ${hasSidebar ? 'lg:grid-cols-[minmax(0,1fr)_20rem]' : ''}`}>

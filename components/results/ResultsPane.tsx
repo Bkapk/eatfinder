@@ -40,9 +40,13 @@ export default function ResultsPane({
         <p className="max-w-xs text-[14px] text-text-secondary">
           {t(locale, 'results.error.body')}
         </p>
-        {/* h-11 like "Load more": the one control in an otherwise empty pane is
+        {/* --lg like "Load more": the one control in an otherwise empty pane is
             not the place to ship the search rail's compact 36px pill. */}
-        <button type="button" onClick={onRetry} className="ef-pill ef-pill--active mt-1 h-11 px-5">
+        <button
+          type="button"
+          onClick={onRetry}
+          className="ef-pill ef-pill--lg ef-pill--active mt-1"
+        >
           {t(locale, 'results.error.retry')}
         </button>
       </div>
@@ -57,7 +61,7 @@ export default function ResultsPane({
         <p className="max-w-xs text-[14px] text-text-secondary">
           {t(locale, 'results.empty.body')}
         </p>
-        <button type="button" onClick={onClearAll} className="ef-pill mt-1 h-11 px-5">
+        <button type="button" onClick={onClearAll} className="ef-pill ef-pill--lg mt-1">
           {t(locale, 'results.empty.reset')}
         </button>
       </div>
@@ -123,7 +127,7 @@ export default function ResultsPane({
             type="button"
             onClick={onLoadMore}
             disabled={loading}
-            className="ef-pill h-11 px-6 disabled:cursor-wait disabled:opacity-60"
+            className="ef-pill ef-pill--lg px-6 disabled:cursor-wait disabled:opacity-60"
           >
             {loading ? t(locale, 'results.loading') : t(locale, 'results.loadMore')}
           </button>

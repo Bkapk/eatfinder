@@ -26,7 +26,11 @@ export function ViewToggle({
     <div
       role="group"
       aria-label={t(locale, 'view.label')}
-      className={`flex items-center gap-0.5 rounded-full border border-border bg-surface p-1 shadow-md ${className}`}
+      // p-1 around a 36px button lands the group on the shared 44px control
+      // height, so it lines up with the search capsule and the sort pill. No
+      // shadow: over the map it is white inside a hairline like everything else
+      // in this row, and shadow-md here was the heaviest thing on the screen.
+      className={`flex items-center gap-0.5 rounded-full border border-border bg-surface p-1 ${className}`}
     >
       {VIEWS.map((v) => {
         const Icon = VIEW_ICON[v]
@@ -38,7 +42,7 @@ export function ViewToggle({
             onClick={() => onChange(v)}
             aria-pressed={on}
             title={t(locale, `view.${v}`)}
-            className={`flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-3 text-[12px] font-bold transition-colors duration-200 ${
+            className={`flex h-9 cursor-pointer items-center gap-1.5 rounded-full px-3 text-[12px] font-bold transition-colors duration-200 ${
               on
                 ? 'bg-primary text-[color:var(--on-primary)]'
                 : 'text-text-secondary hover:bg-surface-hover hover:text-text'
@@ -67,7 +71,7 @@ export default function SortHeader({
   loading: boolean
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3 sm:px-5">
+    <div className="flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-2.5 sm:px-5">
       <h2
         aria-live="polite"
         className="truncate text-[15px] font-extrabold tracking-tight text-text"
@@ -84,7 +88,10 @@ export default function SortHeader({
         <select
           value={sort}
           onChange={(e) => onSort(e.target.value as Sort)}
-          className="h-9 cursor-pointer rounded-full border border-border bg-surface px-3 text-[13px] font-semibold text-text transition-colors duration-200 hover:bg-surface-hover"
+          // The same pill as the Filters button and the language switch. A
+          // <select> gets display:block back in globals.css, and the chevron
+          // room with it.
+          className="ef-pill ef-pill--lg"
         >
           {SORTS.map((s) => (
             <option key={s} value={s}>

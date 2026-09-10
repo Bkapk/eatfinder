@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { X } from 'lucide-react'
 import { Popup } from 'react-map-gl/mapbox'
 import type { MapPoint, ScoredRestaurant } from '@/lib/types'
 import { priceGlyphs, t, type Locale } from '@/lib/i18n'
@@ -30,6 +31,13 @@ export default function PopupCard({
       anchor="bottom"
       offset={16}
       closeButton={false}
+      // Mapbox closes its own popup on the next map click, which is the same
+      // click that selects the next pin. react-map-gl never re-adds a popup it
+      // did not just mount, so that left a live <PopupCard> pointing at a dead
+      // instance and no pin openable until a remount. MapPane already clears
+      // the selection when a click lands on no feature, so this is only ever
+      // removing the duplicate.
+      closeOnClick={false}
       onClose={onClose}
       maxWidth="260px"
       className="ef-popup"
@@ -52,9 +60,14 @@ export default function PopupCard({
           type="button"
           onClick={onClose}
           aria-label={t(locale, 'map.closePopup')}
-          className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-surface/90 text-[13px] font-bold text-text-secondary shadow-sm transition-colors duration-200 hover:text-text"
+          // The same overlay-control chrome the favourite heart uses, mirrored
+          // to the other corner: one definition of "a round control sitting on
+          // a photo", not a second 28px × glyph that exists nowhere else. Only
+          // the hover ink differs — ember means "food quality", and dismissing
+          // a popup is not that.
+          className="ef-favorite-overlay absolute right-2 top-2 z-overlay hover:text-text"
         >
-          <span aria-hidden>×</span>
+          <X size={16} aria-hidden />
         </button>
       </div>
     </Popup>

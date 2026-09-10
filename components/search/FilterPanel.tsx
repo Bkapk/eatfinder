@@ -117,7 +117,10 @@ export default function FilterPanel({
       className="ef-drawer"
     >
       <aside
-        className="flex h-full w-full max-w-md flex-col bg-surface shadow-lg"
+        // No shadow: the scrim already separates the panel from the page, and a
+        // large blurred shadow on the element that is travelling is a full
+        // repaint on every frame of the slide.
+        className="flex h-full w-full max-w-md flex-col bg-surface"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between border-b border-border px-5 py-4">
@@ -196,7 +199,7 @@ export default function FilterPanel({
                 onChange={(e) =>
                   onPatch({ minPrice: e.target.value ? Number(e.target.value) : undefined })
                 }
-                className="h-10 flex-1 rounded-xl border border-border bg-surface px-3 text-[14px] font-semibold text-text"
+                className="ef-input flex-1"
               >
                 <option value="">{t(locale, 'filters.anyPrice')}</option>
                 {priceOptions.map((p) => (
@@ -214,7 +217,7 @@ export default function FilterPanel({
                 onChange={(e) =>
                   onPatch({ maxPrice: e.target.value ? Number(e.target.value) : undefined })
                 }
-                className="h-10 flex-1 rounded-xl border border-border bg-surface px-3 text-[14px] font-semibold text-text"
+                className="ef-input flex-1"
               >
                 <option value="">{t(locale, 'filters.anyPrice')}</option>
                 {priceOptions.map((p) => (

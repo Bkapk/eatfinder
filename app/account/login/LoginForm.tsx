@@ -57,7 +57,7 @@ export default function LoginForm({ locale, next }: { locale: Locale; next: stri
           onChange={(e) => setUsername(e.target.value)}
           required
           autoComplete="username"
-          className="ef-input h-11"
+          className="ef-input"
         />
       </div>
 
@@ -72,11 +72,11 @@ export default function LoginForm({ locale, next }: { locale: Locale; next: stri
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="current-password"
-          className="ef-input h-11"
+          className="ef-input"
         />
       </div>
 
-      <button type="submit" disabled={loading} className="ef-btn ef-btn--primary h-12">
+      <button type="submit" disabled={loading} className="ef-btn ef-btn--primary">
         {loading ? t(locale, 'login.submitting') : t(locale, 'login.submit')}
       </button>
 

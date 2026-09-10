@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
-import { Layer, Source } from 'react-map-gl/mapbox'
+import { useEffect, useMemo } from 'react'
+import { Layer, Source, useMap } from 'react-map-gl/mapbox'
 import type { MapPoint } from '@/lib/types'
 
 export const CLUSTER_LAYER = 'ef-clusters'
@@ -10,7 +10,12 @@ const COUNT_LAYER = 'ef-cluster-count'
 /** No restaurant id can be the empty string, so this filter matches nothing. */
 const NO_MATCH = ''
 
-const HOVER_LAYER = 'ef-point-hover'
+const ACTIVE_LAYER = 'ef-point-active'
+const PLATE_LAYER = 'ef-point-plate'
+
+/** Where the rim comes to rest, and how far above the pin it starts. */
+const PLATE_R = 17
+const PLATE_DROP = 13
 
 /**
  * Mapbox GL cannot read a CSS variable, so the token values are resolved from
@@ -20,7 +25,7 @@ const HOVER_LAYER = 'ef-point-hover'
  */
 function tokens() {
   const fallback = { primary: '#0b6bb0', accent: '#d9480f', onPrimary: '#ffffff', surface: '#ffffff' }
-  if (typeof window === 'undefined') return fallback
+  if (typeof window === 'undefined') return { ...fallback, durPanel: 320 }
   const s = getComputedStyle(document.documentElement)
   const read = (name: string, d: string) => s.getPropertyValue(name).trim() || d
   return {
@@ -28,17 +33,22 @@ function tokens() {
     accent: read('--accent', fallback.accent),
     onPrimary: read('--on-primary', fallback.onPrimary),
     surface: read('--surface', fallback.surface),
+    // Same trick for the motion ladder: "320ms" -> 320.
+    durPanel: parseFloat(read('--dur-panel', '320ms')) || 320,
   }
 }
 
 export default function PointsLayer({
   points,
   hoveredId,
+  selectedId,
 }: {
   points: MapPoint[]
   hoveredId: string | null
+  selectedId: string | null
 }) {
   const c = useMemo(() => tokens(), [])
+  const { current: map } = useMap()
 
   const data = useMemo(
     () => ({
@@ -51,6 +61,40 @@ export default function PointsLayer({
     }),
     [points]
   )
+
+  /**
+   * "The plate lands." Selecting a pin drops an ember rim onto it from above —
+   * it settles inward and stays as the marker of what the popup is about,
+   * rather than radiating outward and dying like every pulse on every map.
+   * It runs once, on exactly one feature, so density and point count cost
+   * nothing; a rejected alternative was animating the whole point layer.
+   *
+   * Mapbox interpolates paint properties itself, on the GPU — there is no
+   * per-frame JS here and no way to hand it `--ease`, so the duration comes
+   * from the token and the curve is Mapbox's own.
+   */
+  useEffect(() => {
+    const m = map?.getMap()
+    if (!m || !selectedId || !m.getLayer(PLATE_LAYER)) return
+
+    const set = (radius: number, opacity: number, duration: number) => {
+      m.setPaintProperty(PLATE_LAYER, 'circle-radius-transition', { duration, delay: 0 })
+      m.setPaintProperty(PLATE_LAYER, 'circle-stroke-opacity-transition', { duration, delay: 0 })
+      m.setPaintProperty(PLATE_LAYER, 'circle-radius', radius)
+      m.setPaintProperty(PLATE_LAYER, 'circle-stroke-opacity', opacity)
+    }
+
+    // Resting state is the visible one: no motion preference means the rim is
+    // simply there, never a pin left wearing an invisible ring.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      set(PLATE_R, 1, 0)
+      return
+    }
+
+    set(PLATE_R + PLATE_DROP, 0, 0)
+    const frame = requestAnimationFrame(() => set(PLATE_R, 1, c.durPanel))
+    return () => cancelAnimationFrame(frame)
+  }, [map, selectedId, c.durPanel])
 
   return (
     <Source
@@ -96,16 +140,41 @@ export default function PointsLayer({
           'circle-stroke-color': c.surface,
         }}
       />
-      {/* Card hover highlight. A filter that can never match is cheaper than
-          mounting and unmounting a layer on every mouse move. */}
+      {/* The rim, under the dot. Fill is fully transparent so it never dims the
+          map beneath it and never becomes a second click target. */}
       <Layer
-        id={HOVER_LAYER}
+        id={PLATE_LAYER}
         type="circle"
-        filter={['all', ['!', ['has', 'point_count']], ['==', ['get', 'id'], hoveredId ?? NO_MATCH]]}
+        filter={['all', ['!', ['has', 'point_count']], ['==', ['get', 'id'], selectedId ?? NO_MATCH]]}
         paint={{
           'circle-color': c.accent,
-          'circle-radius': 12,
-          'circle-stroke-width': 4,
+          'circle-opacity': 0,
+          'circle-radius': PLATE_R,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': c.accent,
+          'circle-stroke-opacity': 1,
+        }}
+      />
+      {/* Hovered or selected, in one layer: both mean "this one", and a second
+          layer would only let them disagree. A filter that can never match is
+          cheaper than mounting and unmounting a layer on every mouse move.
+
+          Deliberately the same radius and stroke as POINT_LAYER — the pin's
+          silhouette is also its hit area, and a halo wider than the thing you
+          can click is how a click on a highlighted pin misses. Only the colour
+          changes. */}
+      <Layer
+        id={ACTIVE_LAYER}
+        type="circle"
+        filter={[
+          'all',
+          ['!', ['has', 'point_count']],
+          ['in', ['get', 'id'], ['literal', [hoveredId ?? NO_MATCH, selectedId ?? NO_MATCH]]],
+        ]}
+        paint={{
+          'circle-color': c.accent,
+          'circle-radius': 8,
+          'circle-stroke-width': 3,
           'circle-stroke-color': c.surface,
         }}
       />

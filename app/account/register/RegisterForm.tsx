@@ -58,7 +58,7 @@ export default function RegisterForm({ locale, next }: { locale: Locale; next: s
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
-          className="ef-input h-11"
+          className="ef-input"
         />
       </div>
 
@@ -75,7 +75,7 @@ export default function RegisterForm({ locale, next }: { locale: Locale; next: s
           maxLength={60}
           autoComplete="nickname"
           aria-describedby="displayName-hint"
-          className="ef-input h-11"
+          className="ef-input"
         />
         <p id="displayName-hint" className="mt-1 text-[12px] text-text-secondary">
           {t(locale, 'auth.displayNameHint')}
@@ -95,14 +95,14 @@ export default function RegisterForm({ locale, next }: { locale: Locale; next: s
           minLength={8}
           autoComplete="new-password"
           aria-describedby="password-hint"
-          className="ef-input h-11"
+          className="ef-input"
         />
         <p id="password-hint" className="mt-1 text-[12px] text-text-secondary">
           {t(locale, 'auth.passwordHint')}
         </p>
       </div>
 
-      <button type="submit" disabled={loading} className="ef-btn ef-btn--primary h-12">
+      <button type="submit" disabled={loading} className="ef-btn ef-btn--primary">
         {loading ? t(locale, 'register.submitting') : t(locale, 'register.submit')}
       </button>
 
