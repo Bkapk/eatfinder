@@ -186,9 +186,10 @@ export default function SearchShell({
           id={showResults ? undefined : 'results'}
           tabIndex={showResults ? undefined : -1}
           className={[
-            'relative min-h-0 outline-none',
-            showMap ? 'flex-1' : 'hidden md:block md:w-[60%]',
-            showMap ? '' : 'md:shrink-0',
+            'relative min-h-0 flex-1 outline-none',
+            // Always flex-1: the results pane owns the split's width and
+            // animates it, and the map simply takes whatever is left.
+            showMap ? '' : 'hidden md:block',
           ].join(' ')}
         >
           <MapPane
@@ -209,13 +210,21 @@ export default function SearchShell({
           />
         </div>
 
-        {showResults && (
-          <section
-            id="results"
-            tabIndex={-1}
-            aria-label={t(locale, 'view.label')}
-            className="flex min-h-0 w-full flex-col border-border bg-background outline-none md:w-[40%] md:border-l"
-          >
+        {/* Stays mounted in map view so the collapse can animate; `inert` keeps
+            the hidden pane out of the tab order and off screen readers, and the
+            id moves to the map so the skip link never points into it. */}
+        <section
+          id={showResults ? 'results' : undefined}
+          tabIndex={-1}
+          inert={!showResults}
+          data-state={showResults ? 'open' : 'closed'}
+          aria-label={t(locale, 'view.label')}
+          className={`ef-split-pane min-h-0 w-full shrink-0 border-border bg-background outline-none md:w-[40vw] md:border-l ${
+            showResults ? 'flex' : 'hidden md:flex'
+          }`}
+        >
+          {/* Fixed width: the content must not reflow while the pane collapses. */}
+          <div className="flex h-full w-full flex-col md:w-[40vw]">
             <SortHeader
               locale={locale}
               total={total}
@@ -238,8 +247,8 @@ export default function SearchShell({
               onRetry={() => setReloadKey((k) => k + 1)}
               onClearAll={clearAll}
             />
-          </section>
-        )}
+          </div>
+        </section>
       </main>
 
       {/* Below md the split collapses: results are the page, map is a toggle. */}

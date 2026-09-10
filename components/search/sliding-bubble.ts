@@ -23,12 +23,14 @@ const BASE = 100
 const CSS = `
 [data-bubble-tabs]{position:relative;isolation:isolate}
 [data-bubble-tabs] [data-bubble-tab]{position:relative;z-index:1;background:transparent}
+/* Buttons on top, then the active pill, then the hover pill under it: hovering
+   the active tab must not tint the pill that is already there. */
 .bubble-pill{
   position:absolute;top:0;left:0;width:${BASE}px;height:${BASE}px;
   transform-origin:0 0;pointer-events:none;will-change:transform;
   transition:transform var(--bubble-speed,200ms) ease,border-radius var(--bubble-speed,200ms) ease,opacity var(--bubble-speed,200ms) ease;
 }
-.bubble-pill--hover{z-index:0;opacity:0;background:var(--bubble-hover-bg,rgba(127,127,127,.18))}
+.bubble-pill--hover{z-index:-1;opacity:0;background:var(--bubble-hover-bg,rgba(127,127,127,.18))}
 .bubble-pill--active{z-index:0;background:var(--bubble-active-bg,rgba(127,127,127,.35))}
 .bubble-pill.bubble-pill--no-transition{transition:none}
 @media (prefers-reduced-motion:reduce){.bubble-pill{transition:none}}

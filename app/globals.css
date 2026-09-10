@@ -853,6 +853,33 @@
   }
 }
 
+/* The results half of the desktop split. Switching to map view used to remove
+   it in one frame; now it collapses on the drawer's own easing and duration so
+   both panels in the app move the same way. The map beside it is flex-1, so it
+   grows into the space as this shrinks, and MapPane's ResizeObserver keeps the
+   canvas in step for every frame of it. */
+.ef-split-pane {
+  overflow: clip;
+  transition: width var(--dur-drawer-out) var(--ease-drawer);
+  will-change: width;
+}
+
+.ef-split-pane[data-state='open'] {
+  transition-duration: var(--dur-drawer-in);
+}
+
+@media (min-width: 768px) {
+  .ef-split-pane[data-state='closed'] {
+    width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ef-split-pane {
+    transition: none;
+  }
+}
+
 /* Custom select chrome. Unlayered on purpose: Tailwind's px-3/px-4 utilities
    live in @layer utilities and beat anything inside a layer, so the room for
    the chevron has to be claimed from outside one. */
