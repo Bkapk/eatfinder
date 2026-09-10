@@ -27,6 +27,11 @@ colors:
   warning: "#a16207"
   warning-soft: "#fdf5e3"
 typography:
+  scale:
+    title-breakpoint: "32px"
+    body-prose: "15px"
+    meta-dense: "14px"
+    chip: "12px"
   title:
     fontFamily: "Manrope, system-ui, sans-serif"
     fontSize: "26px"
