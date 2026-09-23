@@ -38,10 +38,11 @@ npx prisma migrate deploy
 
 Not `prisma migrate dev` — that can prompt interactively and is meant for
 local development. `migrate deploy` applies pending migrations
-non-interactively and is what a deploy script should call. Three migrations
+non-interactively and is what a deploy script should call. Four migrations
 exist as of this writing:
 `20260827131116_init`, `20260827134932_rebuild_restaurant_model`,
-`20260908224644_v2_places_ai_community`. Back up `prisma/dev.db` before the
+`20260908224644_v2_places_ai_community`, and
+`20260923180000_system_events`. Back up `prisma/dev.db` before the
 first run of a new migration on a production database (see §6).
 
 ## 3. Build and run

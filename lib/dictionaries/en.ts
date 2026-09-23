@@ -215,7 +215,7 @@ export const en: Record<keyof typeof sq, string> = {
     'The link may be old, or the place changed address. The map is right where you left it.',
   'notFound.cta': 'Back to the map',
 
-  'photoUpload.title': 'Add a photo',
+  'photoUpload.title': 'Share your visit',
   'photoUpload.chooseFile': 'Choose a photo',
   'photoUpload.caption': 'Caption (optional)',
   'photoUpload.captionPlaceholder': 'e.g. Grilled meat platter',
@@ -225,6 +225,7 @@ export const en: Record<keyof typeof sq, string> = {
   'photoUpload.success.pending': 'Thanks! Your photo is being reviewed.',
   'photoUpload.error.generic': 'Upload failed. Please try again.',
   'photoUpload.error.tooLarge': 'Photo must be under 5 MB.',
+  'photoUpload.error.type': 'Choose JPEG, PNG, GIF, WebP or AVIF images.',
   'photoUpload.error.rateLimited': "You've hit the upload limit. Try again in {minutes} min.",
   'photoUpload.cancel': 'Cancel',
 
@@ -243,4 +244,15 @@ export const en: Record<keyof typeof sq, string> = {
   'photoUpload.tooMany': 'Up to {n} photos at a time.',
   'photoUpload.progress': 'Uploading {n} of {total}…',
   'photoUpload.success.batch': '{approved} live, {pending} in review.',
+  'photoUpload.dropTitle': 'Drop your photos here',
+  'photoUpload.dropHint': 'Show the food, the space, or a moment worth sharing.',
+  'photoUpload.browse': 'Browse photos',
+  'photoUpload.rules': 'Up to {n} photos · 5 MB each · JPG, PNG, WebP, GIF or AVIF',
+  'photoUpload.remove': 'Remove',
+  'photoUpload.uploading': 'Uploading',
+  'photoUpload.captionHint': 'This caption will appear with each selected photo.',
+  'photoUpload.submitEmpty': 'Choose photos to share',
+  'photoUpload.submitOne': 'Share 1 photo',
+  'photoUpload.submitMany': 'Share {n} photos',
+  'photoUpload.sent': 'photo(s) sent',
 }

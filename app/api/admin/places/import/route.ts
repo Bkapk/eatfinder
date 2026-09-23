@@ -4,7 +4,7 @@ import { adminServerError } from '@/lib/apiError'
 import { requireAdmin } from '@/lib/auth'
 import { slugify } from '@/lib/types'
 import { saveImage } from '@/lib/storage'
-import { moderatePhoto, AiDisabledError } from '@/lib/gemini'
+import { recordSystemEvent } from '@/lib/systemEvents'
 import {
   assertPlacesEnabled,
   placeDetails,
@@ -16,26 +16,21 @@ import {
 } from '@/lib/places'
 import { z } from 'zod'
 
-const importSchema = z.object({
-  placeIds: z.array(z.string().min(1)).min(1).max(20),
-})
+const importSchema = z.object({ placeIds: z.array(z.string().min(1)).length(1) })
 
-// Google returns up to 10 photos per place and they are worth having: the
-// gallery is one of the few things on a listing that is genuinely ours to
-// show. The AI pass below is what makes the extra ones safe to take — the
-// weak ones sink to the end of the gallery instead of leading it.
-const MAX_PHOTOS_PER_PLACE = 12
+// Google returns at most 10. Keep its ordering: doing one Gemini call for each
+// photo made imports take minutes and could outlive the proxy request timeout.
+const MAX_PHOTOS_PER_PLACE = 10
 
 type ImportResult =
-  | { placeId: string; status: 'ok'; restaurantId: string; name: string }
+  | { placeId: string; status: 'ok'; restaurantId: string; name: string; photoCount: number; photoFailures: number }
   | { placeId: string; status: 'skipped'; reason: string }
   | { placeId: string; status: 'failed'; reason: string }
 
 export async function POST(request: NextRequest) {
   try {
     await requireAdmin()
-    // Check the key once, up front — otherwise a missing key would report all
-    // 20 places as individually "failed" instead of one clear 503.
+    // Each request imports one place, so a batch cannot exceed the proxy timeout.
     assertPlacesEnabled()
 
     const body = await request.json()
@@ -68,27 +63,51 @@ export async function POST(request: NextRequest) {
 // a per-place result instead of throwing past importOne().
 async function importOne(placeId: string): Promise<ImportResult> {
   try {
-    const existing = await prisma.restaurant.findUnique({ where: { placeId }, select: { id: true } })
-    if (existing) return { placeId, status: 'skipped', reason: 'Already imported' }
+    const existing = await prisma.restaurant.findUnique({
+      where: { placeId },
+      select: { id: true, name: true, image: true, _count: { select: { photos: true } } },
+    })
+    if (existing && existing._count.photos > 0) {
+      return { placeId, status: 'skipped', reason: 'Already imported with photos' }
+    }
 
     const place = await placeDetails(placeId)
     const draft = toRestaurantDraft(place)
 
-    const restaurant = await createDraftRestaurant(placeId, draft)
+    const restaurant = existing ?? (await createDraftRestaurant(placeId, draft))
     if (!restaurant) {
       return { placeId, status: 'failed', reason: 'Name already taken and could not be disambiguated' }
     }
 
-    const photoUrls = await importPhotos(restaurant.id, draft.photos)
-    if (photoUrls.length > 0) {
-      await prisma.restaurant.update({ where: { id: restaurant.id }, data: { image: photoUrls[0] } })
+    const photoResult = await importPhotos(restaurant.id, draft.photos)
+    if (photoResult.urls.length > 0 && !restaurant.image) {
+      await prisma.restaurant.update({ where: { id: restaurant.id }, data: { image: photoResult.urls[0] } })
     }
 
-    return { placeId, status: 'ok', restaurantId: restaurant.id, name: restaurant.name }
+    await recordSystemEvent(
+      'places-import',
+      photoResult.urls.length > 0 ? 'info' : 'warning',
+      `${existing ? 'Repaired' : 'Imported'} ${restaurant.name}: ${photoResult.urls.length} photos`,
+      `${photoResult.failures} photo failures${draft.photos.length === 0 ? '; Google returned no photos' : ''}`
+    )
+    return {
+      placeId,
+      status: 'ok',
+      restaurantId: restaurant.id,
+      name: restaurant.name,
+      photoCount: photoResult.urls.length,
+      photoFailures: photoResult.failures,
+    }
   } catch (error: any) {
     console.error(`Places import failed for ${placeId}:`, error)
+    await recordSystemEvent('places-import', 'error', `Import failed for ${placeId}`, safeError(error))
     return { placeId, status: 'failed', reason: error?.message ?? 'Unknown error' }
   }
+}
+
+function safeError(error: unknown): string {
+  if (error instanceof Error) return error.message.slice(0, 500)
+  return 'Unknown error'
 }
 
 /**
@@ -135,96 +154,43 @@ async function createDraftRestaurant(placeId: string, draft: RestaurantDraft) {
   return null
 }
 
-async function importPhotos(restaurantId: string, photos: PlacePhoto[]): Promise<string[]> {
-  const saved: Array<{ url: string; quality: number; data: Parameters<typeof prisma.restaurantPhoto.create>[0]['data'] }> = []
+async function importPhotos(restaurantId: string, photos: PlacePhoto[]): Promise<{ urls: string[]; failures: number }> {
+  const chosen = photos.slice(0, MAX_PHOTOS_PER_PLACE)
+  const urls: string[] = []
+  let failures = 0
 
-  for (const [index, photo] of photos.slice(0, MAX_PHOTOS_PER_PLACE).entries()) {
-    try {
-      const buffer = await downloadPhotoMedia(photo.name)
-      const image = await saveImage(buffer)
-      const attributions = (photo.authorAttributions ?? []).map((a) => a.displayName).filter(Boolean)
-
-      // The same moderator the community upload path uses, run here for its
-      // qualityScore rather than its verdict: these photos are Google's and
-      // already published, so the model ranks them, it does not gate them.
-      // Falling back to Google's own ordering keeps the import working with
-      // no AI key at all.
-      const quality = await ratePhoto(restaurantId, buffer, image.ext, MAX_PHOTOS_PER_PLACE - index)
-
-      saved.push({
-        url: image.url,
-        quality,
+  // Three downloads at a time make the import quick without a burst of ten
+  // requests to Google. Persist in Google's original order afterward.
+  for (let start = 0; start < chosen.length; start += 3) {
+    const batch = await Promise.all(chosen.slice(start, start + 3).map(async (photo, offset) => {
+      try {
+        const image = await saveImage(await downloadPhotoMedia(photo.name))
+        return { image, sortOrder: start + offset, attributions: (photo.authorAttributions ?? []).map((a) => a.displayName).filter(Boolean) }
+      } catch (error) {
+        failures++
+        const detail = safeError(error)
+        console.error(`Places photo failed for restaurant ${restaurantId}:`, detail)
+        await recordSystemEvent('places-photo', 'error', `Photo ${start + offset + 1} failed for restaurant ${restaurantId}`, detail)
+        return null
+      }
+    }))
+    for (const row of batch) {
+      if (!row) continue
+      await prisma.restaurantPhoto.create({
         data: {
           restaurantId,
-          url: image.url,
-          width: image.width,
-          height: image.height,
-          blurDataUrl: image.blurDataUrl,
+          url: row.image.url,
+          width: row.image.width,
+          height: row.image.height,
+          blurDataUrl: row.image.blurDataUrl,
           source: 'google',
           status: 'approved',
-          attributions: JSON.stringify(attributions),
+          attributions: JSON.stringify(row.attributions),
+          sortOrder: row.sortOrder,
         },
       })
-    } catch (error) {
-      // One failed photo skips, never fails the place.
-      console.error(`Places photo download failed for restaurant ${restaurantId}:`, error)
+      urls.push(row.image.url)
     }
   }
-
-  // Best first. sortOrder is what app/r/[slug] orders the gallery by, so this
-  // is the whole of "the AI picks which photos lead" — nothing is discarded.
-  saved.sort((a, b) => b.quality - a.quality)
-  for (const [sortOrder, row] of saved.entries()) {
-    await prisma.restaurantPhoto.create({ data: { ...row.data, sortOrder } })
-  }
-
-  return saved.map((row) => row.url)
-}
-
-const RATE_MIME: Record<string, string> = {
-  jpg: 'image/jpeg',
-  png: 'image/png',
-  gif: 'image/gif',
-  webp: 'image/webp',
-  avif: 'image/avif',
-}
-
-/**
- * 0-100 for how good a shot this is of this venue. `fallback` is Google's own
- * position, preserved when the model is off or fails — it is always below the
- * lowest real score a rated photo can beat it with, so an unrated photo never
- * jumps ahead of a rated one on a technicality.
- */
-async function ratePhoto(
-  restaurantId: string,
-  buffer: Buffer,
-  ext: string,
-  fallback: number
-): Promise<number> {
-  try {
-    const restaurant = await prisma.restaurant.findUnique({
-      where: { id: restaurantId },
-      select: { name: true, cuisines: true },
-    })
-    if (!restaurant) return fallback
-
-    const result = await moderatePhoto({
-      restaurantName: restaurant.name,
-      cuisines: JSON.parse(restaurant.cuisines || '[]'),
-      photo: { data: buffer, mimeType: RATE_MIME[ext] ?? 'application/octet-stream' },
-      existingPhotos: [],
-    })
-    if (!result.ok) return fallback
-
-    const v = result.data
-    // A photo the moderator would have rejected still gets shown (it is
-    // Google's own listing photo) but it is pushed behind everything rated.
-    if (v.isNsfw || v.isSpamOrPromotional || !v.depictsFoodOrVenue) return 0
-    return v.qualityScore
-  } catch (error) {
-    if (!(error instanceof AiDisabledError)) {
-      console.error(`Photo rating failed for restaurant ${restaurantId}:`, error)
-    }
-    return fallback
-  }
+  return { urls, failures }
 }

@@ -56,13 +56,17 @@ export async function POST(request: NextRequest) {
     const existing = placeIds.length
       ? await prisma.restaurant.findMany({
           where: { placeId: { in: placeIds } },
-          select: { placeId: true },
+          select: { placeId: true, _count: { select: { photos: true } } },
         })
       : []
-    const importedSet = new Set(existing.map((r) => r.placeId))
+    const imported = new Map(existing.map((r) => [r.placeId, r._count.photos]))
 
     return NextResponse.json({
-      candidates: candidates.map((c) => ({ ...c, alreadyImported: importedSet.has(c.placeId) })),
+      candidates: candidates.map((c) => ({
+        ...c,
+        alreadyImported: imported.has(c.placeId),
+        needsPhotos: imported.get(c.placeId) === 0,
+      })),
     })
   } catch (error: any) {
     if (error.message === 'Unauthorized') {

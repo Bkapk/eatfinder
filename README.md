@@ -119,7 +119,7 @@ app/
   page.tsx              map-first front door (server component, reads MAPBOX_TOKEN + locale)
   eat/page.tsx           redirect('/') — the old slider page URL still resolves
   r/[slug]/page.tsx       restaurant detail, gallery, favourite, photo submit CTA
-  admin/                 dashboard, new/edit, import/export, discover (Places), queue (AI), photos (moderation)
+  admin/                 dashboard, new/edit, import/export, discover (Places), queue (AI), photos (moderation), system status
   account/                community login/register/profile
   api/
     auth/                 login (throttled + username-or-email), register, logout, me
@@ -149,7 +149,7 @@ lib/
 middleware.ts     cookie-presence gate on /admin/*, not a security boundary
 prisma/
   schema.prisma
-  migrations/      three applied: init, rebuild_restaurant_model, v2_places_ai_community
+  migrations/      four applied: init, rebuild_restaurant_model, v2_places_ai_community, system_events
   seed.ts, sample-restaurants.ts, sample.csv
 docs/
   PLAN.md          the v2 rebuild plan and decisions log — historical record, do not edit

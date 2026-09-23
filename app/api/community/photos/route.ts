@@ -6,6 +6,7 @@ import { photoToDTO } from '@/lib/types'
 import { saveImage, UnsupportedImageError } from '@/lib/storage'
 import { moderatePhoto, decidePhotoModeration, AiDisabledError, type ModerationResult } from '@/lib/gemini'
 import { serverError } from '@/lib/apiError'
+import { recordSystemEvent } from '@/lib/systemEvents'
 
 const MAX_BYTES = 5 * 1024 * 1024
 const HOUR_MS = 60 * 60 * 1000
@@ -172,6 +173,13 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    await recordSystemEvent(
+      'community-photo',
+      moderation.ok ? 'info' : 'warning',
+      `Photo submitted for ${restaurant.name}: ${decision.status}`,
+      moderation.ok ? undefined : `AI moderation unavailable; sent to manual review. ${moderation.error}`
+    )
+
     return NextResponse.json({ photo: photoToDTO(photo), status: decision.status }, { status: 201 })
   } catch (error: any) {
     if (error.message === 'Unauthorized') {
@@ -183,6 +191,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 })
     }
+    await recordSystemEvent('community-photo', 'error', 'Photo submission failed', error instanceof Error ? error.message : 'Unknown error')
     return serverError('community/photos', error)
   }
 }

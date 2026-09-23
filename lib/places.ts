@@ -23,7 +23,7 @@ function apiKey(): string {
   return key
 }
 
-/** Throws PlacesDisabledError up front, before a route does 20 places' worth of work. */
+/** Throws PlacesDisabledError before a route begins paid API work. */
 export function assertPlacesEnabled(): void {
   apiKey()
 }
@@ -136,6 +136,7 @@ async function callPlaces<T>(url: string, fieldMask: string, body?: unknown): Pr
       'X-Goog-FieldMask': fieldMask,
     },
     body: body ? JSON.stringify(body) : undefined,
+    signal: typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(15000) : undefined,
   })
   if (!res.ok) {
     const text = await res.text().catch(() => '')
@@ -250,7 +251,9 @@ const MAX_PHOTO_BYTES = 8 * 1024 * 1024 // maxWidthPx keeps normal photos well u
 
 export async function downloadPhotoMedia(photoName: string, maxWidthPx = 1200): Promise<Buffer> {
   const url = `${PLACES_BASE}/${photoName}/media?maxWidthPx=${maxWidthPx}&key=${apiKey()}`
-  const res = await fetch(url)
+  const res = await fetch(url, {
+    signal: typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(15000) : undefined,
+  })
   if (!res.ok) throw new PlacesApiError(res.status, `Google Places photo media ${res.status}`)
 
   const declared = res.headers.get('content-length')

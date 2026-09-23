@@ -217,7 +217,7 @@ export const sq = {
     'Lidhja mund të jetë e vjetër, ose vendi ka ndryshuar adresë. Harta është aty ku e le.',
   'notFound.cta': 'Kthehu te harta',
 
-  'photoUpload.title': 'Shto një foto',
+  'photoUpload.title': 'Ndaje vizitën tënde',
   'photoUpload.chooseFile': 'Zgjidh një foto',
   'photoUpload.caption': 'Përshkrim (opsional)',
   'photoUpload.captionPlaceholder': 'p.sh. Pjatë me qebapa',
@@ -227,6 +227,7 @@ export const sq = {
   'photoUpload.success.pending': 'Faleminderit! Foto jote është duke u shqyrtuar.',
   'photoUpload.error.generic': 'Ngarkimi dështoi. Provo përsëri.',
   'photoUpload.error.tooLarge': 'Foto duhet të jetë nën 5 MB.',
+  'photoUpload.error.type': 'Zgjidh foto JPEG, PNG, GIF, WebP ose AVIF.',
   'photoUpload.error.rateLimited': 'Ke arritur kufirin e ngarkimeve. Provo përsëri pas {minutes} minutash.',
   'photoUpload.cancel': 'Anulo',
 
@@ -245,4 +246,15 @@ export const sq = {
   'photoUpload.tooMany': 'Deri në {n} foto njëherësh.',
   'photoUpload.progress': 'Duke ngarkuar {n} nga {total}…',
   'photoUpload.success.batch': '{approved} live, {pending} në shqyrtim.',
+  'photoUpload.dropTitle': 'Lësho fotot këtu',
+  'photoUpload.dropHint': 'Shfaq ushqimin, ambientin ose një moment të veçantë.',
+  'photoUpload.browse': 'Zgjidh fotot',
+  'photoUpload.rules': 'Deri në {n} foto · 5 MB secila · JPG, PNG, WebP, GIF ose AVIF',
+  'photoUpload.remove': 'Hiq',
+  'photoUpload.uploading': 'Duke ngarkuar',
+  'photoUpload.captionHint': 'Ky përshkrim shfaqet me secilën foto të zgjedhur.',
+  'photoUpload.submitEmpty': 'Zgjidh foto për të ndarë',
+  'photoUpload.submitOne': 'Ndaj 1 foto',
+  'photoUpload.submitMany': 'Ndaj {n} foto',
+  'photoUpload.sent': 'foto u dërguan',
 }

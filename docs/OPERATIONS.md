@@ -12,16 +12,17 @@ Requires `GOOGLE_PLACES_API_KEY` set (see README "Running without API keys").
    nearby a point (`mode: 'nearby'`, needs lat/lng). This calls
    `POST /api/admin/places/search`, which proxies Google and **persists
    nothing** — nothing is written to the database until you import.
-3. Results already imported (matched by `placeId`) are marked
-   `alreadyImported` and their checkbox is disabled — you cannot double-import
-   the same place.
-4. Tick up to 20 candidates, click Import. `POST /api/admin/places/import`
-   fetches full details per place, downloads up to 6 photos each and
+3. Results already imported (matched by `placeId`) are marked. Listings with
+   no photos can be selected again to retry their gallery.
+4. Tick candidates, click Import. The UI makes one request per place so each
+   has its own result and timeout. `POST /api/admin/places/import`
+   fetches full details, downloads up to 10 photos and
    re-hosts them through `lib/storage.saveImage`, and creates each as a
    **draft** restaurant: `source: 'google'`, `isActive: false`,
    `aiStatus: 'none'`. One failed place never fails the batch — you get a
-   per-place `ok` / `skipped` / `failed` result, and re-running the import for
-   an already-imported `placeId` just reports `skipped`.
+   per-place `ok` / `skipped` / `failed` result with photo counts. An existing
+   listing with photos is skipped; one with no photos is repaired from fresh
+   Google photo names. Photo failures appear in `/admin/system`.
 5. Drafts do not appear on the public site (`/api/recommend` only returns
    `isActive: true`). Review them on `/admin` — filter to drafts, check
    address/hours/photos, then either enrich them with AI (§2) or hand-edit
@@ -134,10 +135,26 @@ request):
 | `POST /api/admin/ai/enrich` | 60 `AiProposal` rows created in the trailing hour, across all restaurants; also refuses a restaurant that already has a pending proposal; batch capped at 10 restaurant IDs per request | `aiProposalsLastHour()` in `lib/ratelimit.ts` — counts DB rows, survives a process restart |
 | `POST /api/community/photos` | 5 photos per user per hour, 20 per user per 24h (each submission is a Gemini vision call) | Row counts against `RestaurantPhoto.submittedById`/`createdAt`, DB-backed |
 | `POST /api/admin/places/search` | 100 searches per admin per hour | In-process `Map` in `lib/ratelimit.ts`'s `createMapLimiter()` — quota guard, not spend, and resets on restart (see `docs/DEPLOY.md` §7) |
-| `POST /api/admin/places/import` | 20 places per request, photo downloads capped at 6 per place | Request schema (`z.array(...).max(20)`) plus `MAX_PHOTOS_PER_PLACE` in `app/api/admin/places/import/route.ts` |
+| `POST /api/admin/places/import` | One place per request, photo downloads capped at 10 per place | Request schema (`z.array(...).length(1)`) plus `MAX_PHOTOS_PER_PLACE` in `app/api/admin/places/import/route.ts` |
 
-All of the above return `429` with a human-readable message (and, for the
-photo endpoint, a `Retry-After` header) rather than a silent empty result.
+The rate-limited endpoints return `429` with a human-readable message (and,
+for the photo endpoint, a `Retry-After` header). The importer instead gives a
+per-place failure result.
+
+## 5. System status and recovery
+
+Open `/admin/system` for database, storage, Google Places details and photo
+media, Gemini model, and Mapbox status. **Run live checks** explicitly to test
+external services; simply opening the page does not issue billable Places
+requests. Green means a check passed within 24 hours, orange means unverified
+or partial, and red means a failed check. The page also lists Google listings
+with no photos and offers a **Retry photos** action, which requests fresh
+photo names rather than reusing expired ones.
+
+Recent import, photo and check events are stored in `SystemEvent` and shown on
+the page. They are application events, not raw PM2 or Nginx logs. Credentials
+and third-party response bodies are never recorded. Keep using server logs for
+stack traces when an application event is insufficient.
 
 **The Places field mask is the billing tier — never widen it to a
 wildcard.** `lib/places.ts` sends an explicit `X-Goog-FieldMask` on every

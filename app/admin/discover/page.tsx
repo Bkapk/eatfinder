@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Search, MapPin, CheckCircle2, Loader2, Compass } from 'lucide-react'
+import Link from 'next/link'
 
 import { PageHeader, EmptyState } from '../components/AdminUI'
 
@@ -16,10 +17,11 @@ interface Candidate {
   ratingCount: number | null
   primaryType: string | null
   alreadyImported: boolean
+  needsPhotos?: boolean
 }
 
 type ImportResult =
-  | { placeId: string; status: 'ok'; restaurantId: string; name: string }
+  | { placeId: string; status: 'ok'; restaurantId: string; name: string; photoCount: number; photoFailures: number }
   | { placeId: string; status: 'skipped'; reason: string }
   | { placeId: string; status: 'failed'; reason: string }
 
@@ -28,6 +30,7 @@ export default function DiscoverPage() {
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState({ done: 0, total: 0 })
   const [error, setError] = useState('')
   const [disabled, setDisabled] = useState(false)
   const [candidates, setCandidates] = useState<Candidate[]>([])
@@ -56,24 +59,24 @@ export default function DiscoverPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
 
       if (res.status === 503) {
         setDisabled(true)
-        setError(data.error || 'Google Places is disabled.')
+        setError(data?.error || 'Google Places is disabled.')
         setCandidates([])
         return
       }
       if (!res.ok) {
-        setError(data.error || 'Search failed')
+        setError(data?.error || `Search service returned HTTP ${res.status}. Check System logs.`)
         setCandidates([])
         return
       }
 
-      setCandidates(data.candidates || [])
+      setCandidates(data?.candidates || [])
       setSelected(new Set())
-    } catch (err) {
-      setError('An error occurred while searching.')
+    } catch {
+      setError('Could not reach Google Places search. Check System status.')
     } finally {
       setSearching(false)
     }
@@ -93,37 +96,38 @@ export default function DiscoverPage() {
     setImporting(true)
     setError('')
     setResults([])
+    const placeIds = Array.from(selected)
+    setImportProgress({ done: 0, total: placeIds.length })
 
     try {
-      const res = await fetch('/api/admin/places/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ placeIds: Array.from(selected) }),
-      })
-      const data = await res.json()
-
-      if (res.status === 503) {
-        setDisabled(true)
-        setError(data.error || 'Google Places is disabled.')
-        return
+      for (const [index, placeId] of placeIds.entries()) {
+        try {
+          const res = await fetch('/api/admin/places/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ placeIds: [placeId] }),
+          })
+          const data = await res.json().catch(() => null)
+          if (res.status === 503) {
+            setDisabled(true)
+            setError(data?.error || 'Google Places is disabled.')
+            break
+          }
+          const result: ImportResult = res.ok && data?.results?.[0]
+            ? data.results[0]
+            : { placeId, status: 'failed', reason: data?.error || `Import service returned HTTP ${res.status}. Check System logs.` }
+          setResults((prev) => [...prev, result])
+          if (result.status === 'ok') {
+            setCandidates((prev) => prev.map((c) =>
+              c.placeId === placeId ? { ...c, alreadyImported: true, needsPhotos: result.photoCount === 0 } : c
+            ))
+          }
+        } catch {
+          setResults((prev) => [...prev, { placeId, status: 'failed', reason: 'Connection lost. Check System logs; this place may have been saved as a draft.' }])
+        }
+        setImportProgress({ done: index + 1, total: placeIds.length })
       }
-      if (!res.ok) {
-        setError(data.error || 'Import failed')
-        return
-      }
-
-      setResults(data.results || [])
-      const ok = new Set<string>(
-        (data.results || [])
-          .filter((r: ImportResult) => r.status === 'ok')
-          .map((r: ImportResult) => r.placeId)
-      )
-      setCandidates((prev) =>
-        prev.map((c) => (ok.has(c.placeId) ? { ...c, alreadyImported: true } : c))
-      )
       setSelected(new Set())
-    } catch (err) {
-      setError('An error occurred while importing.')
     } finally {
       setImporting(false)
     }
@@ -146,7 +150,7 @@ export default function DiscoverPage() {
 
       {!disabled && error && (
         <div role="alert" className="ef-alert">
-          {error}
+          {error} <Link href="/admin/system" className="font-semibold underline">View system status</Link>
         </div>
       )}
 
@@ -222,7 +226,8 @@ export default function DiscoverPage() {
                 >
                   {r.status}
                 </span>
-                <span>{r.status === 'ok' ? r.name : r.placeId}</span>
+                <span>{r.status === 'ok' ? <Link href={`/admin/${r.restaurantId}`} className="underline">{r.name}</Link> : r.placeId}</span>
+                {r.status === 'ok' && <span className="text-text-secondary">— {r.photoCount} photos{r.photoFailures > 0 ? `, ${r.photoFailures} failed` : ''}</span>}
                 {'reason' in r && <span className="text-text-secondary">— {r.reason}</span>}
               </li>
             ))}
@@ -247,7 +252,7 @@ export default function DiscoverPage() {
               ) : (
                 <CheckCircle2 size={18} />
               )}
-              {importing ? 'Importing…' : `Import selected (${selected.size})`}
+              {importing ? `Importing ${Math.min(importProgress.done + 1, importProgress.total)} of ${importProgress.total}…` : `Import selected (${selected.size})`}
             </button>
           </div>
 
@@ -256,7 +261,7 @@ export default function DiscoverPage() {
               <label
                 key={c.placeId}
                 className={`block bg-surface border rounded-2xl p-5 cursor-pointer transition-colors ${
-                  c.alreadyImported
+                  c.alreadyImported && !c.needsPhotos
                     ? 'border-border opacity-60 cursor-not-allowed'
                     : selected.has(c.placeId)
                       ? 'border-primary bg-primary-soft'
@@ -269,7 +274,7 @@ export default function DiscoverPage() {
                   <input
                     type="checkbox"
                     checked={selected.has(c.placeId)}
-                    disabled={c.alreadyImported}
+                  disabled={c.alreadyImported && !c.needsPhotos}
                     onChange={() => toggle(c.placeId)}
                     className="mt-0.5"
                   />
@@ -278,7 +283,7 @@ export default function DiscoverPage() {
                       <span className="font-bold leading-snug">{c.name}</span>
                       {c.alreadyImported && (
                         <span className="ef-badge ef-badge--neutral shrink-0">
-                          Already imported
+                          {c.needsPhotos ? 'Retry missing photos' : 'Already imported'}
                         </span>
                       )}
                     </div>

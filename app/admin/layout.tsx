@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   Sparkles,
+  Activity,
   Store,
   UtensilsCrossed,
   X,
@@ -31,6 +32,7 @@ const NAV = [
   { href: '/admin/queue', label: 'AI Queue', icon: Sparkles },
   { href: '/admin/photos', label: 'Photos', icon: Images },
   { href: '/admin/import', label: 'Import/Export', icon: LayoutList },
+  { href: '/admin/system', label: 'System', icon: Activity },
 ] as const
 
 function NavLink({ item, pathname }: { item: (typeof NAV)[number]; pathname: string }) {

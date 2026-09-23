@@ -205,3 +205,17 @@ model Favorite {
   @@unique([userId, restaurantId])
   @@index([userId, createdAt])
 }
+
+/// Operator-visible application events. Messages are intentionally short and
+/// contain no credentials or raw third-party payloads.
+model SystemEvent {
+  id        String   @id @default(cuid())
+  area      String
+  level     String   // "info" | "warning" | "error"
+  message   String
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([area, createdAt])
+}
