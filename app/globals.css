@@ -372,14 +372,15 @@
   }
 
   .ef-chip {
-    @apply inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-full bg-primary-soft pl-2.5 pr-1 text-[12px] font-semibold text-primary;
+    @apply inline-flex h-9 max-w-full items-center gap-1 rounded-full bg-primary-soft pl-3 pr-1 text-[12px] font-semibold text-primary;
+    overflow-wrap: anywhere;
   }
 
   /* The × inside a chip. The search rail and both vocab pickers in the admin
      form had this same 24px target hand-written three times, so a hover tweak
      had to be made in two files to land everywhere. */
   .ef-chip-remove {
-    @apply grid h-6 w-6 place-items-center rounded-full text-primary hover:bg-primary hover:text-on-primary;
+    @apply grid h-8 w-8 shrink-0 place-items-center rounded-full text-primary hover:bg-primary hover:text-on-primary;
     transition:
       background-color var(--dur) var(--ease),
       color var(--dur) var(--ease);
@@ -714,8 +715,8 @@
     min-height: var(--topbar-h);
   }
 
-  @media (max-width: 359px) {
-    .ef-topbar--search { flex-wrap: wrap; }
+  @media (max-width: 767px) {
+    .ef-topbar--search { flex-wrap: wrap; row-gap: 8px; }
     .ef-topbar--search .ef-topbar-search-controls {
       order: 3;
       flex: 0 0 100%;
@@ -791,7 +792,13 @@
   .ef-scroll-fade {
     /* Horizontal rails fade at the right edge instead of showing a cut-off chip. */
     mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+    scrollbar-width: none;
   }
+
+  .ef-scroll-fade::-webkit-scrollbar { display: none; }
+
+  .ef-no-scrollbar { scrollbar-width: none; }
+  .ef-no-scrollbar::-webkit-scrollbar { display: none; }
 
   /* A rail is a scroll box AND a masked box, so anything inside it casting a
      drop shadow gets that shadow sliced twice: flat against the bottom of the
@@ -1008,4 +1015,14 @@ select:disabled {
 }
 @container (min-width: 740px) {
   .ef-results-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* iOS zooms the entire page when a focused form field is rendered below 16px.
+   Keep compact labels, but let editable controls stay at a readable size. */
+@media (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }

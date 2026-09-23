@@ -51,7 +51,7 @@ export default function RestaurantCard({
       <div
         className={[
           'relative shrink-0 overflow-hidden bg-surface-muted',
-          row ? 'w-28 sm:w-32' : popup ? 'aspect-[16/9]' : 'aspect-[3/2]',
+          row ? 'w-24 min-[360px]:w-28 sm:w-32' : popup ? 'aspect-[16/9]' : 'aspect-[3/2]',
         ].join(' ')}
       >
         {item.image ? (
@@ -152,7 +152,7 @@ export default function RestaurantCard({
           <span className="text-[17px] font-extrabold leading-none tracking-tight text-text">
             {priceGlyphs(item.priceLevel)}
           </span>
-          <span className="rounded-full bg-accent-soft px-2 py-1 text-[11px] font-bold leading-none text-accent">
+          <span className="whitespace-nowrap rounded-full bg-accent-soft px-2 py-1 text-[11px] font-bold leading-none text-accent">
             {t(locale, 'card.match', { n: matchPercent(item.score) })}
           </span>
         </div>

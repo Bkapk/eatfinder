@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { List, Map as MapIcon } from 'lucide-react'
+import { List, Map as MapIcon, X } from 'lucide-react'
 
 import { parseFilters, toSearchParams, type ParsedFilters } from '@/lib/filters'
 import type { MapPoint, ScoredRestaurant, Sort, View } from '@/lib/types'
@@ -45,11 +45,26 @@ export default function SearchShell({
 
   const pendingRef = useRef<ParsedFilters | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const writtenParamsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
+    // A URL update can arrive after the user has already typed another
+    // character. Keep that newer edit and its timer until its own write lands.
+    const wasOurWrite = writtenParamsRef.current.delete(spString)
+    if (
+      wasOurWrite &&
+      pendingRef.current &&
+      toSearchParams(pendingRef.current).toString() !== spString
+    ) return
     setOverride(null)
     pendingRef.current = null
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = null
   }, [spString])
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+  }, [])
 
   // Discrete changes (a chip, a pill, sort, view) get their own history entry
   // so Back undoes exactly one of them, which is the Phase 2 acceptance
@@ -57,7 +72,10 @@ export default function SearchShell({
   // ten-character query would bury the previous page under ten entries.
   const write = useCallback(
     (next: ParsedFilters, mode: 'push' | 'replace') => {
-      const url = `${pathname}?${toSearchParams(next).toString()}`
+      const params = toSearchParams(next).toString()
+      if (writtenParamsRef.current.size > 20) writtenParamsRef.current.clear()
+      writtenParamsRef.current.add(params)
+      const url = `${pathname}?${params}`
       if (mode === 'push') router.push(url, { scroll: false })
       else router.replace(url, { scroll: false })
     },
@@ -72,14 +90,22 @@ export default function SearchShell({
       pendingRef.current = next
       setOverride(next)
       if (timerRef.current) clearTimeout(timerRef.current)
-      if (opts.debounce) timerRef.current = setTimeout(() => write(next, 'replace'), 300)
+      if (opts.debounce) timerRef.current = setTimeout(() => {
+        timerRef.current = null
+        write(next, 'replace')
+      }, 300)
       else write(next, 'push')
     },
     [filters, write]
   )
 
   const clearAll = useCallback(() => {
-    write({ heavy: 50, hungry: 50, fine: 50, view: filters.view, page: 1 }, 'push')
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = null
+    pendingRef.current = null
+    const reset = { heavy: 50, hungry: 50, fine: 50, view: filters.view, page: 1 } as ParsedFilters
+    setOverride(reset)
+    write(reset, 'push')
   }, [filters.view, write])
 
   // --- results ---------------------------------------------------------
@@ -139,9 +165,12 @@ export default function SearchShell({
 
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [panelOpen, setPanelOpen] = useState(false)
+  const [expandedChips, setExpandedChips] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const view: View = filters.view
-  const chipCount = activeChips(filters, locale).length
+  const chips = activeChips(filters, locale)
+  const chipCount = chips.length
   const hasMore = items.length < total
 
   const showMap = Boolean(mapboxToken) && view === 'map'
@@ -172,15 +201,51 @@ export default function SearchShell({
       <TopBar locale={locale}>
         <SearchBar
           locale={locale}
-          filters={filters}
           query={filters.query ?? ''}
           onQuery={(v) => patch({ query: v || undefined }, { debounce: true })}
-          onPatch={(p) => patch(p)}
-          onClearAll={clearAll}
+          onClearQuery={() => patch({ query: undefined })}
           onOpenFilters={() => setPanelOpen(true)}
           filterCount={chipCount}
+          inputRef={searchInputRef}
         />
       </TopBar>
+
+      {chips.length > 0 && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2 sm:px-5" role="group" aria-label={t(locale, 'search.activeFilters')}>
+          {chips.map((chip, index) => (
+            <span key={chip.key} className={`ef-chip ef-chip-enter ${index >= 3 && !expandedChips ? 'hidden sm:inline-flex' : ''}`}>
+              <span className="min-w-0 truncate">{chip.label}</span>
+              <button
+                type="button"
+                onClick={(event) => {
+                  patch(chip.patch)
+                  // Keep keyboard users in the controls without opening the
+                  // software keyboard after a touch removal.
+                  if (event.detail === 0) searchInputRef.current?.focus({ preventScroll: true })
+                }}
+                aria-label={t(locale, 'search.remove', { label: chip.label })}
+                className="ef-chip-remove"
+              >
+                <X size={13} aria-hidden />
+              </button>
+            </span>
+          ))}
+          {chips.length > 3 && (
+            <button
+              type="button"
+              onClick={() => setExpandedChips((value) => !value)}
+              aria-expanded={expandedChips}
+              aria-label={t(locale, expandedChips ? 'search.showLess' : 'search.showMore', { n: chips.length - 3 })}
+              className="ef-pill sm:hidden"
+            >
+              {expandedChips ? t(locale, 'search.less') : `+${chips.length - 3}`}
+            </button>
+          )}
+          <button type="button" onClick={() => { setExpandedChips(false); clearAll() }} className="ef-btn ef-btn--quiet">
+            {t(locale, 'search.clearAll')}
+          </button>
+        </div>
+      )}
 
       <main className="flex min-h-0 flex-1">
         {/* Map: full-bleed, no padding, no card wrapper. Hidden below md unless
@@ -232,7 +297,7 @@ export default function SearchShell({
           <div className={`flex h-full w-full shrink-0 flex-col ${mapboxToken ? 'md:w-[40vw]' : 'md:w-full'}`}>
             {!mapboxToken && (
               <div className="flex min-h-[60px] items-center justify-between gap-3 border-b border-border px-4 py-2 sm:px-5">
-                <div className="flex min-w-0 items-center gap-2 overflow-x-auto" aria-label={t(locale, 'search.filters')}>
+                <div className="ef-no-scrollbar flex min-w-0 items-center gap-2 overflow-x-auto" aria-label={t(locale, 'search.filters')}>
                   {quickCuisines.map((c) => {
                     const selected = (filters.cuisines ?? []).includes(c)
                     return (

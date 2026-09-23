@@ -308,12 +308,12 @@ export default function AdminPage() {
             className="ef-input pl-11"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex">
           <select
             aria-label="Filter by status"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as 'all' | 'live' | 'draft')}
-            className="ef-input flex-1 sm:w-auto"
+            className="ef-input col-span-2 min-w-0 sm:w-auto"
           >
             <option value="all">All statuses</option>
             <option value="live">Live only</option>
@@ -323,7 +323,7 @@ export default function AdminPage() {
             aria-label="Sort by"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="ef-input flex-1 sm:w-auto"
+            className="ef-input min-w-0 sm:w-auto"
           >
             <option value="updatedAt">Last updated</option>
             <option value="name">Name</option>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import type { RefObject } from 'react'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { priceGlyphs, t, tVocab, type Locale } from '@/lib/i18n'
 import type { ParsedFilters } from '@/lib/filters'
@@ -70,78 +70,42 @@ export function activeChips(f: ParsedFilters, locale: Locale): Chip[] {
 
 export default function SearchBar({
   locale,
-  filters,
   query,
   onQuery,
-  onPatch,
-  onClearAll,
+  onClearQuery,
   onOpenFilters,
   filterCount,
+  inputRef,
 }: {
   locale: Locale
-  filters: ParsedFilters
   query: string
   onQuery: (v: string) => void
-  onPatch: (patch: Patch) => void
-  onClearAll: () => void
+  onClearQuery: () => void
   onOpenFilters: () => void
   filterCount: number
+  inputRef: RefObject<HTMLInputElement | null>
 }) {
-  const chips = activeChips(filters, locale)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  // Removing a chip unmounts the button that had focus, which drops focus to
-  // <body> and loses the keyboard user's place. Hand it to the search input.
-  const remove = (patch: Patch) => {
-    onPatch(patch)
-    inputRef.current?.focus()
-  }
-
   return (
     <div className="ef-topbar-search-controls flex min-w-0 flex-1 items-center gap-2">
       <div className="ef-searchbar">
         <Search size={17} aria-hidden className="shrink-0 text-text-secondary" />
-
-        <div
-          // scroll-pr-8 clears the 24px mask on .ef-scroll-fade: without it a
-          // chip tabbed to at the right edge lands under the fade and its focus
-          // ring is half invisible (WCAG 2.4.11).
-          className="ef-scroll-fade flex min-w-0 flex-1 scroll-pr-8 items-center gap-1.5 overflow-x-auto"
-          role="group"
-          aria-label={t(locale, 'search.activeFilters')}
-        >
-          {chips.map((c) => (
-            <span key={c.key} className="ef-chip ef-chip-enter">
-              {c.label}
-              <button
-                type="button"
-                onClick={() => remove(c.patch)}
-                aria-label={t(locale, 'search.remove', { label: c.label })}
-                className="ef-chip-remove"
-              >
-                <X size={12} aria-hidden />
-              </button>
-            </span>
-          ))}
-
-          <input
-            ref={inputRef}
-            type="search"
-            value={query}
-            onChange={(e) => onQuery(e.target.value)}
-            placeholder={chips.length ? '' : t(locale, 'search.placeholder')}
-            aria-label={t(locale, 'search.label')}
-            className="h-9 min-w-[4.5rem] flex-1 border-0 bg-transparent text-[14px] text-text outline-none placeholder:text-text-secondary"
-          />
-        </div>
-
-        {(chips.length > 0 || query) && (
+        <input
+          ref={inputRef}
+          type="search"
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          placeholder={t(locale, 'search.placeholder')}
+          aria-label={t(locale, 'search.label')}
+          className="h-full min-w-0 flex-1 border-0 bg-transparent text-base text-text outline-none placeholder:text-text-secondary sm:text-[14px]"
+        />
+        {query && (
           <button
             type="button"
-            onClick={onClearAll}
-            className="ef-btn ef-btn--quiet shrink-0"
+            onClick={onClearQuery}
+            aria-label={t(locale, 'search.clearQuery')}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-text-secondary hover:bg-surface-hover hover:text-text"
           >
-            {t(locale, 'search.clearAll')}
+            <X size={16} aria-hidden />
           </button>
         )}
       </div>
