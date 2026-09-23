@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Heart, Languages, UserRound, UtensilsCrossed } from 'lucide-react'
 import { LOCALE_COOKIE, t, type Locale } from '@/lib/i18n'
 import { useFavorites } from './useFavorites'
@@ -17,6 +17,15 @@ export default function TopBar({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const { ids } = useFavorites()
+  const [signedIn, setSignedIn] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/auth/me', { cache: 'no-store' })
+      .then((response) => { if (active) setSignedIn(response.ok) })
+      .catch(() => { if (active) setSignedIn(false) })
+    return () => { active = false }
+  }, [])
 
   // `?lang=` is how the toggle switches; this is what makes it stick. The
   // server component reads the same cookie on every later request, so the URL
@@ -83,18 +92,20 @@ export default function TopBar({
           <span className="tabular-nums">{ids.length}</span>
         </Link>
 
-        <Link
-          href="/account/login"
-          className="ef-pill ef-pill--lg ef-pill--quiet hidden lg:inline-flex"
-        >
-          {t(locale, 'nav.signIn')}
-        </Link>
-        <Link
-          href="/account/register"
-          className="ef-pill ef-pill--lg ef-pill--active hidden sm:inline-flex"
-        >
-          {t(locale, 'nav.register')}
-        </Link>
+        {signedIn === true ? (
+          <Link href="/account" className="ef-pill ef-pill--lg ef-pill--active hidden sm:inline-flex">
+            <UserRound size={15} aria-hidden />{t(locale, 'nav.account')}
+          </Link>
+        ) : signedIn === false ? (
+          <>
+            <Link href="/account/login" className="ef-pill ef-pill--lg ef-pill--quiet hidden lg:inline-flex">
+              {t(locale, 'nav.signIn')}
+            </Link>
+            <Link href="/account/register" className="ef-pill ef-pill--lg ef-pill--active hidden sm:inline-flex">
+              {t(locale, 'nav.register')}
+            </Link>
+          </>
+        ) : null}
       </div>
     </header>
   )
