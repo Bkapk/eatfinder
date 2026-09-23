@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { LOCALE_COOKIE, resolveLocale, t } from '@/lib/i18n'
 import TopBar from '@/components/TopBar'
 import RegisterForm from './RegisterForm'
+import { safeReturnPath } from '@/lib/redirect'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +21,7 @@ export default async function AccountRegisterPage({
   const [sp, jar] = await Promise.all([searchParams, cookies()])
   const langParam = typeof sp.lang === 'string' ? sp.lang : null
   const locale = resolveLocale(langParam, jar.get(LOCALE_COOKIE)?.value)
-  const next = typeof sp.next === 'string' ? sp.next : '/account'
+  const next = safeReturnPath(sp.next, '/account')
 
   return (
     <div className="flex min-h-[100dvh] flex-col">

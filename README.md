@@ -38,9 +38,8 @@ npm run dev
 - Admin: http://localhost:3000/admin
 - Community accounts: http://localhost:3000/account
 
-Run `create-admin` before `db:seed`. `db:seed` also creates an admin user if
-none exists yet, but it does not set `role: 'admin'` on that path (see Known
-gaps) — running `create-admin` first avoids ever hitting that.
+Run `create-admin` before `db:seed` so the configured admin password is applied.
+Both commands set the account's role to `admin`.
 
 `SESSION_SECRET` must be at least 32 characters:
 
@@ -53,7 +52,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 | Script | Does |
 | --- | --- |
 | `npm run dev` | Dev server |
-| `npm run build` | `prisma generate` then `next build` (`output: 'standalone'`) |
+| `npm run build` | `prisma generate` then `next build` |
 | `npm start` | Production server, `next start` |
 | `npm run lint` | ESLint, flat config (`eslint.config.mjs`) |
 | `npm test` | Jest |
@@ -96,7 +95,7 @@ the app runs anyway:
 
 | Missing env var | What degrades |
 | --- | --- |
-| `MAPBOX_TOKEN` | The map pane on `/` renders a static disabled panel (`components/map/MapPane.tsx`); the grid/list results still work fully. |
+| `MAPBOX_TOKEN` | The map is hidden on `/`, leaving full-width grid/list results and cuisine shortcuts. |
 | `GOOGLE_PLACES_API_KEY` | `/admin/discover` shows a disabled banner instead of a search box. `POST /api/admin/places/search` and `/import` answer `503` with a readable message (`lib/places.ts` → `PlacesDisabledError`). |
 | `GEMINI_API_KEY` | `POST /api/admin/ai/enrich` answers `503` (`lib/gemini.ts` → `AiDisabledError`). Community photo submission still succeeds — moderation fails closed to `status: 'pending'`, `wasAutoDecision: false`, and the photo lands in the manual review queue instead of being auto-published. |
 | R2 vars (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`) | `lib/storage.ts` falls back to local disk (`public/uploads/`) whenever any of the five is unset. All five must be set together to switch to R2; existing local URLs keep working and still delete correctly afterwards. |
@@ -217,7 +216,8 @@ approved. `Favorite` is a plain `(userId, restaurantId)` join. Full schema:
 - Every catalogue-mutating route calls `requireAdmin()`; every
   community-mutating route calls `requireAuth()`.
 - Uploads (admin, community, and Places photo downloads) all go through
-  `lib/storage.ts`'s `saveImage()`, which sniffs the file's magic bytes —
+  `lib/storage.ts`'s `saveImage()`, which sniffs the file's magic bytes and
+  verifies the image can be decoded —
   never the filename or client `Content-Type` — and rejects anything that
   doesn't match a known image format. `public/uploads` is served from our own
   origin, so a mislabelled `.html` would otherwise be stored XSS.
@@ -225,8 +225,9 @@ approved. `Favorite` is a plain `(userId, restaurantId)` join. Full schema:
   privileged fields (`role`, `source`, `status`, `sortOrder`) — those keys
   are simply absent from the request schemas.
 
-Not yet done: security headers and a CSP. Add them at the Nginx reverse proxy
-or in `next.config.js` before this faces the public internet unauthenticated.
+`next.config.js` sets baseline browser security headers. A content security
+policy still needs integration testing with Next.js hydration and Mapbox before
+it can be enforced.
 
 ## Testing
 
@@ -241,8 +242,8 @@ under the `node` Jest environment because `next/server` needs a real global
 
 ## Deployment
 
-See `docs/DEPLOY.md` for the full VPS runbook. Short version: `output:
-'standalone'` targets a Node process behind Nginx, not a serverless host.
+See `docs/DEPLOY.md` for the full VPS runbook. The app runs as one Node process
+behind Nginx with `next start`; it is not a serverless host.
 Two things there will bite if skipped: `public/uploads` must be excluded from
 the redeploy's "clean checkout" step and included in the backup unless R2 is
 configured, and the app assumes a single Node process — see `docs/DEPLOY.md`
@@ -252,28 +253,21 @@ for exactly which rate limiters that constrains.
 
 Genuinely unverified or deferred, not softened:
 
-- **No API key in this repo has ever been exercised against a live Google
-  Places or Gemini endpoint.** The 503-degradation paths are read from the
-  code and are structurally sound, but the actual API calls (`lib/places.ts`,
-  `lib/gemini.ts`), Gemini's `responseSchema` behaviour, and Places field
-  mapping are unverified against real responses. Confirm this before trusting
-  an import or an enrichment run in production.
+- **Live integration checks are partial.** Google Places search returned an
+  existing, correctly marked imported restaurant on the staging site, and
+  previously approved Gemini proposals are present. A fresh import, Gemini
+  run, and community photo moderation submission were not exercised in this
+  review because they would change live data. See `docs/PRODUCTION_REVIEW.md`.
 - **The v2 migration's photo backfill matched zero rows.** The hand-written
   `INSERT INTO RestaurantPhoto ... SELECT ... FROM Restaurant WHERE image IS
   NOT NULL` in `prisma/migrations/20260908224644_v2_places_ai_community/migration.sql`
   is correct SQL, but whether the pre-v2 `Restaurant.image` values were
   actually populated at migration time — and therefore whether this path
   produced any rows — has not been confirmed against the live `dev.db`.
-- **`prisma/seed.ts`'s own admin-creation branch never sets `role`,** so it
-  defaults to `'user'` per the schema. This only stays safe because the
-  documented setup order runs `create-admin` (which does set `role: 'admin'`)
-  first, and `db:seed` skips creating a user that already exists. Running
-  `db:seed` alone against an empty database creates an admin account that
-  cannot pass `requireAdmin()`.
-- **The admin visual refresh is complete.** The catalogue, forms,
+- **This review's fixes are local.** See `docs/PRODUCTION_REVIEW.md` for the
+  findings, verification, and deployment checks. The catalogue, forms,
   discovery, review queues, import/export, and sign-in share a responsive
-  light dashboard layout. See `docs/VISUAL_REVIEW.md` for changes, validation,
-  and the remaining limits of live-integration verification.
+  light dashboard layout; the earlier visual pass is in `docs/VISUAL_REVIEW.md`.
 - **`CUISINE_VOCAB` / `TAG_VOCAB` in `lib/types.ts`** were seeded from
   existing data plus obvious Kosovo categories by the Phase 1 agent and have
   not been reviewed by the owner. Changing them after Gemini enrichment has

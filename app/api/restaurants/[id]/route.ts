@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { uniqueConflictResponse } from '@/lib/apiError'
 import { requireAdmin } from '@/lib/auth'
-import { toDTO, slugify, openHoursSchema } from '@/lib/types'
+import { toDTO, slugify, openHoursSchema, httpUrlSchema } from '@/lib/types'
 import { deleteRestaurantsWithFiles } from '@/lib/restaurants'
 import { adminServerError } from '@/lib/apiError'
 import { z } from 'zod'
@@ -20,18 +20,18 @@ const restaurantSchema = z.object({
   tags: z.array(z.string()).optional(),
   neighborhood: z.string().optional(),
   address: z.string().optional(),
-  websiteUrl: z.string().url().optional().nullable(),
-  gmapsUrl: z.string().url().optional().nullable(),
-  woltUrl: z.string().url().optional().nullable(),
-  instagramUrl: z.string().url().optional().nullable(),
+  websiteUrl: httpUrlSchema.optional().nullable(),
+  gmapsUrl: httpUrlSchema.optional().nullable(),
+  woltUrl: httpUrlSchema.optional().nullable(),
+  instagramUrl: httpUrlSchema.optional().nullable(),
   phone: z.string().optional().nullable(),
   image: z.string().optional().nullable(),
   lat: z.coerce.number().optional().nullable(),
   lng: z.coerce.number().optional().nullable(),
   openHours: openHoursSchema.optional().nullable(),
   rating: z.coerce.number().min(0).max(5).optional().nullable(),
-  isActive: z.coerce.boolean().optional(),
-  isFeatured: z.coerce.boolean().optional(),
+  isActive: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
 })
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ restaurant: toDTO(restaurant) })
+    return NextResponse.json({ restaurant: { ...toDTO(restaurant), isActive: restaurant.isActive } })
   } catch (error: any) {
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

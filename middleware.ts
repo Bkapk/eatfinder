@@ -19,7 +19,16 @@ const SESSION_COOKIE = 'eatfinder_session'
 export function middleware(request: NextRequest) {
   if (request.cookies.has(SESSION_COOKIE)) return NextResponse.next()
 
+  // A reverse proxy can present an internal origin in request.url even while
+  // the browser uses the public host. Nginx forwards the original Host and
+  // protocol; use those for the absolute Location NextResponse requires.
   const login = new URL('/admin/login', request.url)
+  const host = request.headers.get('host')
+  if (host && /^[a-zA-Z0-9.-]+(?::\d{1,5})?$/.test(host)) {
+    login.host = host
+    if (!host.includes(':')) login.port = ''
+  }
+  if (request.headers.get('x-forwarded-proto') === 'https') login.protocol = 'https:'
   login.searchParams.set('next', request.nextUrl.pathname)
   return NextResponse.redirect(login)
 }

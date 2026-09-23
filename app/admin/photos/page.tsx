@@ -13,6 +13,7 @@ interface AdminPhoto {
   restaurantName: string
   url: string
   caption: string
+  source: 'admin' | 'community' | 'google'
   submittedByName: string | null
   status: 'pending' | 'approved' | 'rejected'
   aiVerdict: { verdict: string; reason: string; qualityScore: number } | null
@@ -211,7 +212,11 @@ function PhotoCard({
         {photo.caption && <p className="text-sm leading-relaxed text-text">{photo.caption}</p>}
 
         <p className="text-xs text-text-secondary">
-          Submitted by {photo.submittedByName || 'unknown'}
+          {photo.source === 'google'
+            ? 'Imported from Google Places'
+            : photo.source === 'admin'
+              ? 'Added by admin'
+              : `Submitted by ${photo.submittedByName || 'account unavailable'}`}
         </p>
 
         <p className="flex items-center gap-1.5 text-xs text-text-secondary">
@@ -224,7 +229,11 @@ function PhotoCard({
             ? 'Auto-decided by AI'
             : photo.decidedByUsername
               ? `Reviewed by ${photo.decidedByUsername}`
-              : 'Awaiting review'}
+              : photo.source === 'community' && photo.status === 'pending'
+                ? 'Awaiting review'
+                : photo.source === 'google'
+                  ? 'Published on import'
+                  : 'Added by admin'}
         </p>
 
         {photo.aiReason && (

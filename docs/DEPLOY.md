@@ -1,11 +1,9 @@
 # Deploy runbook — Hetzner VPS
 
 Target: a Hetzner VPS under Virtualmin/Nginx, PHP-FPM/MariaDB coexisting for
-other sites on the same box, this app run from `.next/standalone` behind a
-process manager (PM2 or systemd — neither is checked into this repo; pick one
-and keep it consistent). `next.config.js` sets `output: 'standalone'`
-specifically for this: it is not a serverless target and nothing here assumes
-one.
+other sites on the same box. Run the normal Next.js build with `next start`
+behind PM2 (configuration in `deploy/pm2.config.js`). This is not a serverless
+target.
 
 ## 1. Env vars
 
@@ -24,6 +22,8 @@ already excludes `.env`, `.env*.local`, `.env.production`). At minimum:
   `PHOTO_AUTOPUBLISH_CONFIDENCE` — optional, see README "Running without API
   keys" for what degrades if any is absent.
 - `R2_*` (five vars) — optional, see §5.
+- `UPLOAD_DIR` — persistent upload directory outside the checkout when using
+  local storage. `deploy/deploy-dev.sh` sets this automatically for staging.
 
 Set `NODE_ENV=production` in whatever launches the process (PM2 ecosystem
 file, systemd unit env, or shell export) — it is not read from `.env` by
@@ -53,19 +53,16 @@ npm run create-admin          # idempotent upsert, role always 'admin'
 npm run build                 # prisma generate && next build
 ```
 
-`output: 'standalone'` produces `.next/standalone/server.js` plus a
-`.next/standalone/.next/static` tree that does not include `public/` by
-default — copy `public/` (and specifically `public/uploads` if you're on
-local disk, see §4) alongside the standalone output, or point the process at
-the repo root rather than a stripped-down deploy directory. Start it with:
+Start from the repository root, where `.next`, `node_modules`, and `public`
+are available:
 
 ```bash
-node .next/standalone/server.js
+npm start
 ```
 
-behind a process manager so it survives a crash and a reboot. Nothing in this
-repo commits a PM2 ecosystem file or a systemd unit — write one before first
-production deploy; keep the process count at **one** (§7).
+behind a process manager so it survives a crash and a reboot. Use the PM2
+configuration in `deploy/pm2.config.js` and keep the process count at **one**
+(§7).
 
 ## 4. Nginx reverse proxy
 
@@ -115,7 +112,7 @@ files, so it survives a Virtualmin-driven vhost regeneration.
 ## 5. Storage: local disk vs R2
 
 `lib/storage.ts` checks all five `R2_*` vars at request time and falls back
-to local disk (`public/uploads/`) if any is unset. Two cases:
+to local disk if any is unset. Two cases:
 
 - **All five `R2_*` vars are set** — every upload URL is an absolute R2 URL
   (`R2_PUBLIC_URL/<random-hex>.<ext>`). `public/uploads` is not written to at
@@ -123,21 +120,17 @@ to local disk (`public/uploads/`) if any is unset. Two cases:
   backup, though any files already in it from before the R2 switch keep
   working (`deleteUpload()` routes on the URL's own shape, not the current
   config).
-- **Any `R2_*` var is unset (the default, no key configured yet)** — uploads
-  write to `public/uploads/` as `/uploads/<random-hex>.<ext>` and are served
-  by Nginx or Next directly. **This directory must survive every redeploy and
-  must be in the backup.** If your deploy process does a fresh `git clone` or
-  a `git clean -fdx` into a new directory, `public/uploads` is not in version
-  control (`.gitignore`: `public/uploads/*`) and every community photo,
-  admin-uploaded image, and re-hosted Google Places photo is gone. Deploy by
-  updating in place (`git pull` + rebuild) or explicitly copy
-  `public/uploads` into the new build output before starting the process.
+- **Any `R2_*` var is unset (the default)** — uploads write to `UPLOAD_DIR`
+  when set, otherwise `public/uploads/`, and have `/uploads/<random-hex>.<ext>`
+  URLs. The deployed Nginx `/uploads/` alias must point to the same
+  `UPLOAD_DIR`. **That directory must survive every redeploy and be backed
+  up.** The staging deploy script uses `/home/bleart/eatfinder-data/dev/uploads`
+  outside the checkout. A missing or mismatched `UPLOAD_DIR` can make newly
+  uploaded photos appear broken or lose them on the next checkout reset.
 
 To tell which case you're in: check whether `.env` on the server has all five
 `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`,
-`R2_PUBLIC_URL` filled in, or query `isR2Configured()`'s underlying condition
-directly — `ls public/uploads` growing over time is also a tell that you're
-on the local-disk path.
+`R2_PUBLIC_URL` filled in. If not, inspect `UPLOAD_DIR` and the Nginx alias.
 
 ## 6. SQLite backup
 
@@ -183,7 +176,7 @@ quota-only ones need moving to the database or Redis first.
 
 1. `curl https://<domain>/api/recommend` returns `{ items, points, total, facets }`.
 2. Log in at `/admin/login`, confirm the restaurant list loads.
-3. Load `/`, confirm the map renders (or the disabled panel, if
-   `MAPBOX_TOKEN` isn't set yet) and results still populate either way.
-4. If `public/uploads` was migrated, open a restaurant page with a photo and
+3. Load `/`, confirm the map renders (or full-width results if
+   `MAPBOX_TOKEN` isn't set) and results populate either way.
+4. If the upload directory was migrated, open a restaurant page with a photo and
    confirm the image actually loads through Nginx, not a 404.

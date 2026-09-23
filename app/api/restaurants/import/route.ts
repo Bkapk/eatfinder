@@ -9,14 +9,25 @@ export async function POST(request: NextRequest) {
     await requireAdmin()
 
     const formData = await request.formData()
-    const file = formData.get('file') as File
+    const file = formData.get('file')
 
-    if (!file) {
+    if (!(file instanceof File)) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      return NextResponse.json({ error: 'CSV must be under 2MB' }, { status: 413 })
     }
 
     const text = await file.text()
-    const rows = parseCSV(text)
+    let rows
+    try {
+      rows = parseCSV(text)
+    } catch {
+      return NextResponse.json({ error: 'CSV could not be parsed. Check the file format.' }, { status: 400 })
+    }
+    if (rows.length > 1000) {
+      return NextResponse.json({ error: 'CSV may contain at most 1000 restaurants' }, { status: 400 })
+    }
 
     const result: CSVImportResult = {
       success: true,
@@ -38,7 +49,7 @@ export async function POST(request: NextRequest) {
         await prisma.restaurant.upsert({
           where: { name: data.name! },
           update: data,
-          create: data as any,
+          create: { ...data, isActive: data.isActive ?? false } as any,
         })
         result.imported++
       } catch (err: any) {

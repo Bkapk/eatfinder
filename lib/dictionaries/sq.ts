@@ -19,6 +19,7 @@ export const sq = {
   'nav.language': 'Gjuha',
   'nav.switchTo': 'English',
   'nav.home': 'Ballina',
+  'nav.account': 'Llogaria',
 
   'search.placeholder': 'Kërko restorante, kuzhina, lagje…',
   'search.label': 'Kërko',

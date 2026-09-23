@@ -106,6 +106,11 @@ export const openHoursSchema = z.record(
   z.tuple([z.string().regex(HHMM), z.string().regex(HHMM)]).nullable()
 )
 
+export const httpUrlSchema = z.string().url().refine(
+  (value) => /^https?:\/\//i.test(value),
+  'URL must use http or https'
+)
+
 /**
  * A restaurant with its JSON-string columns parsed. This is the shape the API
  * returns and the UI consumes — never leak the raw Prisma row past the API.

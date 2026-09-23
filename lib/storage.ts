@@ -182,7 +182,7 @@ export async function imageMeta(buffer: Buffer): Promise<ImageMeta> {
 }
 
 /**
- * Sniffs, rejects unsupported types, names randomly and writes. One
+ * Sniffs, verifies decoding, names randomly and writes. One
  * validator, every upload caller (admin upload, community submission,
  * Places photo download) goes through this rather than a half-copy of it.
  */
@@ -193,7 +193,13 @@ export async function saveImage(
   if (!ext) {
     throw new UnsupportedImageError('Unsupported image type. Allowed: jpg, png, gif, webp, avif')
   }
+  // Magic bytes alone do not prove the file contains a complete image. Decode
+  // before writing so invalid uploads cannot leave permanent broken photos.
+  const meta = await imageMeta(buffer)
+  if (meta.width === null || meta.height === null) {
+    throw new UnsupportedImageError('The image could not be read. Please choose a valid image file.')
+  }
   const filename = `${randomBytes(16).toString('hex')}.${ext}`
-  const [url, meta] = await Promise.all([saveUpload(buffer, filename), imageMeta(buffer)])
+  const url = await saveUpload(buffer, filename)
   return { url, ext, ...meta }
 }

@@ -36,6 +36,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
     openHours: '',
     rating: '',
     isFeatured: false,
+    isActive: false,
   })
 
   const [cuisineInput, setCuisineInput] = useState('')
@@ -72,6 +73,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
         openHours: restaurant.openHours ? JSON.stringify(restaurant.openHours, null, 2) : '',
         rating: restaurant.rating?.toString() || '',
         isFeatured: restaurant.isFeatured ?? false,
+        isActive: restaurant.isActive ?? false,
       })
     }
   }, [restaurant])
@@ -633,6 +635,17 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
             />
             Featured
           </label>
+          <label className="mt-5 flex cursor-pointer items-center gap-3 text-[13px] font-semibold text-text">
+            <input
+              type="checkbox"
+              checked={formData.isActive}
+              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+            />
+            Publish on EatFinder
+          </label>
+          <p className="mt-1 text-xs text-text-secondary">
+            New restaurants stay in drafts until you publish them.
+          </p>
         </div>
 
         {/* Image */}

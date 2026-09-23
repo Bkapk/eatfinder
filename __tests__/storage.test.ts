@@ -23,7 +23,11 @@ const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0
 const onDisk = (url: string) => path.join(process.cwd(), 'public', 'uploads', path.basename(url))
 
 test('saveImage round-trips through deleteUpload', async () => {
-  const { url, ext } = await saveImage(PNG)
+  const sharp = (await import('sharp')).default
+  const image = await sharp({ create: { width: 2, height: 2, channels: 3, background: '#336699' } })
+    .png()
+    .toBuffer()
+  const { url, ext } = await saveImage(image)
 
   expect(ext).toBe('png')
   expect(url).toMatch(/^\/uploads\/[0-9a-f]{32}\.png$/)
@@ -35,6 +39,10 @@ test('saveImage round-trips through deleteUpload', async () => {
 
 test('saveImage rejects a file that is not an image, whatever it is named', async () => {
   await expect(saveImage(Buffer.from('<html>not an image</html>'))).rejects.toThrow(UnsupportedImageError)
+})
+
+test('saveImage rejects truncated image data before writing it', async () => {
+  await expect(saveImage(PNG)).rejects.toThrow(UnsupportedImageError)
 })
 
 test('a traversing filename cannot escape the upload dir', async () => {
@@ -75,8 +83,6 @@ test('imageMeta reads dimensions and inlines a tiny blurred placeholder', async 
   expect(meta.blurDataUrl!.length).toBeLessThan(1024)
 })
 
-test('imageMeta degrades to nulls rather than failing an upload', async () => {
-  // PNG magic bytes with no image behind them: sniffExt accepts it, sharp
-  // cannot decode it, and the upload still has to go through.
+test('imageMeta degrades to nulls for unreadable bytes', async () => {
   await expect(imageMeta(PNG)).resolves.toEqual({ width: null, height: null, blurDataUrl: null })
 })

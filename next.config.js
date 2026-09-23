@@ -17,6 +17,17 @@ function r2Pattern() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async headers() {
+    return [{
+      source: '/:path*',
+      headers: [
+        { key: 'X-Content-Type-Options', value: 'nosniff' },
+        { key: 'X-Frame-Options', value: 'DENY' },
+        { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
+      ],
+    }]
+  },
   // 'standalone' was removed: Next warns that `next start` does not support it,
   // and it additionally requires hand-copying public/ and .next/static into
   // .next/standalone. Nothing consumes it here: the Dockerfile is gone and PM2

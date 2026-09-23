@@ -98,7 +98,7 @@ export default function SearchBar({
   }
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-2">
+    <div className="ef-topbar-search-controls flex min-w-0 flex-1 items-center gap-2">
       <div className="ef-searchbar">
         <Search size={17} aria-hidden className="shrink-0 text-text-secondary" />
 

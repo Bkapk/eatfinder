@@ -7,10 +7,10 @@ import { List, Map as MapIcon } from 'lucide-react'
 
 import { parseFilters, toSearchParams, type ParsedFilters } from '@/lib/filters'
 import type { MapPoint, ScoredRestaurant, Sort, View } from '@/lib/types'
-import { t, type Locale } from '@/lib/i18n'
+import { t, tVocab, type Locale } from '@/lib/i18n'
 import SearchBar, { activeChips, type Patch } from './SearchBar'
 import FilterPanel from './FilterPanel'
-import SortHeader from './SortHeader'
+import SortHeader, { ViewToggle } from './SortHeader'
 import ResultsPane from '@/components/results/ResultsPane'
 import TopBar from '@/components/TopBar'
 import { PAGE_SIZE, type Facets, type RecommendResponse } from './types'
@@ -144,8 +144,11 @@ export default function SearchShell({
   const chipCount = activeChips(filters, locale).length
   const hasMore = items.length < total
 
-  const showMap = view === 'map'
-  const showResults = view !== 'map'
+  const showMap = Boolean(mapboxToken) && view === 'map'
+  const showResults = !showMap
+  const quickCuisines = Object.keys(facets.cuisines)
+    .sort((a, b) => facets.cuisines[b] - facets.cuisines[a])
+    .slice(0, 6)
 
   return (
     <>
@@ -182,7 +185,7 @@ export default function SearchShell({
       <main className="flex min-h-0 flex-1">
         {/* Map: full-bleed, no padding, no card wrapper. Hidden below md unless
             the user asked for it. */}
-        <div
+        {mapboxToken && <div
           id={showResults ? undefined : 'results'}
           tabIndex={showResults ? undefined : -1}
           className={[
@@ -208,7 +211,7 @@ export default function SearchShell({
             onSearchArea={(bbox) => patch({ bbox })}
             onLocate={(lat, lng) => patch({ near: { lat, lng } })}
           />
-        </div>
+        </div>}
 
         {/* Stays mounted in map view so the collapse can animate; `inert` keeps
             the hidden pane out of the tab order and off screen readers, and the
@@ -219,14 +222,46 @@ export default function SearchShell({
           inert={!showResults}
           data-state={showResults ? 'open' : 'closed'}
           aria-label={t(locale, 'view.label')}
-          className={`ef-split-pane min-h-0 w-full shrink-0 border-border bg-background outline-none md:w-[40vw] md:border-l ${
+          className={`ef-split-pane min-h-0 w-full shrink-0 border-border bg-background outline-none ${mapboxToken ? 'md:w-[40vw] md:border-l' : 'md:w-full'} ${
             showResults ? 'flex' : 'hidden md:flex'
           }`}
         >
           {/* shrink-0 is the whole trick: the pane keeps its full width while the
               section around it collapses, so it slides out to the right under
               the clip instead of squashing and reflowing the cards. */}
-          <div className="flex h-full w-full shrink-0 flex-col md:w-[40vw]">
+          <div className={`flex h-full w-full shrink-0 flex-col ${mapboxToken ? 'md:w-[40vw]' : 'md:w-full'}`}>
+            {!mapboxToken && (
+              <div className="flex min-h-[60px] items-center justify-between gap-3 border-b border-border px-4 py-2 sm:px-5">
+                <div className="flex min-w-0 items-center gap-2 overflow-x-auto" aria-label={t(locale, 'search.filters')}>
+                  {quickCuisines.map((c) => {
+                    const selected = (filters.cuisines ?? []).includes(c)
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => {
+                          const next = selected
+                            ? (filters.cuisines ?? []).filter((value) => value !== c)
+                            : [...(filters.cuisines ?? []), c]
+                          patch({ cuisines: next.length ? next : undefined })
+                        }}
+                        className={`ef-pill shrink-0 ${selected ? 'ef-pill--active' : ''}`}
+                      >
+                        {tVocab(locale, 'cuisine', c)}
+                      </button>
+                    )
+                  })}
+                </div>
+                <ViewToggle
+                  locale={locale}
+                  view={view === 'map' ? 'grid' : view}
+                  onChange={(next) => patch({ view: next }, { keepPage: true })}
+                  includeMap={false}
+                  className="shrink-0"
+                />
+              </div>
+            )}
             <SortHeader
               locale={locale}
               total={total}
@@ -254,14 +289,14 @@ export default function SearchShell({
       </main>
 
       {/* Below md the split collapses: results are the page, map is a toggle. */}
-      <button
+      {mapboxToken && <button
         type="button"
         onClick={() => patch({ view: showMap ? 'grid' : 'map' }, { keepPage: true })}
         className="ef-pill ef-pill--active fixed bottom-5 left-1/2 z-sticky h-11 -translate-x-1/2 px-5 shadow-lg md:hidden"
       >
         {showMap ? <List size={16} aria-hidden /> : <MapIcon size={16} aria-hidden />}
         {t(locale, showMap ? 'map.showList' : 'map.showMap')}
-      </button>
+      </button>}
 
       <FilterPanel
         locale={locale}

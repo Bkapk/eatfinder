@@ -17,6 +17,7 @@ export const en: Record<keyof typeof sq, string> = {
   'nav.language': 'Language',
   'nav.switchTo': 'Shqip',
   'nav.home': 'Home',
+  'nav.account': 'Account',
 
   'search.placeholder': 'Search restaurants, cuisines, neighbourhoods…',
   'search.label': 'Search',

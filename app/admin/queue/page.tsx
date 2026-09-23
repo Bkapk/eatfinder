@@ -21,6 +21,10 @@ interface Proposal {
   errorMessage: string | null
   overallConfidence: number | null
   createdAt: string
+  reviewedByUsername: string | null
+  reviewedAt: string | null
+  reviewNote: string
+  appliedFields: RestaurantProposalFields | null
 }
 
 import { PageHeader, EmptyState, LoadingState, Notice, useNotice } from '../components/AdminUI'
@@ -110,31 +114,12 @@ export default function QueuePage() {
     })
   }
 
-  const approveAll = async () => {
-    for (const p of proposals) {
-      if (p.status !== 'pending' || !p.payload) continue
-      const fields = p.payload.insufficientEvidence
-        ? currentAsFields(p.restaurant)
-        : flattenScoringResult(p.payload)
-      await approve(p, fields)
-    }
-  }
-
   return (
     <div>
       <PageHeader
         eyebrow="Content review"
         title="AI review queue"
         description="Review suggested profiles with confidence. Refine the details before they reach your catalogue."
-        actions={
-          <>
-            {status === 'pending' && proposals.length > 0 && (
-              <button onClick={approveAll} className="ef-btn ef-btn--primary">
-                Approve all
-              </button>
-            )}
-          </>
-        }
       />
 
       <div role="group" aria-label="Filter" className="admin-tabs">
@@ -246,6 +231,37 @@ function ProposalCard({
   }
 
   if (!payload) return null
+
+  if (proposal.status !== 'pending') {
+    const reviewedFields = proposal.status === 'approved'
+      ? proposal.appliedFields ?? flattenScoringResult(payload)
+      : flattenScoringResult(payload)
+    return (
+      <article className="ef-panel">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link href={`/admin/${restaurant.id}`} className="font-bold text-primary hover:underline">
+            {restaurant.name}
+          </Link>
+          <span className="ef-badge">{proposal.status}</span>
+        </div>
+        <p className="mt-2 text-xs text-text-secondary">
+          {proposal.model} · {proposal.reviewedByUsername || 'Admin'} ·{' '}
+          {proposal.reviewedAt ? new Date(proposal.reviewedAt).toLocaleString() : 'Review date unavailable'}
+        </p>
+        {proposal.reviewNote && <p className="mt-3 text-sm">{proposal.reviewNote}</p>}
+        <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <span>Heaviness: {reviewedFields.heaviness}</span>
+          <span>Portion: {reviewedFields.portionSize}</span>
+          <span>Fine dining: {reviewedFields.fineDining}</span>
+          <span>Spice: {reviewedFields.spiceLevel}</span>
+          <span>Price: {'$'.repeat(reviewedFields.priceLevel)}</span>
+          <span>Neighborhood: {reviewedFields.neighborhood || '—'}</span>
+          <span className="sm:col-span-2">Cuisines: {reviewedFields.cuisines.join(', ') || '—'}</span>
+        </div>
+        <p className="mt-3 text-sm text-text-secondary">{reviewedFields.description}</p>
+      </article>
+    )
+  }
 
   return (
     <div className="ef-panel">

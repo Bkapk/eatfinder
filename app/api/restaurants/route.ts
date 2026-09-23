@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { uniqueConflictResponse } from '@/lib/apiError'
 import { requireAdmin } from '@/lib/auth'
-import { toDTO, slugify, openHoursSchema } from '@/lib/types'
+import { toDTO, slugify, openHoursSchema, httpUrlSchema } from '@/lib/types'
 import { adminServerError } from '@/lib/apiError'
 import { z } from 'zod'
 
@@ -19,18 +19,18 @@ const restaurantSchema = z.object({
   tags: z.array(z.string()).optional().default([]),
   neighborhood: z.string().optional().default(''),
   address: z.string().optional().default(''),
-  websiteUrl: z.string().url().optional().nullable(),
-  gmapsUrl: z.string().url().optional().nullable(),
-  woltUrl: z.string().url().optional().nullable(),
-  instagramUrl: z.string().url().optional().nullable(),
+  websiteUrl: httpUrlSchema.optional().nullable(),
+  gmapsUrl: httpUrlSchema.optional().nullable(),
+  woltUrl: httpUrlSchema.optional().nullable(),
+  instagramUrl: httpUrlSchema.optional().nullable(),
   phone: z.string().optional().nullable(),
   image: z.string().optional().nullable(),
   lat: z.coerce.number().optional().nullable(),
   lng: z.coerce.number().optional().nullable(),
   openHours: openHoursSchema.optional().nullable(),
   rating: z.coerce.number().min(0).max(5).optional().nullable(),
-  isActive: z.coerce.boolean().optional().default(true),
-  isFeatured: z.coerce.boolean().optional().default(false),
+  isActive: z.boolean().optional().default(false),
+  isFeatured: z.boolean().optional().default(false),
 })
 
 export async function GET(request: NextRequest) {
@@ -39,7 +39,10 @@ export async function GET(request: NextRequest) {
 
     // Whitelisted: orderBy is interpolated straight into the Prisma query, so an
     // unknown column or direction is a reachable 500 on an authenticated endpoint.
-    const SORTABLE = ['name', 'priceLevel', 'rating', 'neighborhood', 'createdAt', 'updatedAt']
+    const SORTABLE = [
+      'name', 'priceLevel', 'rating', 'neighborhood', 'createdAt', 'updatedAt',
+      'heaviness', 'portionSize', 'fineDining',
+    ]
 
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''

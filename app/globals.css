@@ -714,6 +714,14 @@
     min-height: var(--topbar-h);
   }
 
+  @media (max-width: 359px) {
+    .ef-topbar--search { flex-wrap: wrap; }
+    .ef-topbar--search .ef-topbar-search-controls {
+      order: 3;
+      flex: 0 0 100%;
+    }
+  }
+
   /* The favourite heart where it sits ON a photo (result card, list row, map
      popup). It was a translucent white disc with secondary ink on it: over a
      dark photo the disc darkened and the icon went to roughly 2:1. Opaque

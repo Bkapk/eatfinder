@@ -18,11 +18,13 @@ export function ViewToggle({
   view,
   onChange,
   className = '',
+  includeMap = true,
 }: {
   locale: Locale
   view: View
   onChange: (v: View) => void
   className?: string
+  includeMap?: boolean
 }) {
   const strip = useRef<HTMLDivElement>(null)
   useEffect(() => (strip.current ? initSlidingBubble(strip.current) : undefined), [])
@@ -47,7 +49,7 @@ export function ViewToggle({
       }
       className={`flex items-center gap-0.5 rounded-full border border-border bg-surface p-1 ${className}`}
     >
-      {VIEWS.map((v) => {
+      {VIEWS.filter((v) => includeMap || v !== 'map').map((v) => {
         const Icon = VIEW_ICON[v]
         const on = view === v
         return (

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
-import { Heart, Languages, UtensilsCrossed } from 'lucide-react'
+import { Heart, Languages, UserRound, UtensilsCrossed } from 'lucide-react'
 import { LOCALE_COOKIE, t, type Locale } from '@/lib/i18n'
 import { useFavorites } from './useFavorites'
 
@@ -39,7 +39,7 @@ export default function TopBar({
     // under this header) and the fixed --topbar-h. The height is in the class
     // and not here because the four Suspense fallbacks that stand in for this
     // component render <div className="ef-topbar" /> and have to agree with it.
-    <header className="ef-topbar">
+    <header className={`ef-topbar ${children ? 'ef-topbar--search' : ''}`}>
       <Link
         href="/"
         className="flex shrink-0 items-center gap-2 text-text"
@@ -56,6 +56,13 @@ export default function TopBar({
       {children}
 
       <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <Link
+          href="/account"
+          className="ef-pill ef-pill--lg sm:hidden"
+          aria-label={t(locale, 'nav.account')}
+        >
+          <UserRound size={16} aria-hidden />
+        </Link>
         <Link
           href={`${pathname}?${toggleParams.toString()}`}
           className="ef-pill ef-pill--lg"

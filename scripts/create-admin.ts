@@ -22,7 +22,7 @@ async function createAdmin() {
     // Upsert, never deleteMany: re-running this must not wipe other accounts.
     await prisma.user.upsert({
       where: { username: email },
-      update: { password: hashedPassword },
+      update: { password: hashedPassword, role: 'admin' },
       create: { username: email, password: hashedPassword, role: 'admin' },
     });
 
@@ -40,4 +40,3 @@ async function createAdmin() {
 }
 
 createAdmin();
-
