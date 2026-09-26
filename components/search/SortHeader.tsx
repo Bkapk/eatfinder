@@ -81,15 +81,20 @@ export default function SortHeader({
   sort,
   onSort,
   loading,
+  children,
 }: {
   locale: Locale
   total: number
   sort: Sort
   onSort: (s: Sort) => void
   loading: boolean
+  /** The grid/list toggle, wherever the map overlay is not carrying it. */
+  children?: React.ReactNode
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-2.5 sm:px-5">
+    // On a phone this is the first line of the list itself, on the page
+    // colour, not another white bar stacked under the header.
+    <div className="flex items-center justify-between gap-3 px-4 pt-4 sm:px-5 md:border-b md:border-border md:bg-surface md:py-2.5">
       <h2
         aria-live="polite"
         className="truncate text-[15px] font-extrabold tracking-tight text-text"
@@ -101,6 +106,7 @@ export default function SortHeader({
             : t(locale, 'results.heading', { n: total })}
       </h2>
 
+      <div className="flex shrink-0 items-center gap-2">
       <label className="flex shrink-0 items-center gap-2">
         <span className="sr-only">{t(locale, 'sort.label')}</span>
         <select
@@ -118,6 +124,8 @@ export default function SortHeader({
           ))}
         </select>
       </label>
+      {children}
+      </div>
     </div>
   )
 }

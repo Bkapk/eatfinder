@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { t, type Locale } from '@/lib/i18n'
+import { reloadFavorites } from '@/components/useFavorites'
 
 export default function RegisterForm({ locale, next }: { locale: Locale; next: string }) {
   const router = useRouter()
@@ -25,6 +26,7 @@ export default function RegisterForm({ locale, next }: { locale: Locale; next: s
       })
       const data = await res.json()
       if (res.ok) {
+        void reloadFavorites()
         router.push(next)
         router.refresh()
       } else if (res.status === 409) {

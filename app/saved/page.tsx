@@ -4,16 +4,16 @@ import { cookies } from 'next/headers'
 import { LOCALE_COOKIE, resolveLocale, t } from '@/lib/i18n'
 import TopBar from '@/components/TopBar'
 import MobileNav from '@/components/MobileNav'
-import AccountView from './AccountView'
+import SavedView from './SavedView'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = resolveLocale(null, (await cookies()).get(LOCALE_COOKIE)?.value)
-  return { title: `${t(locale, 'account.title')} — ${t(locale, 'app.name')}` }
+  return { title: `${t(locale, 'saved.title')} — ${t(locale, 'app.name')}` }
 }
 
-export default async function AccountPage({
+export default async function SavedPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
@@ -28,11 +28,14 @@ export default async function AccountPage({
         <TopBar locale={locale} />
       </Suspense>
 
-      <main className="ef-tabbar-pad mx-auto w-full max-w-3xl flex-1 px-4 pt-6 sm:px-6 md:py-8">
-        <AccountView locale={locale} />
+      {/* The same container query as the results pane, so a saved place is
+          the same card at the same size as the one you hearted it from. */}
+      <main className="ef-results-container ef-tabbar-pad mx-auto w-full max-w-6xl flex-1 px-4 pt-6 sm:px-6 md:pb-10">
+        <h1 className="ef-title mb-6">{t(locale, 'saved.title')}</h1>
+        <SavedView locale={locale} />
       </main>
 
-      <MobileNav locale={locale} current="profile" hasMap={Boolean(process.env.MAPBOX_TOKEN)} />
+      <MobileNav locale={locale} current="saved" hasMap={Boolean(process.env.MAPBOX_TOKEN)} />
     </div>
   )
 }

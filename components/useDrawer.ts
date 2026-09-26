@@ -41,6 +41,10 @@ export function useDrawer(open: boolean, onClose: () => void) {
         return
       }
 
+      // A drag-to-dismiss (useSheetDrag) hands the sheet its last position as
+      // an inline transform; start every opening from the stylesheet's.
+      ;(el.firstElementChild as HTMLElement | null)?.style.removeProperty('transform')
+
       // Paint the off-screen starting position before changing the transform.
       el.dataset.state = 'opening'
       el.showModal()

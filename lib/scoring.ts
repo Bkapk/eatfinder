@@ -4,6 +4,7 @@ import {
   Sort,
   haversineKm,
   isOpenAt,
+  nextChange,
 } from './types'
 
 export interface SearchFilters {
@@ -139,7 +140,10 @@ export function calculateScore(
 
 /** Comparators for the non-default sorts. `match` (the default) is score descending. */
 const SORT_COMPARATORS: Record<Exclude<Sort, 'match'>, (a: ScoredRestaurant, b: ScoredRestaurant) => number> = {
-  rating: (a, b) => (b.rating ?? -1) - (a.rating ?? -1),
+  // The figure the card shows: Google's where there is one. Sorting by the
+  // editorial column alone sank every Google-rated place with no house rating
+  // to the bottom of a "Rating" sort while its card showed 4.7 stars.
+  rating: (a, b) => (b.googleRating ?? b.rating ?? -1) - (a.googleRating ?? a.rating ?? -1),
   distance: (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity),
   'price-asc': (a, b) => a.priceLevel - b.priceLevel,
   'price-desc': (a, b) => b.priceLevel - a.priceLevel,
@@ -161,6 +165,7 @@ export function search(
           ? Math.round(haversineKm(filters.near, { lat: r.lat, lng: r.lng }) * 100) / 100
           : null,
       isOpenNow: isOpenAt(r.openHours, now),
+      changeAt: nextChange(r.openHours, now),
     }))
 
   const comparator =

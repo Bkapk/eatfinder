@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Camera, Heart } from 'lucide-react'
-import type { RestaurantDTO, RestaurantPhotoDTO } from '@/lib/types'
-import { priceGlyphs, t, type Locale, type TKey } from '@/lib/i18n'
+import { Camera, ChevronRight, Heart, UserRound } from 'lucide-react'
+import type { RestaurantPhotoDTO } from '@/lib/types'
+import { t, type Locale, type TKey } from '@/lib/i18n'
+import { reloadFavorites, useFavorites } from '@/components/useFavorites'
 
 interface Me {
   id: string
@@ -19,7 +20,7 @@ type MyPhoto = RestaurantPhotoDTO & { restaurantSlug: string; restaurantName: st
 export default function AccountView({ locale }: { locale: Locale }) {
   const router = useRouter()
   const [me, setMe] = useState<Me | null>(null)
-  const [favorites, setFavorites] = useState<RestaurantDTO[]>([])
+  const { ids } = useFavorites()
   const [photos, setPhotos] = useState<MyPhoto[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -31,11 +32,7 @@ export default function AccountView({ locale }: { locale: Locale }) {
         const meData = await meRes.json()
         setMe(meData.user)
 
-        const [favRes, photoRes] = await Promise.all([
-          fetch('/api/community/favorites'),
-          fetch('/api/community/photos'),
-        ])
-        if (favRes.ok) setFavorites((await favRes.json()).restaurants)
+        const photoRes = await fetch('/api/community/photos')
         if (photoRes.ok) setPhotos((await photoRes.json()).photos)
       } catch {
         // Offline or a 5xx: fall through to the signed-out card rather than
@@ -48,6 +45,7 @@ export default function AccountView({ locale }: { locale: Locale }) {
 
   const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
+    void reloadFavorites()
     router.push('/')
     router.refresh()
   }
@@ -64,11 +62,22 @@ export default function AccountView({ locale }: { locale: Locale }) {
 
   if (!me) {
     return (
-      <div className="ef-card p-6 text-center">
-        <p className="mb-4 text-[14px] text-text-secondary">{t(locale, 'account.notSignedIn')}</p>
-        <Link href="/account/login" className="ef-pill ef-pill--active inline-flex">
-          {t(locale, 'account.signInLink')}
-        </Link>
+      <div className="ef-enter flex flex-col items-center px-2 py-12 text-center">
+        <span className="grid h-16 w-16 place-items-center rounded-full bg-primary-soft text-primary">
+          <UserRound size={28} aria-hidden />
+        </span>
+        <h1 className="ef-title mt-5">{t(locale, 'account.guestTitle')}</h1>
+        <p className="mt-2 max-w-xs text-[15px] leading-relaxed text-text-secondary">
+          {t(locale, 'account.guestBody')}
+        </p>
+        <div className="mt-6 flex w-full max-w-xs flex-col gap-2">
+          <Link href="/account/login" className="ef-btn ef-btn--primary">
+            {t(locale, 'account.signInLink')}
+          </Link>
+          <Link href="/account/register" className="ef-btn ef-btn--ghost">
+            {t(locale, 'nav.register')}
+          </Link>
+        </div>
       </div>
     )
   }
@@ -93,58 +102,22 @@ export default function AccountView({ locale }: { locale: Locale }) {
         </button>
       </header>
 
-      <section className="ef-panel">
-        <h2 className="ef-label mb-4">{t(locale, 'account.favorites.title')}</h2>
-        {favorites.length === 0 ? (
-          // The empty state carries the same heart the cards do, so the
-          // instruction is the control the user is looking for, not a
-          // description of it — and a way out to the map, which is the only
-          // thing they can usefully do from here.
-          <div className="flex flex-col items-center gap-3 rounded-xl bg-background px-4 py-10 text-center">
-            <Heart size={22} aria-hidden className="text-text-secondary" />
-            <p className="max-w-xs text-[14px] text-text-secondary">
-              {t(locale, 'account.favorites.empty')}
-            </p>
-            <Link href="/" className="ef-pill">
-              {t(locale, 'account.favorites.emptyCta')}
-            </Link>
-          </div>
-        ) : (
-          <ul className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 sm:grid-cols-3">
-            {favorites.map((r) => (
-              <li key={r.id}>
-                <Link href={`/r/${r.slug}`} className="ef-card block overflow-hidden">
-                  {r.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={r.image}
-                      alt={r.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="aspect-square w-full object-cover"
-                    />
-                  ) : (
-                    <div className="grid aspect-square w-full place-items-center bg-surface-muted text-text-secondary">
-                      <Heart size={20} aria-hidden />
-                    </div>
-                  )}
-                  <div className="p-3">
-                    <p className="truncate text-[13px] font-bold leading-snug text-text">
-                      {r.name}
-                    </p>
-                    <p className="mt-0.5 text-[12px] text-text-secondary">
-                      {priceGlyphs(r.priceLevel)}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {/* Favourites have their own tab now; this is the way there from the
+          desktop, where there is no tab bar. */}
+      <Link
+        href="/saved"
+        className="ef-card ef-press flex min-h-16 items-center gap-4 px-5 py-4"
+      >
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
+          <Heart size={18} aria-hidden className="fill-accent" />
+        </span>
+        <span className="flex-1 text-[15px] font-bold text-text">{t(locale, 'account.favorites.title')}</span>
+        <span className="text-[14px] font-semibold tabular-nums text-text-secondary">{ids.length}</span>
+        <ChevronRight size={18} aria-hidden className="text-text-secondary" />
+      </Link>
 
       <section className="ef-panel">
-        <h2 className="ef-label mb-4">{t(locale, 'account.photos.title')}</h2>
+        <h2 className="ef-heading mb-4">{t(locale, 'account.photos.title')}</h2>
         {photos.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-xl bg-background px-4 py-10 text-center">
             <Camera size={22} aria-hidden className="text-text-secondary" />

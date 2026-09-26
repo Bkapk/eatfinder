@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 
 import type { RestaurantPhotoDTO } from '@/lib/types'
@@ -88,6 +88,10 @@ export default function PhotoGallery({
     return () => document.removeEventListener('keydown', onKey)
   }, [index, step])
 
+  // Swipe between photos: a horizontal flick of more than 50px, measured
+  // start to end. pan-y on the stage leaves vertical gestures to the browser.
+  const swipeX = useRef<number | null>(null)
+
   const shown = expanded ? photos : photos.slice(0, PREVIEW_COUNT)
   const hidden = photos.length - shown.length
   const current = index === null ? null : photos[index]
@@ -148,17 +152,33 @@ export default function PhotoGallery({
         <figure className="ef-lightbox-frame">
           {current && (
             <>
-              <div className="relative flex min-h-0 flex-1 items-center justify-center">
+              <div
+                className="relative flex min-h-0 flex-1 touch-pan-y items-center justify-center"
+                onPointerDown={(e) => {
+                  swipeX.current = e.clientX
+                }}
+                onPointerUp={(e) => {
+                  const start = swipeX.current
+                  swipeX.current = null
+                  if (start === null || photos.length < 2) return
+                  const dx = e.clientX - start
+                  if (Math.abs(dx) > 50) step(dx < 0 ? 1 : -1)
+                }}
+                onPointerCancel={() => {
+                  swipeX.current = null
+                }}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   key={current.id}
                   src={current.url}
                   alt={current.caption || alt}
-                  className="ef-enter max-h-full max-w-full rounded-xl object-contain"
+                  draggable={false}
+                  className="ef-enter max-h-full max-w-full select-none object-contain sm:rounded-xl"
                 />
               </div>
 
-              <figcaption className="flex shrink-0 items-center justify-between gap-4 px-1 pt-3 text-[13px] text-white">
+              <figcaption className="flex shrink-0 items-center justify-between gap-4 px-4 pt-3 text-[13px] text-white sm:px-1">
                 <span className="min-w-0">
                   {current.caption && <span className="font-semibold">{current.caption}</span>}
                   {credit(current) && (
@@ -176,7 +196,7 @@ export default function PhotoGallery({
             type="button"
             onClick={close}
             aria-label={t(locale, 'gallery.close')}
-            className="ef-lightbox-btn absolute right-0 top-0"
+            className="ef-lightbox-btn absolute right-3 top-[calc(0.75rem+var(--safe-t))] sm:right-0 sm:top-0"
           >
             <X size={18} aria-hidden />
           </button>
@@ -187,7 +207,8 @@ export default function PhotoGallery({
                 type="button"
                 onClick={() => step(-1)}
                 aria-label={t(locale, 'gallery.prev')}
-                className="ef-lightbox-btn absolute left-0 top-1/2 -translate-y-1/2"
+                // A phone swipes; arrows over an edge-to-edge photo only cover it.
+                className="ef-lightbox-btn absolute left-0 top-1/2 -translate-y-1/2 max-sm:hidden"
               >
                 <ChevronLeft size={20} aria-hidden />
               </button>
@@ -195,7 +216,7 @@ export default function PhotoGallery({
                 type="button"
                 onClick={() => step(1)}
                 aria-label={t(locale, 'gallery.next')}
-                className="ef-lightbox-btn absolute right-0 top-1/2 -translate-y-1/2"
+                className="ef-lightbox-btn absolute right-0 top-1/2 -translate-y-1/2 max-sm:hidden"
               >
                 <ChevronRight size={20} aria-hidden />
               </button>

@@ -62,13 +62,10 @@ it('resizes the map when its container resizes', () => {
       locale="sq"
       points={[]}
       items={[]}
-      facets={{ cuisines: {}, tags: {}, neighborhoods: {}, priceLevels: {} }}
-      selectedCuisines={[]}
       hoveredId={null}
       view="map"
       onHover={noop}
       onView={noop}
-      onPatch={noop}
       onSearchArea={noop}
       onLocate={noop}
     />

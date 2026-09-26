@@ -140,6 +140,9 @@ export interface RestaurantDTO {
   image: string | null
   openHours: OpenHours | null
   rating: number | null
+  /** Google's figure and review count — what a visitor recognises. */
+  googleRating: number | null
+  googleRatingCount: number | null
   isFeatured: boolean
 }
 
@@ -148,6 +151,8 @@ export interface ScoredRestaurant extends RestaurantDTO {
   score: number
   distanceKm: number | null
   isOpenNow: boolean | null
+  /** Closing time while open, or a later opening time today. See nextChange. */
+  changeAt: string | null
 }
 
 function parseJson<T>(raw: string | null | undefined, fallback: T): T {
@@ -185,6 +190,8 @@ export function toDTO(r: Restaurant): RestaurantDTO {
     image: r.image,
     openHours: parseJson<OpenHours | null>(r.openHours, null),
     rating: r.rating,
+    googleRating: r.googleRating,
+    googleRatingCount: r.googleRatingCount,
     isFeatured: r.isFeatured,
   }
 }
@@ -278,4 +285,24 @@ export function isOpenAt(hours: OpenHours | null, now: Date = new Date()): boole
     if (close <= open && nowMins < close) return true
   }
   return false
+}
+
+/**
+ * When the current state flips: the closing time while open, or a later
+ * opening time today while closed. null when there is nothing honest to say
+ * (unknown hours, or closed for the rest of the day).
+ */
+export function nextChange(hours: OpenHours | null, now: Date = new Date()): string | null {
+  const open = isOpenAt(hours, now)
+  if (open === null || !hours) return null
+  const dayIndex = (now.getDay() + 6) % 7
+  const today = hours[DAYS[dayIndex]]
+  const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  if (open) {
+    // Still inside yesterday's past-midnight slot: that one closes first.
+    const y = hours[DAYS[(dayIndex + 6) % 7]]
+    if (y && y[1] <= y[0] && hhmm < y[1]) return y[1]
+    return today ? today[1] : null
+  }
+  return today && today[0] > hhmm ? today[0] : null
 }

@@ -15,7 +15,9 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       max_memory_restart: '512M',
-      env: { NODE_ENV: 'production' },
+      // Opening hours are Prishtina wall-clock times; isOpenAt reads the server's
+      // local clock, so the process has to live in that zone, not the VPS's UTC.
+      env: { NODE_ENV: 'production', TZ: 'Europe/Belgrade' },
     },
   ],
 }

@@ -40,7 +40,9 @@ fi
 
 npm run build
 
-pm2 restart "${APP_NAME}-dev" --update-env
+# From the config file, not by name: `restart --update-env` takes env from
+# this shell, so a value added to the config (TZ) would never reach the app.
+pm2 startOrRestart deploy/pm2-dev.config.js --update-env
 
 # `next start` boots happily against a missing or half-written .next and then
 # 500s on every request, which is how this site once sat dead for a day with a

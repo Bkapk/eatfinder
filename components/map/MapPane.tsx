@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import Link from 'next/link'
 import Map, {
   GeolocateControl,
   NavigationControl,
@@ -13,12 +14,11 @@ import { MapPinOff, Search } from 'lucide-react'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
 import { CITY, type MapPoint, type ScoredRestaurant, type View } from '@/lib/types'
-import { t, tVocab, type Locale } from '@/lib/i18n'
+import { priceGlyphs, t, type Locale } from '@/lib/i18n'
 import { ViewToggle } from '@/components/search/SortHeader'
-import type { Facets } from '@/components/search/types'
-import type { Patch } from '@/components/search/SearchBar'
 import PointsLayer, { CLUSTER_LAYER, POINT_LAYER } from './PointsLayer'
 import PopupCard from './PopupCard'
+import RestaurantCard from '@/components/results/RestaurantCard'
 
 type Bbox = [number, number, number, number]
 
@@ -39,15 +39,19 @@ function sameBbox(a?: Bbox, b?: Bbox): boolean {
   return !differs(a, b)
 }
 
-/** Top cuisines by facet count — the quick-filter row over the map. */
-function quickCuisines(facets: Facets, selected: string[]): string[] {
-  const keys = new Set([
-    ...Object.keys(facets.cuisines)
-      .sort((a, b) => facets.cuisines[b] - facets.cuisines[a])
-      .slice(0, 6),
-    ...selected,
-  ])
-  return [...keys]
+const DESKTOP = '(min-width: 768px)'
+
+/** A pointer-and-popup map from md, a thumb-and-carousel map below it. */
+function useDesktop() {
+  return useSyncExternalStore(
+    (cb) => {
+      const m = window.matchMedia(DESKTOP)
+      m.addEventListener('change', cb)
+      return () => m.removeEventListener('change', cb)
+    },
+    () => window.matchMedia(DESKTOP).matches,
+    () => true
+  )
 }
 
 export default function MapPane({
@@ -55,14 +59,11 @@ export default function MapPane({
   locale,
   points,
   items,
-  facets,
-  selectedCuisines,
   queriedBbox,
   hoveredId,
   view,
   onHover,
   onView,
-  onPatch,
   onSearchArea,
   onLocate,
 }: {
@@ -70,14 +71,11 @@ export default function MapPane({
   locale: Locale
   points: MapPoint[]
   items: ScoredRestaurant[]
-  facets: Facets
-  selectedCuisines: string[]
   queriedBbox?: Bbox
   hoveredId: string | null
   view: View
   onHover: (id: string | null) => void
   onView: (v: View) => void
-  onPatch: (patch: Patch) => void
   onSearchArea: (bbox: Bbox) => void
   onLocate: (lat: number, lng: number) => void
 }) {
@@ -91,6 +89,8 @@ export default function MapPane({
   // effect: the pin is gone, so the card that describes it goes with it.
   const live = selected && points.some((p) => p.id === selected.id) ? selected : null
   const [cursor, setCursor] = useState<string>('grab')
+  const desktop = useDesktop()
+  const carouselRef = useRef<HTMLUListElement>(null)
 
   // Derived rather than cleared in an effect: the offer to re-search is only
   // meaningful while the shell is still showing the bounds it was measured
@@ -204,36 +204,53 @@ export default function MapPane({
     return () => window.removeEventListener('keydown', onKey)
   }, [selected])
 
-  const pills = (
-    // scroll-pr-8: a pill focused at the right edge must not sit under the fade.
-    <div className="ef-scroll-fade pointer-events-auto flex max-w-[calc(100%-1rem)] scroll-pr-8 items-center gap-2 overflow-x-auto pb-1">
-      {quickCuisines(facets, selectedCuisines).map((c) => {
-        const on = selectedCuisines.includes(c)
-        return (
-          <button
-            key={c}
-            type="button"
-            aria-pressed={on}
-            onClick={() => {
-              const next = on ? selectedCuisines.filter((x) => x !== c) : [...selectedCuisines, c]
-              onPatch({ cuisines: next.length ? next : undefined })
-            }}
-            className={`ef-pill ${on ? 'ef-pill--active' : ''}`}
-          >
-            {tVocab(locale, 'cuisine', c)}
-          </button>
-        )
-      })}
-    </div>
-  )
+  // --- the phone carousel ------------------------------------------------
+  // The loaded results as swipeable cards along the bottom edge, each one
+  // bound to its pin: tap a pin and its card slides into the middle; swipe to
+  // a card and the map glides to its pin. A pin further down the ranking than
+  // the loaded page gets a card of its own at the front.
+  const carouselItems = items.filter((i) => i.lat != null && i.lng != null)
+  const orphan = live && !carouselItems.some((i) => i.id === live.id) ? live : null
+  const showCarousel = !desktop && (carouselItems.length > 0 || orphan !== null)
+
+  useEffect(() => {
+    if (desktop || !live) return
+    const card = carouselRef.current?.querySelector<HTMLElement>(`[data-id="${CSS.escape(live.id)}"]`)
+    card?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  }, [desktop, live])
+
+  const settle = useRef(0)
+  const onCarouselScroll = () => {
+    clearTimeout(settle.current)
+    settle.current = window.setTimeout(() => {
+      const list = carouselRef.current
+      if (!list) return
+      const mid = list.getBoundingClientRect().left + list.clientWidth / 2
+      let best: HTMLElement | null = null
+      let bestD = Infinity
+      for (const el of list.querySelectorAll<HTMLElement>('[data-id]')) {
+        const r = el.getBoundingClientRect()
+        const d = Math.abs(r.left + r.width / 2 - mid)
+        if (d < bestD) {
+          bestD = d
+          best = el
+        }
+      }
+      const id = best?.dataset.id
+      if (!id || id === live?.id) return
+      const item = carouselItems.find((i) => i.id === id)
+      if (!item || item.lat == null || item.lng == null) return
+      setSelected({ id: item.id, slug: item.slug, name: item.name, priceLevel: item.priceLevel, lat: item.lat, lng: item.lng })
+      mapRef.current?.easeTo({ center: [item.lng, item.lat], duration: 450 })
+    }, 120)
+  }
 
   if (!token) {
     // No MAPBOX_TOKEN: the grid is still the product. Nothing here throws and
     // mapbox-gl is never constructed.
     return (
       <div className="relative flex h-full w-full flex-col items-center justify-center gap-3 bg-surface-muted p-8 text-center">
-        <div className="pointer-events-none absolute inset-x-3 top-3 z-overlay flex items-start justify-between gap-2">
-          {pills}
+        <div className="pointer-events-none absolute inset-x-3 top-3 z-overlay flex items-start justify-end gap-2">
           <ViewToggle locale={locale} view={view} onChange={onView} className="pointer-events-auto" />
         </div>
         <MapPinOff size={30} aria-hidden className="text-text-secondary" />
@@ -244,7 +261,11 @@ export default function MapPane({
   }
 
   return (
-    <div ref={shellRef} className="relative h-full w-full">
+    <div
+      ref={shellRef}
+      className="ef-map relative h-full w-full"
+      style={{ '--map-bottom-inset': showCarousel ? '9.25rem' : '0px' } as React.CSSProperties}
+    >
       <Map
         ref={mapRef}
         mapboxAccessToken={token}
@@ -276,7 +297,7 @@ export default function MapPane({
 
         <PointsLayer points={points} hoveredId={hoveredId} selectedId={live?.id ?? null} />
 
-        {live && (
+        {live && desktop && (
           <PopupCard
             // Keyed by pin: react-map-gl only ever calls addTo() on mount, so a
             // popup instance that has been closed once can never come back.
@@ -290,10 +311,9 @@ export default function MapPane({
         )}
       </Map>
 
-      {/* Overlays. pointer-events-none on the rail so map drag still works
-          between the controls. */}
-      <div className="pointer-events-none absolute inset-x-3 top-3 z-overlay flex items-start justify-between gap-2">
-        {pills}
+      {/* The view toggle, desktop only: on a phone the tab bar is the switch.
+          pointer-events-none on the row so map drag still works around it. */}
+      <div className="pointer-events-none absolute inset-x-3 top-3 z-overlay hidden items-start justify-end gap-2 md:flex">
         <ViewToggle locale={locale} view={view} onChange={onView} className="pointer-events-auto" />
       </div>
 
@@ -305,11 +325,44 @@ export default function MapPane({
           // ef-fade-enter, not ef-enter: this pill is centred with
           // -translate-x-1/2, and an entrance that animates `transform` would
           // interpolate from translateY(8px) to that and slide it in sideways.
-          className="ef-pill ef-pill--active ef-fade-enter absolute left-1/2 top-16 z-overlay h-10 -translate-x-1/2 px-4 shadow-lg"
+          className="ef-pill ef-pill--lg ef-pill--active ef-fade-enter absolute left-1/2 top-3 z-overlay -translate-x-1/2 px-5 shadow-lg md:top-16"
         >
           <Search size={15} aria-hidden />
           {t(locale, 'map.searchArea')}
         </button>
+      )}
+
+      {showCarousel && (
+        <ul
+          ref={carouselRef}
+          onScroll={onCarouselScroll}
+          aria-label={t(locale, 'map.label')}
+          className="ef-snap absolute inset-x-0 bottom-0 z-overlay gap-3 px-4 pb-4 pt-2"
+        >
+          {orphan && (
+            <li data-id={orphan.id} className="w-[86%] max-w-[22rem]">
+              <Link
+                href={`/r/${orphan.slug}`}
+                className="ef-card ef-press flex h-[7.5rem] flex-col justify-center gap-1 p-4 shadow-lg ring-2 ring-primary"
+              >
+                <span className="truncate text-[16px] font-bold text-text">{orphan.name}</span>
+                <span className="text-[13px] font-semibold text-text-secondary">
+                  {priceGlyphs(orphan.priceLevel)}
+                </span>
+              </Link>
+            </li>
+          )}
+          {carouselItems.map((item) => (
+            <li key={item.id} data-id={item.id} className="h-[7.5rem] w-[86%] max-w-[22rem]">
+              <RestaurantCard
+                item={item}
+                locale={locale}
+                size="carousel"
+                active={live?.id === item.id}
+              />
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )

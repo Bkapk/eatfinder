@@ -6,6 +6,9 @@ const config: Config = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  // Touch screens report a hover that never ends: without this, a tapped pill
+  // keeps its hover fill until you tap somewhere else.
+  future: { hoverOnlyWhenSupported: true },
   theme: {
     extend: {
       // Every colour is a CSS variable defined in app/globals.css. Nothing in a

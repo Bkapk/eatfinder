@@ -18,13 +18,10 @@ describe('MapPane without a Mapbox token', () => {
         locale="sq"
         points={[]}
         items={[]}
-        facets={{ cuisines: { Pizza: 3 }, tags: {}, neighborhoods: {}, priceLevels: {} }}
-        selectedCuisines={[]}
         hoveredId={null}
         view="grid"
         onHover={noop}
         onView={noop}
-        onPatch={noop}
         onSearchArea={noop}
         onLocate={noop}
       />
@@ -32,8 +29,8 @@ describe('MapPane without a Mapbox token', () => {
 
     expect(screen.getByText(t('sq', 'map.disabled.title'))).toBeTruthy()
     expect(screen.getByText(t('sq', 'map.disabled.body'))).toBeTruthy()
-    // The quick-filter rail and the view toggle stay usable with no map.
-    expect(screen.getByRole('button', { name: /Pica/ })).toBeTruthy()
+    // The view toggle stays usable with no map (the quick rail lives in the
+    // header now, above both panes).
     expect(screen.getByRole('group', { name: t('sq', 'view.label') })).toBeTruthy()
   })
 })

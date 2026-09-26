@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Clock, ImageOff, Navigation, Utensils } from 'lucide-react'
-import type { ScoredRestaurant } from '@/lib/types'
+import { ImageOff, Star } from 'lucide-react'
+import type { RestaurantDTO } from '@/lib/types'
 import { priceGlyphs, t, tVocab, type Locale } from '@/lib/i18n'
 import FavoriteButton from '@/components/FavoriteButton'
 
@@ -17,7 +17,51 @@ export function matchPercent(score: number): number {
   return Math.max(0, Math.min(100, Math.round((score / MATCH_MAX) * 100)))
 }
 
-type Size = 'grid' | 'list' | 'popup'
+/**
+ * A search result, a saved place or a similar place. Only a search result has
+ * a score and a distance; everything else is optional so one card serves all
+ * three instead of three cards drifting apart.
+ */
+export type CardItem = RestaurantDTO & {
+  score?: number
+  distanceKm?: number | null
+  isOpenNow?: boolean | null
+  changeAt?: string | null
+}
+
+type Size = 'grid' | 'list' | 'popup' | 'carousel'
+
+/** "Open · Closes 23:00", "Closed · Opens 18:00", or just the state. */
+function OpenState({ item, locale }: { item: CardItem; locale: Locale }) {
+  if (item.isOpenNow == null) return null
+  const open = item.isOpenNow
+  return (
+    <span className={`inline-flex min-w-0 items-center gap-1.5 ${open ? 'text-success' : 'text-error'}`}>
+      <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
+      <span className="truncate">
+        {t(locale, open ? 'card.openNow' : 'card.closed')}
+        {item.changeAt && (
+          <span className="font-semibold text-text-secondary">
+            {' · '}
+            {t(locale, open ? 'card.closesAt' : 'card.opensAt', { time: item.changeAt })}
+          </span>
+        )}
+      </span>
+    </span>
+  )
+}
+
+function Rating({ value, locale }: { value: number; locale: Locale }) {
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1 text-[14px] font-bold tabular-nums text-text"
+      aria-label={t(locale, 'card.rating', { n: value.toFixed(1) })}
+    >
+      <Star size={14} aria-hidden className="fill-accent text-accent" />
+      <span aria-hidden>{value.toFixed(1)}</span>
+    </span>
+  )
+}
 
 export default function RestaurantCard({
   item,
@@ -25,136 +69,167 @@ export default function RestaurantCard({
   size = 'grid',
   onHover,
   active = false,
+  eager = false,
 }: {
-  item: ScoredRestaurant
+  item: CardItem
   locale: Locale
   size?: Size
   onHover?: (id: string | null) => void
   active?: boolean
+  /** The first row of a list is above the fold: don't make it wait on lazy. */
+  eager?: boolean
 }) {
-  const row = size === 'list'
+  const row = size === 'list' || size === 'carousel'
   const popup = size === 'popup'
+  const stars = item.googleRating ?? item.rating
+  const cuisine = item.cuisines[0] ? tVocab(locale, 'cuisine', item.cuisines[0]) : null
 
+  // cuisine · $$ · 1.2 km — one line, the order people scan it in.
+  const meta = [
+    cuisine,
+    priceGlyphs(item.priceLevel),
+    item.distanceKm != null ? t(locale, 'card.distance', { n: item.distanceKm.toFixed(1) }) : null,
+  ].filter(Boolean)
+
+  const hover = onHover
+    ? {
+        onMouseEnter: () => onHover(item.id),
+        onMouseLeave: () => onHover(null),
+        // Focus mirrors hover: tabbing a card highlights its map pin too.
+        onFocus: () => onHover(item.id),
+        onBlur: () => onHover(null),
+      }
+    : {}
+
+  const photo = (
+    <>
+      {item.image ? (
+        // Plain <img>: the URL is opaque and moves to Cloudflare R2 shortly,
+        // so it must never be routed through next/image's remotePatterns.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={item.image}
+          alt=""
+          loading={eager ? 'eager' : 'lazy'}
+          decoding="async"
+          // The name is the link text right beside it; alt={name} made a
+          // screen reader say every restaurant twice.
+          className="h-full w-full object-cover transition-transform duration-[var(--dur)] ease-[var(--ease)] group-hover:scale-[1.015]"
+        />
+      ) : (
+        <div
+          className="flex h-full w-full items-center justify-center text-text-secondary"
+          aria-label={t(locale, 'card.noImage')}
+        >
+          <ImageOff size={popup || row ? 18 : 24} aria-hidden />
+        </div>
+      )}
+    </>
+  )
+
+  const name = (
+    <Link
+      href={`/r/${item.slug}`}
+      className={[
+        'min-w-0 truncate font-bold leading-snug text-text',
+        // The whole card is the target; the link text is its name.
+        "after:absolute after:inset-0 after:z-[1] after:content-['']",
+        popup ? 'text-[14px]' : 'text-[16px]',
+      ].join(' ')}
+    >
+      {item.name}
+    </Link>
+  )
+
+  // --- the photo-led card: grid view and similar places -------------------
+  if (size === 'grid') {
+    return (
+      <article {...hover} className="ef-press group relative flex h-full flex-col">
+        <div
+          className={[
+            'relative aspect-[4/3] overflow-hidden rounded-2xl bg-surface-muted',
+            'transition-shadow duration-[var(--dur)]',
+            // Hovered from its map pin: a ring, not a lift. Cards do not travel.
+            active ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : '',
+          ].join(' ')}
+        >
+          {photo}
+          {item.isFeatured && (
+            <span className="absolute left-3 top-3 rounded-full bg-surface px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-accent shadow-sm">
+              {t(locale, 'card.featured')}
+            </span>
+          )}
+          {/* z-[2]: above the name link's stretched ::after, so the heart is
+              its own target and not a tap on the card. */}
+          <FavoriteButton
+            id={item.id}
+            locale={locale}
+            className="ef-favorite-overlay absolute right-3 top-3 z-[2] h-10 w-10"
+            size={18}
+          />
+          {item.score != null && (
+            <span className="absolute bottom-3 left-3 rounded-full bg-surface px-2.5 py-1 text-[12px] font-bold leading-none text-accent shadow-sm">
+              {t(locale, 'card.match', { n: matchPercent(item.score) })}
+            </span>
+          )}
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-1 pt-3">
+          <div className="flex min-w-0 items-center justify-between gap-3">
+            {name}
+            {stars != null && <Rating value={stars} locale={locale} />}
+          </div>
+          <p className="truncate text-[14px] font-medium text-text-secondary">
+            {meta.join(' · ')}
+          </p>
+          <p className="text-[13px] font-bold">
+            <OpenState item={item} locale={locale} />
+          </p>
+        </div>
+      </article>
+    )
+  }
+
+  // --- the compact row: list view, the phone map carousel, the popup -------
   return (
     <article
-      onMouseEnter={onHover ? () => onHover(item.id) : undefined}
-      onMouseLeave={onHover ? () => onHover(null) : undefined}
-      // Focus mirrors hover: tabbing a card highlights its map pin too.
-      onFocus={onHover ? () => onHover(item.id) : undefined}
-      onBlur={onHover ? () => onHover(null) : undefined}
+      {...hover}
       className={[
-        'ef-card group relative h-full overflow-hidden',
+        'ef-card ef-press group relative h-full overflow-hidden',
         row ? 'flex' : 'flex flex-col',
+        size === 'carousel' ? 'shadow-lg' : '',
         active ? 'ring-2 ring-primary' : '',
       ].join(' ')}
     >
       <div
         className={[
           'relative shrink-0 overflow-hidden bg-surface-muted',
-          row ? 'w-24 min-[360px]:w-28 sm:w-32' : popup ? 'aspect-[16/9]' : 'aspect-[3/2]',
+          row ? 'w-28 self-stretch sm:w-32' : 'aspect-[16/9]',
         ].join(' ')}
       >
-        {item.image ? (
-          // Plain <img>: the URL is opaque and moves to Cloudflare R2 shortly,
-          // so it must never be routed through next/image's remotePatterns.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={item.image}
-            alt={item.name}
-            loading="lazy"
-            decoding="async"
-            // 1.015, not 1.03: with the card itself no longer lifting, the
-            // photo is the only thing that moves, and at 3% it read as the card
-            // wobbling under the pointer.
-            className="h-full w-full object-cover transition-transform duration-[var(--dur)] group-hover:scale-[1.015]"
+        {photo}
+        {!popup && (
+          <FavoriteButton
+            id={item.id}
+            locale={locale}
+            className="ef-favorite-overlay absolute left-2 top-2 z-[2]"
           />
-        ) : (
-          <div
-            className="flex h-full w-full items-center justify-center text-text-secondary"
-            aria-label={t(locale, 'card.noImage')}
-          >
-            <ImageOff size={popup ? 16 : 22} aria-hidden />
-          </div>
-        )}
-
-        <FavoriteButton
-          id={item.id}
-          locale={locale}
-          className="ef-favorite-overlay absolute left-2 top-2 z-overlay"
-        />
-
-        {item.isFeatured && !popup && (
-          // 11px is the scale's floor and 0.08em is what every other uppercase
-          // run in the app uses; this badge was the only 10px text shipping.
-          <span className="absolute right-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[color:var(--on-primary)]">
-            {t(locale, 'card.featured')}
-          </span>
         )}
       </div>
 
-      {/* p-4, not p-3.5: 14px was the one off-scale inset in the app, and it is
-          the padding the loading skeleton has to reproduce exactly or the whole
-          list shifts a couple of pixels the moment results arrive. */}
-      <div className={['flex min-w-0 flex-1 flex-col gap-2', popup ? 'p-3' : 'p-4'].join(' ')}>
-        <Link
-          href={`/r/${item.slug}`}
-          className="truncate text-[15px] font-bold leading-snug text-text after:absolute after:inset-0 after:content-['']"
-        >
-          {item.name}
-        </Link>
-
-        <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-semibold text-text-secondary">
-          {item.cuisines[0] && (
-            <li className="flex min-w-0 items-center gap-1">
-              <Utensils size={13} aria-hidden className="shrink-0" />
-              <span className="truncate">{tVocab(locale, 'cuisine', item.cuisines[0])}</span>
-            </li>
+      <div className={['flex min-w-0 flex-1 flex-col gap-1', popup ? 'p-3' : 'p-3.5'].join(' ')}>
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          {name}
+          {stars != null && <Rating value={stars} locale={locale} />}
+        </div>
+        <p className="truncate text-[13px] font-medium text-text-secondary">{meta.join(' · ')}</p>
+        <div className="mt-auto flex min-w-0 items-center justify-between gap-2 pt-1 text-[12px] font-bold">
+          <OpenState item={item} locale={locale} />
+          {item.score != null && !popup && (
+            <span className="shrink-0 whitespace-nowrap rounded-full bg-accent-soft px-2 py-1 text-[11px] font-bold leading-none text-accent">
+              {t(locale, 'card.match', { n: matchPercent(item.score) })}
+            </span>
           )}
-          {/* The bottom row already carries the price as the listing anchor. In
-              the 236px popup the two sit a line apart and read as a mistake. */}
-          {!popup && (
-            <li
-              className="flex items-center gap-1"
-              aria-label={t(locale, 'card.priceLevel', { n: item.priceLevel })}
-            >
-              <span aria-hidden>{priceGlyphs(item.priceLevel)}</span>
-            </li>
-          )}
-          {item.distanceKm != null && (
-            <li className="flex items-center gap-1">
-              <Navigation size={13} aria-hidden className="shrink-0" />
-              {t(locale, 'card.distance', { n: item.distanceKm.toFixed(1) })}
-            </li>
-          )}
-          <li
-            className={[
-              'flex items-center gap-1',
-              item.isOpenNow === true
-                ? 'text-success'
-                : item.isOpenNow === false
-                  ? 'text-error'
-                  : '',
-            ].join(' ')}
-          >
-            <Clock size={13} aria-hidden className="shrink-0" />
-            {t(
-              locale,
-              item.isOpenNow === true
-                ? 'card.openNow'
-                : item.isOpenNow === false
-                  ? 'card.closed'
-                  : 'card.hoursUnknown'
-            )}
-          </li>
-        </ul>
-
-        <div className="mt-auto flex items-end justify-between gap-2 pt-1">
-          <span className="text-[17px] font-extrabold leading-none tracking-tight text-text">
-            {priceGlyphs(item.priceLevel)}
-          </span>
-          <span className="whitespace-nowrap rounded-full bg-accent-soft px-2 py-1 text-[11px] font-bold leading-none text-accent">
-            {t(locale, 'card.match', { n: matchPercent(item.score) })}
-          </span>
         </div>
       </div>
     </article>

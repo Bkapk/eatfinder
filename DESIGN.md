@@ -324,12 +324,31 @@ uses named braces (`{n}`, `{label}`) and singular forms get their own key
 
 ## Layout
 
-**The frame.** The public app is a full-height column: a sticky top bar
-(`h-[72px]`-class density, white on a hairline) over a `flex min-h-0 flex-1`
-main. Inside main, the results pane and the map split; the results pane is
-`md:w-[40%]` with a left hairline and the map takes the rest. Below `md` the map
-is hidden and a centred, full-height (44px) pill toggles between the two — the
-one place a pill is a primary mobile action.
+**The frame.** Nine visits in ten are a phone, so the phone is the primary
+layout and desktop is the adaptation. From `md` the public app is one viewport:
+a white top bar over a split where the results pane is `md:w-[40vw]` with a
+left hairline and the map takes the rest, each scrolling on its own.
+
+**The phone shell** (below `md`) behaves like a native app:
+- The **document** scrolls, not an inner box — that is what lets the browser
+  toolbar collapse, pull-to-refresh work and scroll position survive. (This is
+  why `html, body` use `overflow-x: clip`, never `hidden`: `hidden` on both
+  turns body into a scroll container and silently breaks every `sticky`.)
+- `.ef-appbar` wraps the top bar, the quick rail and the active-filter chips.
+  It is sticky and slides away on scroll-down, back on the first scroll-up,
+  and never hides while it contains focus.
+- `.ef-tabbar` (`<MobileNav>`) is fixed to the bottom: Explore · Map · Saved ·
+  Profile, above the home indicator via `env(safe-area-inset-bottom)`. Any
+  page that shows it pads its scroller with `.ef-tabbar-pad`. Explore and Map
+  link back to the last search, filters intact.
+- Map view fills the screen between the two bars. The loaded results ride along
+  the bottom edge as a snap carousel bound to the pins (tap a pin → its card
+  centres; swipe to a card → the map glides to its pin). The desktop popup is
+  not used on a phone.
+- Leaving a place and pressing Back restores the same results at the same
+  scroll offset in the first frame (`components/search/memory.ts`).
+- The restaurant page drops the site header: the photo runs edge to edge with
+  `.ef-float-btn` controls on it, and the content sheet rises 24px over it.
 
 **The admin** is a fixed 240px left rail (`lg:` and up only) with a
 `lg:ml-60` workspace, a 72px topbar, and content centred at `max-w-[1480px]`
@@ -338,8 +357,10 @@ becomes a left-anchored `<dialog>` sheet of the same width and padding, so it is
 one navigation in two places rather than two navigations.
 
 **Grids.** The results grid is driven by *container* queries, not viewport
-queries, because the pane is narrower than the window: 1 column, 2 at 390px of
-pane width, 3 at 740px, 16px gutters. Admin forms are one column, two at `xl`,
+queries, because the pane is narrower than the window: 1 column (one photo-led
+card per row on a phone), 2 at 540px of pane width, 3 at 900px, 4 at 1240px;
+16px column gutters, 28–32px between rows so name and meta read as belonging
+to the photo above them. Admin forms are one column, two at `xl`,
 with `.admin-form-wide` for full-bleed sections. The admin stat row is three
 columns at every size and drops its icons below `sm`.
 
@@ -390,8 +411,13 @@ reserved for things in the top layer.
   separation; a toolbar is a surface, not a shelf of floating widgets.
 - **Lifted** (`--shadow-md`): the hover/focus-within state of a card, the fixed
   admin form action bar, Mapbox control clusters.
-- **Floating** (`--shadow-lg`): the mobile navigation sheet and the mobile map
-  toggle — elements genuinely detached from the page.
+- **Floating** (`--shadow-lg`): the admin navigation sheet, the map's card
+  carousel and the "search this area" pill — elements genuinely detached from
+  the page. `.ef-float-btn` (controls on a photo) takes `--shadow-md`.
+
+The **one blur** in the system is the phone tab bar: 60px tall, content scrolls
+under it constantly, and the frosted edge is what says the list continues. It
+is not a licence for glass elsewhere.
 
 The drawer backdrop is its own layer: `rgb(11 18 32 / 0.35)`, no blur,
 transitioned independently of the dialog because a `::backdrop` does not inherit
@@ -508,12 +534,39 @@ input, the applied-filter chip rail and a quiet clear button. It lights up on
 `:focus-within`, not `:focus`, because the whole capsule is one control as far as
 the eye is concerned.
 
+### Photo-led result card — `RestaurantCard size="grid"`
+The grid card has no box: a 4:3 photo at 16px radius on the page colour, with
+the heart top-right, Featured top-left and the match pill bottom-left *on* the
+photo, then name + ★ rating, a `cuisine · $$ · km` meta line and an open-state
+line ("Open now · Closes 23:00"). The list, map-carousel and popup variants are
+the compact `.ef-card` row. One component serves search results, Saved and
+Similar places — the optional score/distance fields simply do not render.
+
+### Quick rail — `QuickRail`
+The row under the search field: Near me (geolocation → sort by distance), Open
+now, four mood presets (Quick bite, Something hearty, Date night, Light &
+fresh — nothing but slider values, see `components/search/moods.ts`), then the
+top cuisines. 44px pills in a `.ef-scroll-fade` rail. An active preset shows
+as one chip, not three slider readings.
+
+### Touch feedback — `.ef-press`
+Anything a thumb presses scales to 0.98 on `:active`, on `hover: none` devices
+only, and not while a button inside it is the thing pressed (tapping a card's
+heart pops the heart, not the card). Tailwind's `hoverOnlyWhenSupported` is on,
+so no hover fill sticks after a tap; plain-CSS `:hover` rules sit inside
+`@media (hover: hover)` for the same reason.
+
 ### Drawer — `.ef-drawer`
 A native `<dialog>` in the top layer laid out as an edge sheet — right by
 default, `--left` for the admin navigation. It slides on `translate` with
 `transition-behavior: allow-discrete` and `@starting-style`, so there is no
 `isClosing` state flag and no JS animation; browsers lacking either simply snap.
 Entrance is 320ms on the deep-deceleration curve, exit 180ms.
+
+`.ef-drawer--sheet` turns it into a **bottom sheet below `md`** (the filter
+panel): it rises on `translateY`, content-height up to 40px short of the top,
+with a `.ef-grabber` and a header you can drag down to dismiss
+(`useSheetDrag`). Its footer carries the live answer — "Show 24 places".
 
 ### Meters and progress — `.ef-meter`, `.ef-progress`
 `.ef-meter` is determinate: a fully-round Hover Mist track with a Signal Blue

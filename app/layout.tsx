@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Manrope } from 'next/font/google'
 import { cookies } from 'next/headers'
 import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n'
@@ -16,6 +16,16 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: 'EatFinder',
   description: 'Find where to eat in Prishtina',
+}
+
+// viewport-fit=cover hands the notch and home-indicator strips to the page, so
+// the tab bar and sheets can sit flush and pad themselves with env(safe-area-*).
+// themeColor is --surface: the browser chrome matches the white top bar.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#ffffff',
 }
 
 export default async function RootLayout({

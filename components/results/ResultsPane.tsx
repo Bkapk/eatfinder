@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, type RefObject } from 'react'
 import { SearchX } from 'lucide-react'
 import type { ScoredRestaurant } from '@/lib/types'
 import type { View } from '@/lib/types'
@@ -18,6 +19,9 @@ export default function ResultsPane({
   onLoadMore,
   onRetry,
   onClearAll,
+  paneRef,
+  onPaneScroll,
+  animate = true,
 }: {
   locale: Locale
   items: ScoredRestaurant[]
@@ -30,7 +34,31 @@ export default function ResultsPane({
   onLoadMore: () => void
   onRetry: () => void
   onClearAll: () => void
+  paneRef?: RefObject<HTMLDivElement | null>
+  onPaneScroll?: (top: number) => void
+  /** Off when the list is being restored on Back: it was already on screen. */
+  animate?: boolean
 }) {
+  // Infinite scroll, a screen ahead of the end. The button below stays as the
+  // fallback and for anyone who wants the list to stop growing on its own.
+  const sentinel = useRef<HTMLDivElement>(null)
+  const more = useRef(onLoadMore)
+  useEffect(() => {
+    more.current = onLoadMore
+  })
+  useEffect(() => {
+    const el = sentinel.current
+    if (!el || !hasMore || loading) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) more.current()
+      },
+      { rootMargin: '0px 0px 800px 0px' }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasMore, loading])
+
   if (error) {
     return (
       <div className="ef-enter flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
@@ -69,9 +97,14 @@ export default function ResultsPane({
   }
 
   return (
-    // pb-24 below md: the floating map/list pill is fixed at bottom-5 and
-    // centred, exactly over "Load more" and the last row's bottom edge.
-    <div className="ef-results-container flex-1 overflow-y-auto overscroll-contain px-4 pb-24 pt-4 sm:px-5 md:pb-4">
+    // Below md the document scrolls, not this box: that is what lets the
+    // browser's toolbar collapse, pull-to-refresh work and the header hide.
+    // From md the split pane scrolls on its own beside the map.
+    <div
+      ref={paneRef}
+      onScroll={onPaneScroll ? (e) => onPaneScroll(e.currentTarget.scrollTop) : undefined}
+      className="ef-results-container flex-1 px-4 pb-8 pt-4 sm:px-5 md:overflow-y-auto md:overscroll-contain md:pb-6"
+    >
       {/* ef-stagger: the list reveals as a list. The index is clamped at 9, so
           the last card is 360ms behind the first whether the query returned ten
           rows or five hundred — an uncapped stagger turns a big result set into
@@ -79,7 +112,7 @@ export default function ResultsPane({
       {/* gap-4 in list view is the 16px .ef-results-grid already uses between
           cards — at gap-3 switching view silently retuned the rhythm. */}
       <ul
-        className={`ef-stagger ${view === 'list' ? 'flex flex-col gap-4' : 'ef-results-grid'}`}
+        className={`${animate ? 'ef-stagger' : ''} ${view === 'list' ? 'flex flex-col gap-3' : 'ef-results-grid'}`}
       >
         {items.map((item, i) => (
           <li key={item.id} style={{ '--i': Math.min(i, 9) } as React.CSSProperties}>
@@ -89,6 +122,7 @@ export default function ResultsPane({
               size={view === 'list' ? 'list' : 'grid'}
               onHover={onHover}
               active={hoveredId === item.id}
+              eager={i < 2}
             />
           </li>
         ))}
@@ -98,31 +132,40 @@ export default function ResultsPane({
           // jump when it lands — and reserve it in the SHAPE of a result card
           // (3:2 photo, title line, meta line) rather than as a grey slab, so
           // the wait already tells you what is coming.
-          Array.from({ length: 6 }).map((_, i) => (
-            <li
-              key={`skeleton-${i}`}
-              aria-hidden
-              className="overflow-hidden rounded-2xl border border-border bg-surface"
-            >
-              <div className="aspect-[3/2] w-full animate-pulse bg-surface-hover" />
-              {/* p-4 and three rows, because that is exactly what a real card
-                  is: title, meta line, price/match row. At p-3 with two rows the
-                  skeleton was ~18px shorter than the card replacing it, so the
-                  whole list jumped upward the instant results landed. */}
-              <div className="flex flex-col gap-2 p-4">
-                <div className="h-4 w-3/5 animate-pulse rounded-full bg-surface-hover" />
-                <div className="h-3.5 w-4/5 animate-pulse rounded-full bg-surface-muted" />
-                <div className="mt-1 flex items-center justify-between gap-2">
-                  <div className="h-4 w-10 animate-pulse rounded-full bg-surface-hover" />
-                  <div className="h-4 w-14 animate-pulse rounded-full bg-surface-muted" />
+          Array.from({ length: 6 }).map((_, i) =>
+            view === 'list' ? (
+              <li
+                key={`skeleton-${i}`}
+                aria-hidden
+                className="flex h-[7.5rem] overflow-hidden rounded-2xl border border-border bg-surface"
+              >
+                <div className="w-28 shrink-0 animate-pulse bg-surface-hover sm:w-32" />
+                <div className="flex flex-1 flex-col gap-2 p-3.5">
+                  <div className="h-4 w-3/5 animate-pulse rounded-full bg-surface-hover" />
+                  <div className="h-3.5 w-4/5 animate-pulse rounded-full bg-surface-muted" />
+                  <div className="mt-auto h-3.5 w-2/5 animate-pulse rounded-full bg-surface-muted" />
                 </div>
-              </div>
-            </li>
-          ))}
+              </li>
+            ) : (
+              // The shape of the photo-led card — 4:3 photo, name, meta line,
+              // hours line — so the list does not jump when it lands.
+              <li key={`skeleton-${i}`} aria-hidden>
+                <div className="aspect-[4/3] w-full animate-pulse rounded-2xl bg-surface-hover" />
+                <div className="flex flex-col gap-2 pt-3">
+                  <div className="flex justify-between gap-3">
+                    <div className="h-4 w-3/5 animate-pulse rounded-full bg-surface-hover" />
+                    <div className="h-4 w-10 animate-pulse rounded-full bg-surface-hover" />
+                  </div>
+                  <div className="h-3.5 w-4/5 animate-pulse rounded-full bg-surface-muted" />
+                  <div className="h-3.5 w-2/5 animate-pulse rounded-full bg-surface-muted" />
+                </div>
+              </li>
+            )
+          )}
       </ul>
 
       {hasMore && (
-        <div className="flex justify-center py-6">
+        <div ref={sentinel} className="flex justify-center py-6">
           <button
             type="button"
             onClick={onLoadMore}

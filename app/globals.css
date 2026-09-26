@@ -97,6 +97,10 @@
        everywhere else, and the wordmark jumped on every navigation. */
     --control-h: 2.75rem;
     --topbar-h: 4.5rem;
+    /* The phone tab bar, excluding the home-indicator inset it sits above. */
+    --tabbar-h: 3.75rem;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
 
     /* The one focus halo. Every control uses this instead of a Tailwind ring,
        which is what stopped inputs drawing two rings on top of each other. */
@@ -109,12 +113,28 @@
     margin: 0;
   }
 
+  /* clip, not hidden: overflow-x:hidden on both html and body turns body into
+     a scroll container, and every position:sticky inside it then sticks to a
+     box that never scrolls — the phone header would scroll away with the page. */
   html,
   body {
-    max-width: 100vw;
-    overflow-x: hidden;
+    overflow-x: clip;
     font-family: var(--font-sans), system-ui, sans-serif;
     @apply bg-background text-text antialiased;
+  }
+
+  html {
+    /* The grey flash Android and iOS paint over anything tapped. Every control
+       here has its own :active answer, so the OS one is only noise. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* No 300ms double-tap-zoom wait on anything a finger presses. */
+  a,
+  button,
+  label,
+  summary {
+    touch-action: manipulation;
   }
 
   body {
@@ -436,10 +456,16 @@
 
   /* focus-within as well as hover: the card's title is the link, so a keyboard
      user tabbing the list gets the same "this one" cue a mouse does. */
-  .ef-card:hover,
   .ef-card:focus-within {
     border-color: var(--border-strong);
     box-shadow: var(--shadow-card-hover);
+  }
+
+  @media (hover: hover) {
+    .ef-card:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-card-hover);
+    }
   }
 
   /* Admin shares this vocabulary. Adding it here rather than restyling ~3200
@@ -653,8 +679,10 @@
     transition: border-color var(--dur-fast) var(--ease);
   }
 
-  .ef-photo-tile:hover {
-    border-color: var(--border-strong);
+  @media (hover: hover) {
+    .ef-photo-tile:hover {
+      border-color: var(--border-strong);
+    }
   }
 
   /* The lightbox. Same <dialog>, same useDrawer script as the sheets — only the
@@ -671,8 +699,10 @@
   /* The frame, not the dialog, carries the padding: the backdrop has to stay
      clickable right up to the edge of the photo, and useDrawer only treats a
      press that STARTED on the dialog itself as a dismissal. */
+  /* Edge to edge on a phone, where every pixel of width is the photo's; the
+     close button floats in the top inset and the arrows give way to a swipe. */
   .ef-lightbox-frame {
-    @apply relative m-0 flex h-full max-h-[100dvh] w-full flex-col p-10 sm:p-14;
+    @apply relative m-0 flex h-full max-h-[100dvh] w-full flex-col px-0 pb-[calc(1rem+var(--safe-b))] pt-[calc(4rem+var(--safe-t))] sm:p-14;
   }
 
   .ef-lightbox-btn {
@@ -681,8 +711,10 @@
     transition: background-color var(--dur-fast) var(--ease);
   }
 
-  .ef-lightbox-btn:hover {
-    background-color: rgb(11 18 32 / 0.8);
+  @media (hover: hover) {
+    .ef-lightbox-btn:hover {
+      background-color: rgb(11 18 32 / 0.8);
+    }
   }
 
   /* The search field. focus-within, not :focus — the field owns a chip rail and
@@ -715,7 +747,15 @@
     min-height: var(--topbar-h);
   }
 
+  /* Inside the search page's header block the block draws the bottom edge,
+     under the rail and chips, not between them and the search field. */
+  .ef-appbar .ef-topbar {
+    border-bottom-width: 0;
+  }
+
   @media (max-width: 767px) {
+    /* A phone header is brand and one control: 60px, not the desk's 72. */
+    :root { --topbar-h: 3.75rem; }
     .ef-topbar--search { flex-wrap: wrap; row-gap: 8px; }
     .ef-topbar--search .ef-topbar-search-controls {
       order: 3;
@@ -733,11 +773,18 @@
     box-shadow: var(--shadow-sm);
     transition:
       background-color var(--dur-fast) var(--ease),
-      color var(--dur-fast) var(--ease);
+      color var(--dur-fast) var(--ease),
+      scale var(--dur-fast) var(--ease);
   }
 
-  .ef-favorite-overlay:hover {
-    @apply bg-surface-hover text-accent;
+  @media (hover: hover) {
+    .ef-favorite-overlay:hover {
+      @apply bg-surface-hover text-accent;
+    }
+  }
+
+  .ef-favorite-overlay:active {
+    scale: 0.9;
   }
 
   /* An indeterminate bar, because fetch() reports no upload progress. It says
@@ -1010,11 +1057,17 @@ select:disabled {
 /* Size discovery cards to the results pane, which is narrower than the viewport. */
 .ef-results-container { container-type: inline-size; }
 .ef-results-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
-@container (min-width: 390px) {
-  .ef-results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* One photo-led card per row on a phone: two 170px cards is a thumbnail
+   grid, and the photo is the thing people choose a place by. */
+.ef-results-grid { row-gap: 28px; }
+@container (min-width: 540px) {
+  .ef-results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 32px; }
 }
-@container (min-width: 740px) {
+@container (min-width: 900px) {
   .ef-results-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container (min-width: 1240px) {
+  .ef-results-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 /* iOS zooms the entire page when a focused form field is rendered below 16px.
@@ -1024,5 +1077,229 @@ select:disabled {
   select,
   textarea {
     font-size: 16px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   The phone shell. Nine visits in ten are a phone in one hand, so below md the
+   app behaves like one: a tab bar in thumb reach, a header that gets out of
+   the way while you scroll, sheets that rise from the bottom edge.
+   ------------------------------------------------------------------------- */
+
+/* A press answers on touch, where there is no hover to say "this one". The
+   independent `scale` property, so it composes with any transform in place. */
+.ef-press {
+  transition: scale var(--dur-fast) var(--ease);
+}
+
+/* Not while a control inside is the thing being pressed: tapping a card's
+   heart should pop the heart, not squash the card around it. */
+@media (hover: none) {
+  .ef-press:active:not(:has(button:active)) {
+    scale: 0.98;
+  }
+}
+
+/* The tab bar. White on a hairline like the top bar, sitting above the home
+   indicator rather than under it. */
+.ef-tabbar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  height: calc(var(--tabbar-h) + var(--safe-b));
+  padding-bottom: var(--safe-b);
+  border-top: 1px solid var(--border);
+  background-color: var(--surface);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  /* The one blur in the app, and a specific one: the list scrolls under this
+     bar the whole time, and a frosted edge is what says "it continues under
+     here". It is 60px tall, not a full-viewport scrim over the WebGL map, so
+     it is nothing like the drawer backdrop that was removed for stuttering. */
+  .ef-tabbar {
+    background-color: color-mix(in srgb, var(--surface) 84%, transparent);
+    backdrop-filter: saturate(1.6) blur(16px);
+  }
+}
+
+.ef-tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  transition: color var(--dur) var(--ease);
+}
+
+.ef-tab[aria-current='page'] {
+  color: var(--primary);
+}
+
+/* The icon sits in a pill that fills when its tab is current: a colour change
+   alone does not read at arm's length in daylight. */
+.ef-tab-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 1.875rem;
+  border-radius: 9999px;
+  transition:
+    background-color var(--dur) var(--ease),
+    scale var(--dur-fast) var(--ease);
+}
+
+.ef-tab[aria-current='page'] .ef-tab-icon {
+  background-color: var(--primary-soft);
+}
+
+.ef-tab:active .ef-tab-icon {
+  scale: 0.9;
+}
+
+.ef-tab-badge {
+  position: absolute;
+  top: -3px;
+  left: calc(50% + 5px);
+  display: grid;
+  place-items: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding-inline: 4px;
+  border-radius: 9999px;
+  border: 2px solid var(--surface);
+  background-color: var(--accent);
+  color: var(--on-primary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* Room for the tab bar under whatever scrolls. */
+@media (max-width: 767px) {
+  .ef-tabbar-pad {
+    padding-bottom: calc(var(--tabbar-h) + var(--safe-b));
+  }
+}
+
+/* The search page's header block (top bar, quick rail, chips). Sticky on a
+   phone, where the document scrolls, and it slides away while you read down
+   the list — back the moment you scroll up, the way native lists behave. */
+.ef-appbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: var(--surface);
+  transition: translate var(--dur-panel) var(--ease-out);
+}
+
+.ef-appbar[data-hidden='true']:not(:focus-within) {
+  translate: 0 -100%;
+  transition-duration: var(--dur-exit);
+  transition-timing-function: var(--ease);
+}
+
+@media (min-width: 768px) {
+  .ef-appbar {
+    position: relative;
+    translate: none !important;
+  }
+}
+
+/* The filter drawer becomes a bottom sheet on a phone: it rises from the edge
+   the thumb is already on. Same <dialog>, same useDrawer — only the axis
+   changes, and useDrawer only listens for `transform`. */
+@media (max-width: 767px) {
+  .ef-drawer--sheet {
+    align-items: flex-end;
+  }
+
+  .ef-drawer--sheet > * {
+    transform: translateY(100%);
+  }
+
+  .ef-drawer--sheet[data-state='open'] > * {
+    transform: translateY(0);
+  }
+}
+
+/* The drag grip on a bottom sheet. */
+.ef-grabber {
+  display: block;
+  width: 2.25rem;
+  height: 5px;
+  margin-inline: auto;
+  border-radius: 9999px;
+  background-color: var(--border-strong);
+}
+
+/* Horizontal snap rails: the map's card carousel, similar places. */
+.ef-snap {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.ef-snap::-webkit-scrollbar {
+  display: none;
+}
+
+.ef-snap > * {
+  scroll-snap-align: center;
+  flex-shrink: 0;
+}
+
+.ef-snap--start > * {
+  scroll-snap-align: start;
+}
+
+/* Over the phone map the card carousel owns the bottom edge. Mapbox's own
+   controls, and the attribution it is required to keep visible, move up above
+   it; the zoom buttons go entirely, because a phone map is pinched. */
+@media (max-width: 767px) {
+  .ef-map .mapboxgl-ctrl-bottom-right,
+  .ef-map .mapboxgl-ctrl-bottom-left {
+    bottom: var(--map-bottom-inset, 0px);
+  }
+
+  .ef-map .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-zoom-in) {
+    display: none;
+  }
+}
+
+/* Floating round controls over a photo: the detail hero's back, share and
+   favourite. Opaque white for the same contrast reason as the card heart. */
+.ef-float-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    scale var(--dur-fast) var(--ease);
+}
+
+.ef-float-btn:active {
+  scale: 0.92;
+}
+
+@media (hover: hover) {
+  .ef-float-btn:hover {
+    background-color: var(--surface-hover);
   }
 }

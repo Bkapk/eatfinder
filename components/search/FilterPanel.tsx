@@ -1,6 +1,7 @@
 'use client'
 
 import { useDrawer } from '../useDrawer'
+import { useSheetDrag } from '../useSheetDrag'
 import { X } from 'lucide-react'
 import { priceGlyphs, t, tVocab, type Locale } from '@/lib/i18n'
 import type { ParsedFilters } from '@/lib/filters'
@@ -17,6 +18,27 @@ function toggle(list: string[] | undefined, v: string): string[] | undefined {
   const cur = list ?? []
   const next = cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]
   return next.length ? next : undefined
+}
+
+/**
+ * Price as four toggles over one contiguous range, because the API filters on
+ * min/max. The two <select>s this replaces could be set to "$$$ – $", which
+ * matched nothing and said nothing about why.
+ */
+function priceTap(min: number | undefined, max: number | undefined, p: number) {
+  const lo = min ?? (max !== undefined ? 1 : undefined)
+  const hi = max ?? (min !== undefined ? 4 : undefined)
+  let next: [number, number] | null
+  if (lo === undefined || hi === undefined) next = [p, p]
+  else if (p === lo && p === hi) next = null
+  else if (p < lo) next = [p, hi]
+  else if (p > hi) next = [lo, p]
+  else next = [p, p] // inside a wider range: narrow to the one tapped
+  if (!next || (next[0] === 1 && next[1] === 4)) return { minPrice: undefined, maxPrice: undefined }
+  return {
+    minPrice: next[0] === 1 ? undefined : next[0],
+    maxPrice: next[1] === 4 ? undefined : next[1],
+  }
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -79,11 +101,15 @@ export default function FilterPanel({
   onPatch,
   onClearAll,
   onClose,
+  total,
+  loading,
 }: {
   locale: Locale
   open: boolean
   filters: ParsedFilters
   facets: Facets
+  total: number
+  loading: boolean
   onPatch: (patch: Patch) => void
   onClearAll: () => void
   onClose: () => void
@@ -93,34 +119,36 @@ export default function FilterPanel({
   // one of those was hand-rolled work on the previous div-with-role="dialog",
   // and three of the four were simply missing. useDrawer adds the slide.
   const drawer = useDrawer(open, onClose)
+  const drag = useSheetDrag(onClose)
 
   const priceOptions = [1, 2, 3, 4]
+  const priceLo = filters.minPrice ?? (filters.maxPrice !== undefined ? 1 : undefined)
+  const priceHi = filters.maxPrice ?? (filters.minPrice !== undefined ? 4 : undefined)
 
   return (
     <dialog
       {...drawer}
       aria-label={t(locale, 'filters.title')}
       onClose={onClose}
-      className="ef-drawer"
+      className="ef-drawer ef-drawer--sheet"
     >
       <aside
         // No shadow: the scrim already separates the panel from the page, and a
         // large blurred shadow on the element that is travelling is a full
         // repaint on every frame of the slide.
-        className="flex h-full w-full max-w-md flex-col bg-surface"
+        // Below md it is a bottom sheet: content height, capped short of the
+        // top so the results it is filtering still show behind it.
+        className="flex h-full w-full max-w-md flex-col bg-surface max-md:h-auto max-md:max-h-[calc(100dvh-2.5rem)] max-md:max-w-none max-md:rounded-t-3xl"
       >
-        <header className="flex items-center justify-between border-b border-border px-5 py-4">
+        <header
+          {...drag}
+          className="relative flex items-center justify-between border-b border-border px-5 py-4 max-md:touch-none max-md:pt-6"
+        >
+          <span aria-hidden className="ef-grabber absolute inset-x-0 top-2 md:hidden" />
           <h2 className="ef-heading">
             {t(locale, 'filters.title')}
           </h2>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClearAll}
-              className="ef-btn ef-btn--quiet"
-            >
-              {t(locale, 'filters.clear')}
-            </button>
             <button
               type="button"
               onClick={onClose}
@@ -132,7 +160,7 @@ export default function FilterPanel({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {/* Mood first. It is the reason the product exists — you say how you
               feel and it matches — so it opens the panel rather than sitting
               under five conventional facets where nobody scrolled to it. */}
@@ -211,40 +239,22 @@ export default function FilterPanel({
           </Section>
 
           <Section title={t(locale, 'filters.price')}>
-            <div className="flex items-center gap-3">
-              <select
-                aria-label={`${t(locale, 'filters.price')} — min`}
-                value={filters.minPrice ?? ''}
-                onChange={(e) =>
-                  onPatch({ minPrice: e.target.value ? Number(e.target.value) : undefined })
-                }
-                className="ef-input flex-1"
-              >
-                <option value="">{t(locale, 'filters.anyPrice')}</option>
-                {priceOptions.map((p) => (
-                  <option key={p} value={p}>
+            <div className="grid grid-cols-4 gap-2" role="group" aria-label={t(locale, 'filters.price')}>
+              {priceOptions.map((p) => {
+                const on = priceLo !== undefined && priceHi !== undefined && p >= priceLo && p <= priceHi
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    aria-pressed={on}
+                    aria-label={t(locale, 'card.priceLevel', { n: p })}
+                    onClick={() => onPatch(priceTap(filters.minPrice, filters.maxPrice, p))}
+                    className={`ef-pill ef-pill--lg justify-center tracking-wider ${on ? 'ef-pill--active' : ''}`}
+                  >
                     {priceGlyphs(p)}
-                  </option>
-                ))}
-              </select>
-              <span aria-hidden className="text-text-secondary">
-                –
-              </span>
-              <select
-                aria-label={`${t(locale, 'filters.price')} — max`}
-                value={filters.maxPrice ?? ''}
-                onChange={(e) =>
-                  onPatch({ maxPrice: e.target.value ? Number(e.target.value) : undefined })
-                }
-                className="ef-input flex-1"
-              >
-                <option value="">{t(locale, 'filters.anyPrice')}</option>
-                {priceOptions.map((p) => (
-                  <option key={p} value={p}>
-                    {priceGlyphs(p)}
-                  </option>
-                ))}
-              </select>
+                  </button>
+                )
+              })}
             </div>
           </Section>
 
@@ -271,8 +281,8 @@ export default function FilterPanel({
           </Section>
 
           <Section title={t(locale, 'filters.more')}>
-            <div className="flex flex-col gap-3">
-              <label className="flex cursor-pointer items-center gap-3 text-[14px] font-semibold text-text">
+            <div className="flex flex-col">
+              <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[14px] font-semibold text-text">
                 <input
                   type="checkbox"
                   checked={!!filters.openNow}
@@ -280,7 +290,7 @@ export default function FilterPanel({
                 />
                 {t(locale, 'filters.openNow')}
               </label>
-              <label className="flex cursor-pointer items-center gap-3 text-[14px] font-semibold text-text">
+              <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[14px] font-semibold text-text">
                 <input
                   type="checkbox"
                   checked={!!filters.woltOnly}
@@ -342,6 +352,26 @@ export default function FilterPanel({
             </div>
           </Section>
         </div>
+
+        {/* The answer to "what will this give me", live, on the button that
+            takes you there — the count updates as you move a slider. */}
+        <footer className="flex items-center gap-3 border-t border-border px-5 pb-[calc(0.75rem+var(--safe-b))] pt-3">
+          <button type="button" onClick={onClearAll} className="ef-btn ef-btn--ghost">
+            {t(locale, 'filters.clear')}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-busy={loading}
+            className="ef-btn ef-btn--primary flex-1 tabular-nums"
+          >
+            {total === 0
+              ? t(locale, 'filters.showNone')
+              : total === 1
+                ? t(locale, 'filters.showOne')
+                : t(locale, 'filters.show', { n: total })}
+          </button>
+        </footer>
       </aside>
     </dialog>
   )

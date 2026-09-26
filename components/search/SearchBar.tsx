@@ -4,6 +4,7 @@ import type { RefObject } from 'react'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { priceGlyphs, t, tVocab, type Locale } from '@/lib/i18n'
 import type { ParsedFilters } from '@/lib/filters'
+import { activeMood } from './moods'
 
 export type Patch = Partial<ParsedFilters>
 
@@ -50,6 +51,13 @@ export function activeChips(f: ParsedFilters, locale: Locale): Chip[] {
       label: t(locale, 'filters.radiusValue', { n: f.maxDistanceKm }),
       patch: { maxDistanceKm: undefined },
     })
+
+  // A preset is one decision, so it is one chip, not three slider readings.
+  const mood = activeMood(f)
+  if (mood) {
+    chips.push({ key: 'mood', label: t(locale, mood.label), patch: { heavy: 50, hungry: 50, fine: 50 } })
+    return chips
+  }
 
   const axes = [
     ['heavy', f.heavy] as const,

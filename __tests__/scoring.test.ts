@@ -1,5 +1,5 @@
 import { passesFilters, calculateScore, search, SearchFilters } from '../lib/scoring'
-import { RestaurantDTO } from '../lib/types'
+import { RestaurantDTO, nextChange } from '../lib/types'
 
 function makeRestaurant(overrides: Partial<RestaurantDTO> = {}): RestaurantDTO {
   return {
@@ -27,6 +27,8 @@ function makeRestaurant(overrides: Partial<RestaurantDTO> = {}): RestaurantDTO {
     image: null,
     openHours: null,
     rating: null,
+    googleRating: null,
+    googleRatingCount: null,
     isFeatured: false,
     ...overrides,
   }
@@ -121,5 +123,30 @@ describe('search', () => {
 
     const results = search(restaurants, makeFilters({ maxPrice: 2 }))
     expect(results.map((r) => r.id)).toEqual(['1'])
+  })
+})
+
+describe('nextChange', () => {
+  // 2026-09-28 is a Monday.
+  const at = (h: number, m = 0) => new Date(2026, 8, 28, h, m)
+
+  it('gives the closing time while open', () => {
+    expect(nextChange({ mon: ['10:00', '22:00'] }, at(12))).toBe('22:00')
+  })
+
+  it('gives a later opening time while closed', () => {
+    expect(nextChange({ mon: ['18:00', '23:00'] }, at(12))).toBe('18:00')
+  })
+
+  it('says nothing once closed for the day', () => {
+    expect(nextChange({ mon: ['10:00', '15:00'] }, at(16))).toBeNull()
+  })
+
+  it("closes yesterday's past-midnight slot first", () => {
+    expect(nextChange({ sun: ['18:00', '02:00'], mon: ['12:00', '23:00'] }, at(1))).toBe('02:00')
+  })
+
+  it('is null for unknown hours', () => {
+    expect(nextChange(null, at(12))).toBeNull()
   })
 })

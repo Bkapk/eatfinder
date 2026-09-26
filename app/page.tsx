@@ -31,11 +31,11 @@ export default async function Home({
   // has to sit outside <main> to be a banner landmark rather than a generic
   // div, and it cannot move up here because it wraps the search bar, which
   // is driven by this shell's client state.
+  // The shell owns its own frame: a phone list scrolls the document, the map
+  // and the desktop split fill exactly one viewport.
   return (
-    <div className="flex h-[100dvh] flex-col overflow-hidden">
-      <Suspense fallback={<div className="ef-topbar" />}>
-        <SearchShell locale={locale} mapboxToken={mapboxToken} />
-      </Suspense>
-    </div>
+    <Suspense fallback={<div className="ef-topbar" />}>
+      <SearchShell locale={locale} mapboxToken={mapboxToken} />
+    </Suspense>
   )
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Heart, Languages, UserRound, UtensilsCrossed } from 'lucide-react'
 import { LOCALE_COOKIE, t, type Locale } from '@/lib/i18n'
 import { useFavorites } from './useFavorites'
@@ -16,16 +16,10 @@ export default function TopBar({
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { ids } = useFavorites()
-  const [signedIn, setSignedIn] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    let active = true
-    fetch('/api/auth/me', { cache: 'no-store' })
-      .then((response) => { if (active) setSignedIn(response.ok) })
-      .catch(() => { if (active) setSignedIn(false) })
-    return () => { active = false }
-  }, [])
+  // useFavorites already asks the server who this is (a 401 means signed
+  // out), and every page with this bar mounts it anyway — a second request to
+  // /api/auth/me for the same answer was one round trip per navigation.
+  const { ids, signedIn } = useFavorites()
 
   // `?lang=` is how the toggle switches; this is what makes it stick. The
   // server component reads the same cookie on every later request, so the URL
@@ -57,7 +51,10 @@ export default function TopBar({
         <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-[color:var(--on-primary)]">
           <UtensilsCrossed size={18} aria-hidden />
         </span>
-        <span className="hidden text-[17px] font-extrabold tracking-tight sm:block">
+        {/* Shown on a phone too: the tab bar took the account pills, so the
+            first row has the room, and a first-time visitor should see what
+            this is before the search field asks them anything. */}
+        <span className="text-[17px] font-extrabold tracking-tight">
           {t(locale, 'app.name')}
         </span>
       </Link>
@@ -66,26 +63,20 @@ export default function TopBar({
 
       <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
         <Link
-          href="/account"
-          className="ef-pill ef-pill--lg sm:hidden"
-          aria-label={t(locale, 'nav.account')}
-        >
-          <UserRound size={16} aria-hidden />
-        </Link>
-        <Link
           href={`${pathname}?${toggleParams.toString()}`}
-          className="ef-pill ef-pill--lg"
+          className="ef-pill md:h-[var(--control-h)] md:px-4"
           aria-label={t(locale, 'nav.language')}
+          hrefLang={other}
         >
           <Languages size={15} aria-hidden />
-          <span className="hidden sm:inline">{t(locale, 'nav.switchTo')}</span>
+          <span className="md:hidden">{other.toUpperCase()}</span>
+          <span className="hidden md:inline">{t(locale, 'nav.switchTo')}</span>
         </Link>
 
-        {/* Hidden below sm: at 320px it and the language pill squeeze the
-            search input to nothing. The count is on /account. */}
+        {/* Below md the tab bar carries Saved and Profile, in thumb reach. */}
         <Link
-          href="/account"
-          className="ef-pill ef-pill--lg hidden sm:inline-flex"
+          href="/saved"
+          className="ef-pill ef-pill--lg hidden md:inline-flex"
           aria-label={t(locale, 'nav.favoritesCount', { n: ids.length })}
         >
           <Heart size={15} aria-hidden className={ids.length ? 'fill-accent text-accent' : ''} />
@@ -93,7 +84,7 @@ export default function TopBar({
         </Link>
 
         {signedIn === true ? (
-          <Link href="/account" className="ef-pill ef-pill--lg ef-pill--active hidden sm:inline-flex">
+          <Link href="/account" className="ef-pill ef-pill--lg ef-pill--active hidden md:inline-flex">
             <UserRound size={15} aria-hidden />{t(locale, 'nav.account')}
           </Link>
         ) : signedIn === false ? (
@@ -101,7 +92,7 @@ export default function TopBar({
             <Link href="/account/login" className="ef-pill ef-pill--lg ef-pill--quiet hidden lg:inline-flex">
               {t(locale, 'nav.signIn')}
             </Link>
-            <Link href="/account/register" className="ef-pill ef-pill--lg ef-pill--active hidden sm:inline-flex">
+            <Link href="/account/register" className="ef-pill ef-pill--lg ef-pill--active hidden md:inline-flex">
               {t(locale, 'nav.register')}
             </Link>
           </>
