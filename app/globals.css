@@ -1135,6 +1135,18 @@ select:disabled {
   }
 }
 
+/* Behind the floating bar: the page colour rising from the bottom edge, so a
+   card scrolling down dissolves before it reaches the pill. */
+.ef-tabbar-fade {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 19;
+  height: calc(var(--tabbar-space) + 1.5rem);
+  background: linear-gradient(to bottom, transparent, var(--background) 60%);
+  pointer-events: none;
+}
+
 /* The current tab's highlight: one pill that slides to whichever tab is
    current (--i of --n, set by MobileNav) rather than one per tab. */
 .ef-tabbar[style*='--i']::before {

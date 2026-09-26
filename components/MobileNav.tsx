@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Compass, Heart, Map as MapIcon, UserRound, type LucideIcon } from 'lucide-react'
 import { t, type Locale, type TKey } from '@/lib/i18n'
@@ -7,6 +8,10 @@ import { useFavorites } from './useFavorites'
 import { searchMemory } from './search/memory'
 
 export type Tab = 'explore' | 'map' | 'saved' | 'profile'
+
+// Each page mounts its own bar, so the tab you left lives here: the new bar
+// starts its highlight there and slides it over, as if it never went away.
+let lastTab: Tab | null = null
 
 /**
  * The phone's primary navigation, in thumb reach. Explore and Map are two
@@ -43,8 +48,24 @@ export default function MobileNav({
   ]
 
   const i = tabs.findIndex((tab) => tab.id === current)
+  // Server and first load render the current tab; only a client-side
+  // navigation starts from the previous one.
+  const [shown, setShown] = useState(() => {
+    const from = tabs.findIndex((tab) => tab.id === lastTab)
+    return from >= 0 ? from : i
+  })
+  useEffect(() => {
+    lastTab = current
+    // A frame later, so the starting position paints and the move transitions.
+    const raf = requestAnimationFrame(() => setShown(i))
+    return () => cancelAnimationFrame(raf)
+  }, [current, i])
 
   return (
+    <>
+    {/* Content fades out under the bar instead of meeting its edge. The map
+        runs to the edge on purpose, so not there. */}
+    {current !== 'map' && <div className="ef-tabbar-fade md:hidden" aria-hidden />}
     <nav
       aria-label={t(locale, 'nav.main')}
       className="ef-tabbar md:hidden"
@@ -53,7 +74,7 @@ export default function MobileNav({
           gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
           '--n': tabs.length,
           // No current tab, no highlight: the CSS keys off --i being set.
-          ...(i >= 0 && { '--i': i }),
+          ...(shown >= 0 && { '--i': shown }),
         } as React.CSSProperties
       }
     >
@@ -101,5 +122,6 @@ export default function MobileNav({
         )
       })}
     </nav>
+    </>
   )
 }
