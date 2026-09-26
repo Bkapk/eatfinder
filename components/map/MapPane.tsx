@@ -496,7 +496,10 @@ export default function MapPane({
           onWheel={onSwipe}
           onKeyDown={onSwipe}
           aria-label={t(locale, 'map.label')}
-          className="ef-snap pointer-events-auto absolute inset-x-0 bottom-0 gap-3 px-4 pb-4 pt-2"
+          // A scroller clips its children's shadows at its own edge, so it
+          // runs on under the tab bar to the screen's bottom, padded back up
+          // by the same amount: the cards stay put, the shadow gets room.
+          className="ef-snap pointer-events-auto absolute inset-x-0 bottom-[calc(-1*var(--tabbar-space))] gap-3 px-4 pb-[calc(var(--tabbar-space)+1rem)] pt-2"
         >
           {orphan && (
             <li data-id={orphan.id} className="w-[86%] max-w-[22rem]">
