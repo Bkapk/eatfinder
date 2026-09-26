@@ -337,9 +337,9 @@ left hairline and the map takes the rest, each scrolling on its own.
 - `.ef-appbar` wraps the top bar, the quick rail and the active-filter chips.
   It is sticky and slides away on scroll-down, back on the first scroll-up,
   and never hides while it contains focus.
-- `.ef-tabbar` (`<MobileNav>`) is fixed to the bottom: Explore · Map · Saved ·
-  Profile, above the home indicator via `env(safe-area-inset-bottom)`. Any
-  page that shows it pads its scroller with `.ef-tabbar-pad`. Explore and Map
+- `.ef-tabbar` (`<MobileNav>`) is a floating pill lifted off the bottom: Explore · Map · Saved ·
+  Profile, clear of the home indicator (`--tabbar-lift`), with one highlight that slides to the current tab. Any
+  page that shows it pads its scroller with `.ef-tabbar-pad` (`--tabbar-space`). Explore and Map
   link back to the last search, filters intact.
 - Map view fills the screen between the two bars. The loaded results ride along
   the bottom edge as a snap carousel bound to the pins (tap a pin → its card
@@ -415,7 +415,7 @@ reserved for things in the top layer.
   carousel and the "search this area" pill — elements genuinely detached from
   the page. `.ef-float-btn` (controls on a photo) takes `--shadow-md`.
 
-The **one blur** in the system is the phone tab bar: 60px tall, content scrolls
+The **one blur** in the system is the phone tab bar: 64px tall, content scrolls
 under it constantly, and the frosted edge is what says the list continues. It
 is not a licence for glass elsewhere.
 

@@ -42,11 +42,20 @@ export default function MobileNav({
     { id: 'profile', label: 'nav.profile', icon: UserRound, href: '/account' },
   ]
 
+  const i = tabs.findIndex((tab) => tab.id === current)
+
   return (
     <nav
       aria-label={t(locale, 'nav.main')}
       className="ef-tabbar md:hidden"
-      style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
+      style={
+        {
+          gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
+          '--n': tabs.length,
+          // No current tab, no highlight: the CSS keys off --i being set.
+          ...(i >= 0 && { '--i': i }),
+        } as React.CSSProperties
+      }
     >
       {tabs.map(({ id, label, icon: Icon, href }) => {
         const on = current === id

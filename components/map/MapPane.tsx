@@ -402,7 +402,7 @@ export default function MapPane({
           // Where Mapbox's own corner controls sit above the bottom edge.
           '--map-bottom-inset': desktop
             ? '0px'
-            : `calc(var(--tabbar-h) + var(--safe-b) + ${showCarousel ? '9.25rem' : '0px'})`,
+            : `calc(var(--tabbar-space) + ${showCarousel ? '9.25rem' : '0px'})`,
           '--map-right-inset': split ? '40vw' : '0px',
         } as React.CSSProperties
       }

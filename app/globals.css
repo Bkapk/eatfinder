@@ -97,10 +97,13 @@
        everywhere else, and the wordmark jumped on every navigation. */
     --control-h: 2.75rem;
     --topbar-h: 4.5rem;
-    /* The phone tab bar, excluding the home-indicator inset it sits above. */
-    --tabbar-h: 3.75rem;
+    /* The phone tab bar: a floating pill, and the room it takes from the
+       bottom edge (pill + its lift, which is at least the home indicator). */
+    --tabbar-h: 4rem;
     --safe-t: env(safe-area-inset-top, 0px);
     --safe-b: env(safe-area-inset-bottom, 0px);
+    --tabbar-lift: max(0.75rem, var(--safe-b));
+    --tabbar-space: calc(var(--tabbar-h) + var(--tabbar-lift));
 
     /* The one focus halo. Every control uses this instead of a Tailwind ring,
        which is what stopped inputs drawing two rings on top of each other. */
@@ -1101,30 +1104,50 @@ select:disabled {
   }
 }
 
-/* The tab bar. White on a hairline like the top bar, sitting above the home
-   indicator rather than under it. */
+/* The tab bar. A floating pill, lifted off the edge and clear of the home
+   indicator, so the list and the map run on around it. */
 .ef-tabbar {
   position: fixed;
-  inset-inline: 0;
-  bottom: 0;
+  inset-inline: 0.75rem;
+  bottom: var(--tabbar-lift);
   z-index: 20;
+  isolation: isolate;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  height: calc(var(--tabbar-h) + var(--safe-b));
-  padding-bottom: var(--safe-b);
-  border-top: 1px solid var(--border);
+  max-width: 28rem;
+  height: var(--tabbar-h);
+  margin-inline: auto;
+  padding: 0.3125rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
   background-color: var(--surface);
+  box-shadow: var(--shadow-lg);
 }
 
 @supports (backdrop-filter: blur(1px)) {
   /* The one blur in the app, and a specific one: the list scrolls under this
      bar the whole time, and a frosted edge is what says "it continues under
-     here". It is 60px tall, not a full-viewport scrim over the WebGL map, so
+     here". It is 64px tall, not a full-viewport scrim over the WebGL map, so
      it is nothing like the drawer backdrop that was removed for stuttering. */
   .ef-tabbar {
     background-color: color-mix(in srgb, var(--surface) 84%, transparent);
     backdrop-filter: saturate(1.6) blur(16px);
   }
+}
+
+/* The current tab's highlight: one pill that slides to whichever tab is
+   current (--i of --n, set by MobileNav) rather than one per tab. */
+.ef-tabbar[style*='--i']::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset-block: 0.3125rem;
+  left: 0.3125rem;
+  width: calc((100% - 0.625rem) / var(--n));
+  translate: calc(var(--i) * 100%) 0;
+  border-radius: 9999px;
+  background-color: var(--primary-soft);
+  transition: translate var(--dur-panel) var(--ease-out);
 }
 
 .ef-tab {
@@ -1133,7 +1156,7 @@ select:disabled {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 1px;
   font-size: 11px;
   font-weight: 700;
   color: var(--text-secondary);
@@ -1144,22 +1167,13 @@ select:disabled {
   color: var(--primary);
 }
 
-/* The icon sits in a pill that fills when its tab is current: a colour change
-   alone does not read at arm's length in daylight. */
 .ef-tab-icon {
   position: relative;
   display: grid;
   place-items: center;
   width: 3.5rem;
-  height: 1.875rem;
-  border-radius: 9999px;
-  transition:
-    background-color var(--dur) var(--ease),
-    scale var(--dur-fast) var(--ease);
-}
-
-.ef-tab[aria-current='page'] .ef-tab-icon {
-  background-color: var(--primary-soft);
+  height: 1.625rem;
+  transition: scale var(--dur-fast) var(--ease);
 }
 
 .ef-tab:active .ef-tab-icon {
@@ -1187,7 +1201,7 @@ select:disabled {
 /* Room for the tab bar under whatever scrolls. */
 @media (max-width: 767px) {
   .ef-tabbar-pad {
-    padding-bottom: calc(var(--tabbar-h) + var(--safe-b));
+    padding-bottom: calc(var(--tabbar-space) + 0.75rem);
   }
 }
 
@@ -1296,7 +1310,7 @@ select:disabled {
 
 @media (max-width: 767px) {
   .ef-map-visible {
-    bottom: calc(var(--tabbar-h) + var(--safe-b));
+    bottom: var(--tabbar-space);
   }
 
   /* A phone map is pinched. */
