@@ -234,6 +234,27 @@ export default function SearchShell({
   const [panelOpen, setPanelOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const appbarRef = useRef<HTMLDivElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  // The chip row pushes <main> down when it appears. The map pulls itself back
+  // up behind it by the same amount (--chips-h), so its box never changes and
+  // the canvas is never resized; MapPane pads the camera instead. The var is
+  // written straight to the DOM, in the same frame as the layout change.
+  const [chipsH, setChipsH] = useState(0)
+  const chipsRef = useCallback((el: HTMLDivElement | null) => {
+    if (!el) return
+    const apply = (h: number) => {
+      rootRef.current?.style.setProperty('--chips-h', `${h}px`)
+      setChipsH(h)
+    }
+    apply(el.offsetHeight)
+    const ro = new ResizeObserver(() => apply(el.offsetHeight))
+    ro.observe(el)
+    return () => {
+      ro.disconnect()
+      apply(0)
+    }
+  }, [])
 
   const view: View = filters.view
   const chips = activeChips(filters, locale)
@@ -247,6 +268,7 @@ export default function SearchShell({
 
   return (
     <div
+      ref={rootRef}
       className={
         showMap
           ? // The map is the screen: nothing scrolls, the canvas fills it.
@@ -294,6 +316,7 @@ export default function SearchShell({
           // chips pushing the list down a row at a time. Clear-all leads, so
           // it is never the thing scrolled off the end.
           <div
+            ref={chipsRef}
             className="ef-no-scrollbar flex items-center gap-2 overflow-x-auto px-4 pb-3 sm:px-5 md:flex-wrap"
             role="group"
             aria-label={t(locale, 'search.activeFilters')}
@@ -338,7 +361,8 @@ export default function SearchShell({
             // pane slides over it: opening the split pans the camera (see
             // MapPane) instead of resizing the canvas, which flashed.
             // `isolate` keeps the map's overlays below the pane.
-            'relative isolate min-h-0 flex-1 outline-none md:absolute md:inset-0',
+            // The negative margin tucks it up behind the chip row (see chipsRef).
+            'relative isolate mt-[calc(var(--chips-h,0px)*-1)] min-h-0 flex-1 outline-none md:absolute md:inset-0',
             showMap ? '' : 'hidden md:block',
           ].join(' ')}
         >
@@ -348,6 +372,7 @@ export default function SearchShell({
             points={points}
             items={items}
             queriedBbox={filters.bbox}
+            topInset={chipsH}
             hoveredId={hoveredId}
             view={view}
             onHover={setHoveredId}

@@ -29,9 +29,10 @@ const RESIZE_SETTLE_MS = 120
 /** Matches --dur-split, so the camera and the results pane move together. */
 const SPLIT_MS = 320
 
-/** The results pane is md:w-[40vw] in SearchShell. */
-function splitPadding(split: boolean) {
-  return { top: 0, bottom: 0, left: 0, right: split ? window.innerWidth * 0.4 : 0 }
+/** What covers the map's edges: the chip row on top, and from md the results
+ *  pane (md:w-[40vw] in SearchShell) on the right. */
+function camPadding(split: boolean, top: number) {
+  return { top, bottom: 0, left: 0, right: split ? window.innerWidth * 0.4 : 0 }
 }
 
 /** Roughly a tenth of a city block — below this a "move" is just jitter. */
@@ -68,6 +69,7 @@ export default function MapPane({
   points,
   items,
   queriedBbox,
+  topInset = 0,
   hoveredId,
   view,
   onHover,
@@ -80,6 +82,8 @@ export default function MapPane({
   points: MapPoint[]
   items: ScoredRestaurant[]
   queriedBbox?: Bbox
+  /** Height of the chip row sitting over the top of the map. */
+  topInset?: number
   hoveredId: string | null
   view: View
   onHover: (id: string | null) => void
@@ -105,15 +109,16 @@ export default function MapPane({
   // against, so the moment those change the pill is simply not rendered.
   const pendingBbox = pending && sameBbox(pending.against, queriedBbox) ? pending.bbox : null
 
-  // From md the results pane covers the right 40vw of this map rather than
-  // shrinking it. Camera padding keeps the pins centred in what is still
-  // visible, and easing it glides the map along with the pane's slide.
+  // From md the results pane covers the right 40vw of this map, and the chip
+  // row covers its top, rather than either shrinking it. Camera padding keeps
+  // the pins centred in what is still visible, and easing it glides the map
+  // along with them.
   const split = desktop && view !== 'map'
-  const splitRef = useRef(split)
+  const padRef = useRef({ split, top: topInset })
   useEffect(() => {
-    splitRef.current = split
-    mapRef.current?.easeTo({ padding: splitPadding(split), duration: SPLIT_MS })
-  }, [split])
+    padRef.current = { split, top: topInset }
+    mapRef.current?.easeTo({ padding: camPadding(split, topInset), duration: SPLIT_MS })
+  }, [split, topInset])
 
   // mapbox-gl watches the window, not its container (there is no ResizeObserver
   // anywhere in the library), so every layout change that resizes this pane
@@ -132,12 +137,18 @@ export default function MapPane({
     const el = shellRef.current
     if (!el) return
     let timer = 0
+    let last = ''
     const ro = new ResizeObserver(() => {
       clearTimeout(timer)
       timer = window.setTimeout(() => {
+        // A change that settled back where it started (the chip row appearing
+        // and the map tucking up behind it) costs nothing, not a flash.
+        const size = `${el.clientWidth}x${el.clientHeight}`
+        if (size === last) return
+        last = size
         mapRef.current?.resize()
         // 40vw moved with the window.
-        mapRef.current?.getMap().setPadding(splitPadding(splitRef.current))
+        mapRef.current?.getMap().setPadding(camPadding(padRef.current.split, padRef.current.top))
       }, RESIZE_SETTLE_MS)
     })
     ro.observe(el)
@@ -303,7 +314,7 @@ export default function MapPane({
         ref={mapRef}
         mapboxAccessToken={token}
         mapStyle="mapbox://styles/mapbox/light-v11"
-        initialViewState={{ longitude: CITY.lng, latitude: CITY.lat, zoom: CITY.zoom, padding: splitPadding(split) }}
+        initialViewState={{ longitude: CITY.lng, latitude: CITY.lat, zoom: CITY.zoom, padding: camPadding(split, topInset) }}
         interactiveLayerIds={[CLUSTER_LAYER, POINT_LAYER]}
         cursor={cursor}
         onMouseEnter={() => setCursor('pointer')}
@@ -347,7 +358,7 @@ export default function MapPane({
       {/* The view toggle, desktop only: on a phone the tab bar is the switch.
           pointer-events-none on the row so map drag still works around it. */}
       {/* Overlays live in the visible part of the map, beside the pane. */}
-      <div className="ef-map-visible pointer-events-none absolute inset-y-0 left-0 z-overlay">
+      <div className="ef-map-visible pointer-events-none absolute bottom-0 left-0 z-overlay">
         <div className="absolute inset-x-3 top-3 hidden items-start justify-end gap-2 md:flex">
           <ViewToggle locale={locale} view={view} onChange={onView} className="pointer-events-auto" />
         </div>

@@ -1281,6 +1281,8 @@ select:disabled {
 /* From md the results pane slides over the map's right edge. Anything pinned
    to that edge rides beside the pane, on the pane's own curve. */
 .ef-map-visible {
+  /* The chip row (SearchShell's --chips-h) overlaps the map's top edge. */
+  top: var(--chips-h, 0px);
   right: var(--map-right-inset, 0px);
 }
 
