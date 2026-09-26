@@ -118,11 +118,11 @@ export default function RestaurantCard({
           decoding="async"
           // The name is the link text right beside it; alt={name} made a
           // screen reader say every restaurant twice.
-          className="h-full w-full object-cover transition-transform duration-[var(--dur)] ease-[var(--ease)] group-hover:scale-[1.015]"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-[var(--dur)] ease-[var(--ease)] group-hover:scale-[1.015]"
         />
       ) : (
         <div
-          className="flex h-full w-full items-center justify-center text-text-secondary"
+          className="absolute inset-0 flex items-center justify-center text-text-secondary"
           aria-label={t(locale, 'card.noImage')}
         >
           <ImageOff size={popup || row ? 18 : 24} aria-hidden />
