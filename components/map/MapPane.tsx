@@ -286,10 +286,20 @@ export default function MapPane({
     card?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
   }, [desktop, live])
 
+  // Only a swipe picks a card. The list also scrolls when it re-renders under
+  // a new result set (fewer cards, one inserted at the front) and when a card
+  // is brought into view for a tapped pin; none of that is the user choosing a
+  // place, and selecting on it jumped the map to whatever card landed centre.
+  const swiped = useRef(false)
+  const onSwipe = () => {
+    swiped.current = true
+  }
   const settle = useRef(0)
   const onCarouselScroll = () => {
     clearTimeout(settle.current)
     settle.current = window.setTimeout(() => {
+      if (!swiped.current) return
+      swiped.current = false
       const list = carouselRef.current
       if (!list) return
       const mid = list.getBoundingClientRect().left + list.clientWidth / 2
@@ -319,17 +329,33 @@ export default function MapPane({
     mapRef.current?.easeTo({ padding: camPadding(), duration: SPLIT_MS })
   }, [split, topInset, showCarousel, camPadding])
 
-  // Turning "near me" on (or off) re-sorts the results. When they land, go to
-  // the new first one: on a phone by bringing its card to the front, which
-  // selects it and glides the map to its pin (onCarouselScroll); from md by
-  // gliding there directly.
+  // A new result set starts the carousel at its front, or at the card still
+  // selected, without selecting anything or moving the map: a filter change
+  // is not a reason to go anywhere. Load-more keeps the same first card and is
+  // left alone.
+  const firstId = carouselItems[0]?.id
+  useEffect(() => {
+    const list = carouselRef.current
+    if (!list) return
+    swiped.current = false
+    const card = live && list.querySelector<HTMLElement>(`[data-id="${CSS.escape(live.id)}"]`)
+    if (card) card.scrollIntoView({ inline: 'center', block: 'nearest' })
+    else list.scrollTo({ left: 0 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new result set, not a new selection
+  }, [firstId])
+
+  // The one exception: turning "near me" on is asking for the closest place.
+  // When the re-sorted results land, go to the first: on a phone by bringing
+  // its card to the front, which selects it and glides the map to its pin
+  // (onCarouselScroll); from md by gliding there directly. Turning it off, or
+  // clearing everything, stays put.
   const nearKey = near ? `${near.lat},${near.lng}` : ''
   const lastNear = useRef(nearKey)
   const toFirst = useRef(false)
   useEffect(() => {
     if (lastNear.current === nearKey) return
     lastNear.current = nearKey
-    toFirst.current = true
+    toFirst.current = nearKey !== ''
   }, [nearKey])
 
   const onCarouselScrollRef = useRef(onCarouselScroll)
@@ -343,6 +369,7 @@ export default function MapPane({
     toFirst.current = false
     const list = carouselRef.current
     if (!desktop && list) {
+      swiped.current = true // stands in for the swipe the user did not have to make
       list.scrollTo({ left: 0, behavior: 'smooth' })
       // Already at the front means no scroll event: settle by hand.
       onCarouselScrollRef.current()
@@ -408,6 +435,9 @@ export default function MapPane({
         <GeolocateControl
           position="bottom-right"
           trackUserLocation={false}
+          // Its own dot would be a second you-are-here beside ours, and one
+          // that outlives "near me". Ours follows `near` alone.
+          showUserLocation={false}
           onGeolocate={(e) => onLocate(e.coords.latitude, e.coords.longitude)}
         />
 
@@ -461,6 +491,10 @@ export default function MapPane({
         <ul
           ref={carouselRef}
           onScroll={onCarouselScroll}
+          onPointerDown={onSwipe}
+          onTouchStart={onSwipe}
+          onWheel={onSwipe}
+          onKeyDown={onSwipe}
           aria-label={t(locale, 'map.label')}
           className="ef-snap pointer-events-auto absolute inset-x-0 bottom-0 gap-3 px-4 pb-4 pt-2"
         >
