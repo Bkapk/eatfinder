@@ -1277,6 +1277,28 @@ select:disabled {
   }
 }
 
+/* From md the results pane slides over the map's right edge. Anything pinned
+   to that edge rides beside the pane, on the pane's own curve. */
+.ef-map-visible {
+  right: var(--map-right-inset, 0px);
+}
+
+.ef-map-visible,
+.ef-map .mapboxgl-ctrl-bottom-right {
+  transition: right var(--dur-split) var(--ease-drawer);
+}
+
+.ef-map .mapboxgl-ctrl-bottom-right {
+  right: var(--map-right-inset, 0px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ef-map-visible,
+  .ef-map .mapboxgl-ctrl-bottom-right {
+    transition: none;
+  }
+}
+
 /* Floating round controls over a photo: the detail hero's back, share and
    favourite. Opaque white for the same contrast reason as the card heart. */
 .ef-float-btn {

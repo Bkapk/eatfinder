@@ -26,6 +26,14 @@ type Bbox = [number, number, number, number]
  *  shorter than anyone notices the stretch. */
 const RESIZE_SETTLE_MS = 120
 
+/** Matches --dur-split, so the camera and the results pane move together. */
+const SPLIT_MS = 320
+
+/** The results pane is md:w-[40vw] in SearchShell. */
+function splitPadding(split: boolean) {
+  return { top: 0, bottom: 0, left: 0, right: split ? window.innerWidth * 0.4 : 0 }
+}
+
 /** Roughly a tenth of a city block — below this a "move" is just jitter. */
 const BBOX_EPSILON = 0.0015
 
@@ -97,6 +105,16 @@ export default function MapPane({
   // against, so the moment those change the pill is simply not rendered.
   const pendingBbox = pending && sameBbox(pending.against, queriedBbox) ? pending.bbox : null
 
+  // From md the results pane covers the right 40vw of this map rather than
+  // shrinking it. Camera padding keeps the pins centred in what is still
+  // visible, and easing it glides the map along with the pane's slide.
+  const split = desktop && view !== 'map'
+  const splitRef = useRef(split)
+  useEffect(() => {
+    splitRef.current = split
+    mapRef.current?.easeTo({ padding: splitPadding(split), duration: SPLIT_MS })
+  }, [split])
+
   // mapbox-gl watches the window, not its container (there is no ResizeObserver
   // anywhere in the library), so every layout change that resizes this pane
   // without resizing the window leaves the canvas at its old size and the
@@ -116,7 +134,11 @@ export default function MapPane({
     let timer = 0
     const ro = new ResizeObserver(() => {
       clearTimeout(timer)
-      timer = window.setTimeout(() => mapRef.current?.resize(), RESIZE_SETTLE_MS)
+      timer = window.setTimeout(() => {
+        mapRef.current?.resize()
+        // 40vw moved with the window.
+        mapRef.current?.getMap().setPadding(splitPadding(splitRef.current))
+      }, RESIZE_SETTLE_MS)
     })
     ro.observe(el)
     return () => {
@@ -130,9 +152,15 @@ export default function MapPane({
       // Only a human gesture counts. A programmatic flyTo (or the geolocate
       // control recentring) must not offer to re-search where it just put you.
       if (!(e as unknown as { originalEvent?: unknown }).originalEvent) return
-      const b = mapRef.current?.getBounds()
-      if (!b) return
-      const bbox: Bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]
+      // The visible area, not the canvas: the part under the results pane
+      // is not somewhere the user is looking.
+      const m = mapRef.current?.getMap()
+      if (!m) return
+      const c = m.getContainer()
+      const pad = m.getPadding()
+      const sw = m.unproject([pad.left ?? 0, c.clientHeight - (pad.bottom ?? 0)])
+      const ne = m.unproject([c.clientWidth - (pad.right ?? 0), pad.top ?? 0])
+      const bbox: Bbox = [sw.lng, sw.lat, ne.lng, ne.lat]
       setPending(differs(queriedBbox, bbox) ? { bbox, against: queriedBbox } : null)
     },
     [queriedBbox]
@@ -264,13 +292,18 @@ export default function MapPane({
     <div
       ref={shellRef}
       className="ef-map relative h-full w-full"
-      style={{ '--map-bottom-inset': showCarousel ? '9.25rem' : '0px' } as React.CSSProperties}
+      style={
+        {
+          '--map-bottom-inset': showCarousel ? '9.25rem' : '0px',
+          '--map-right-inset': split ? '40vw' : '0px',
+        } as React.CSSProperties
+      }
     >
       <Map
         ref={mapRef}
         mapboxAccessToken={token}
         mapStyle="mapbox://styles/mapbox/light-v11"
-        initialViewState={{ longitude: CITY.lng, latitude: CITY.lat, zoom: CITY.zoom }}
+        initialViewState={{ longitude: CITY.lng, latitude: CITY.lat, zoom: CITY.zoom, padding: splitPadding(split) }}
         interactiveLayerIds={[CLUSTER_LAYER, POINT_LAYER]}
         cursor={cursor}
         onMouseEnter={() => setCursor('pointer')}
@@ -313,24 +346,27 @@ export default function MapPane({
 
       {/* The view toggle, desktop only: on a phone the tab bar is the switch.
           pointer-events-none on the row so map drag still works around it. */}
-      <div className="pointer-events-none absolute inset-x-3 top-3 z-overlay hidden items-start justify-end gap-2 md:flex">
-        <ViewToggle locale={locale} view={view} onChange={onView} className="pointer-events-auto" />
-      </div>
+      {/* Overlays live in the visible part of the map, beside the pane. */}
+      <div className="ef-map-visible pointer-events-none absolute inset-y-0 left-0 z-overlay">
+        <div className="absolute inset-x-3 top-3 hidden items-start justify-end gap-2 md:flex">
+          <ViewToggle locale={locale} view={view} onChange={onView} className="pointer-events-auto" />
+        </div>
 
-      {pendingBbox && (
-        <button
-          type="button"
-          onClick={() => onSearchArea(pendingBbox)}
-          onMouseEnter={() => onHover(null)}
-          // ef-fade-enter, not ef-enter: this pill is centred with
-          // -translate-x-1/2, and an entrance that animates `transform` would
-          // interpolate from translateY(8px) to that and slide it in sideways.
-          className="ef-pill ef-pill--lg ef-pill--active ef-fade-enter absolute left-1/2 top-3 z-overlay -translate-x-1/2 px-5 shadow-lg md:top-16"
-        >
-          <Search size={15} aria-hidden />
-          {t(locale, 'map.searchArea')}
-        </button>
-      )}
+        {pendingBbox && (
+          <button
+            type="button"
+            onClick={() => onSearchArea(pendingBbox)}
+            onMouseEnter={() => onHover(null)}
+            // ef-fade-enter, not ef-enter: this pill is centred with
+            // -translate-x-1/2, and an entrance that animates `transform` would
+            // interpolate from translateY(8px) to that and slide it in sideways.
+            className="ef-pill ef-pill--lg ef-pill--active ef-fade-enter pointer-events-auto absolute left-1/2 top-3 -translate-x-1/2 px-5 shadow-lg md:top-16"
+          >
+            <Search size={15} aria-hidden />
+            {t(locale, 'map.searchArea')}
+          </button>
+        )}
+      </div>
 
       {showCarousel && (
         <ul

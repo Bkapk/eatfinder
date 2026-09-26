@@ -13,7 +13,11 @@ jest.mock('react-map-gl/mapbox', () => {
   return {
     __esModule: true,
     default: React.forwardRef(function MockMap(props: { children?: unknown }, ref: unknown) {
-      React.useImperativeHandle(ref, () => ({ resize: mockResize }))
+      React.useImperativeHandle(ref, () => ({
+        resize: mockResize,
+        easeTo: () => {},
+        getMap: () => ({ setPadding: () => {} }),
+      }))
       return React.createElement('div', null, props.children as never)
     }),
     Source: () => null,

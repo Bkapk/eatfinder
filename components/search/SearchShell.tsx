@@ -327,16 +327,18 @@ export default function SearchShell({
         )}
       </div>
 
-      <main className="ef-tabbar-pad flex min-h-0 flex-1 md:pb-0">
+      <main className="ef-tabbar-pad relative flex min-h-0 flex-1 md:pb-0">
         {/* Map: full-bleed, no padding, no card wrapper. Hidden below md unless
             the user asked for it. */}
         {mapboxToken && <div
           id={showResults ? undefined : 'results'}
           tabIndex={showResults ? undefined : -1}
           className={[
-            'relative min-h-0 flex-1 outline-none',
-            // Always flex-1: the results pane owns the split's width and
-            // animates it, and the map simply takes whatever is left.
+            // From md the map always fills the whole stage and the results
+            // pane slides over it: opening the split pans the camera (see
+            // MapPane) instead of resizing the canvas, which flashed.
+            // `isolate` keeps the map's overlays below the pane.
+            'relative isolate min-h-0 flex-1 outline-none md:absolute md:inset-0',
             showMap ? '' : 'hidden md:block',
           ].join(' ')}
         >
@@ -364,7 +366,7 @@ export default function SearchShell({
           inert={!showResults}
           data-state={showResults ? 'open' : 'closed'}
           aria-label={t(locale, 'view.label')}
-          className={`ef-split-pane min-h-0 w-full shrink-0 border-border bg-background outline-none ${mapboxToken ? 'md:w-[40vw] md:border-l' : 'md:w-full'} ${
+          className={`ef-split-pane min-h-0 w-full shrink-0 border-border bg-background outline-none ${mapboxToken ? 'md:absolute md:inset-y-0 md:right-0 md:w-[40vw] md:border-l' : 'md:w-full'} ${
             showResults ? 'flex' : 'hidden md:flex'
           }`}
         >
