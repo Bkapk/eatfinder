@@ -1264,35 +1264,56 @@ select:disabled {
   scroll-snap-align: start;
 }
 
-/* Over the phone map the card carousel owns the bottom edge. Mapbox's own
-   controls, and the attribution it is required to keep visible, move up above
-   it; the zoom buttons go entirely, because a phone map is pinched. */
-@media (max-width: 767px) {
-  .ef-map .mapboxgl-ctrl-bottom-right,
-  .ef-map .mapboxgl-ctrl-bottom-left {
-    bottom: var(--map-bottom-inset, 0px);
-  }
-
-  .ef-map .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-zoom-in) {
-    display: none;
-  }
+/* The search map is one full-screen canvas behind everything (SearchShell);
+   the header, the tab bar and, from md, the results pane cover parts of it.
+   .ef-map-visible is the part left uncovered: the overlays live in it, and
+   MapPane measures it to pad the camera. */
+.ef-map-visible {
+  position: fixed;
+  left: 0;
+  top: var(--appbar-h, 0px);
+  right: var(--map-right-inset, 0px);
+  bottom: 0;
 }
 
-/* From md the results pane slides over the map's right edge. Anything pinned
-   to that edge rides beside the pane, on the pane's own curve. */
-.ef-map-visible {
-  /* The chip row (SearchShell's --chips-h) overlaps the map's top edge. */
-  top: var(--chips-h, 0px);
+/* Mapbox's corner controls sit in the canvas, which is lvh tall: lift them
+   past whatever the phone's browser toolbar hides (lvh - dvh), the tab bar
+   and the card carousel (--map-bottom-inset, set by MapPane). */
+.ef-map .mapboxgl-ctrl-bottom-right,
+.ef-map .mapboxgl-ctrl-bottom-left {
+  bottom: calc(100lvh - 100dvh + var(--map-bottom-inset, 0px));
+}
+
+.ef-map .mapboxgl-ctrl-bottom-right {
   right: var(--map-right-inset, 0px);
 }
 
+/* Anything pinned to the right edge rides beside the pane, on its curve. */
 .ef-map-visible,
 .ef-map .mapboxgl-ctrl-bottom-right {
   transition: right var(--dur-split) var(--ease-drawer);
 }
 
-.ef-map .mapboxgl-ctrl-bottom-right {
-  right: var(--map-right-inset, 0px);
+@media (max-width: 767px) {
+  .ef-map-visible {
+    bottom: calc(var(--tabbar-h) + var(--safe-b));
+  }
+
+  /* A phone map is pinched. */
+  .ef-map .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-zoom-in) {
+    display: none;
+  }
+}
+
+/* "Near me": the you-are-here dot, in the platform's own idiom. */
+.ef-me {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 9999px;
+  background-color: var(--primary);
+  border: 3px solid var(--surface);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary) 22%, transparent), var(--shadow-md);
 }
 
 @media (prefers-reduced-motion: reduce) {

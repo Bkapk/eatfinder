@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import Link from 'next/link'
 import Map, {
   GeolocateControl,
+  Marker,
   NavigationControl,
   type MapMouseEvent,
   type MapRef,
@@ -28,12 +29,6 @@ const RESIZE_SETTLE_MS = 120
 
 /** Matches --dur-split, so the camera and the results pane move together. */
 const SPLIT_MS = 320
-
-/** What covers the map's edges: the chip row on top, and from md the results
- *  pane (md:w-[40vw] in SearchShell) on the right. */
-function camPadding(split: boolean, top: number) {
-  return { top, bottom: 0, left: 0, right: split ? window.innerWidth * 0.4 : 0 }
-}
 
 /** Roughly a tenth of a city block — below this a "move" is just jitter. */
 const BBOX_EPSILON = 0.0015
@@ -70,6 +65,7 @@ export default function MapPane({
   items,
   queriedBbox,
   topInset = 0,
+  near,
   hoveredId,
   view,
   onHover,
@@ -82,8 +78,11 @@ export default function MapPane({
   points: MapPoint[]
   items: ScoredRestaurant[]
   queriedBbox?: Bbox
-  /** Height of the chip row sitting over the top of the map. */
+  /** Height of the header sitting over the top of the map. Only a trigger:
+   *  the padding itself is measured from the overlay box. */
   topInset?: number
+  /** "Near me": drawn as a you-are-here dot. */
+  near?: { lat: number; lng: number }
   hoveredId: string | null
   view: View
   onHover: (id: string | null) => void
@@ -109,16 +108,27 @@ export default function MapPane({
   // against, so the moment those change the pill is simply not rendered.
   const pendingBbox = pending && sameBbox(pending.against, queriedBbox) ? pending.bbox : null
 
-  // From md the results pane covers the right 40vw of this map, and the chip
-  // row covers its top, rather than either shrinking it. Camera padding keeps
-  // the pins centred in what is still visible, and easing it glides the map
-  // along with them.
+  // This canvas is always the whole screen (SearchShell fixes it there). The
+  // header covers its top, the tab bar and carousel its bottom on a phone, and
+  // from md the results pane its right 40vw. Camera padding keeps the pins
+  // centred in what is left, and easing it glides the map instead of jumping.
   const split = desktop && view !== 'map'
-  const padRef = useRef({ split, top: topInset })
-  useEffect(() => {
-    padRef.current = { split, top: topInset }
-    mapRef.current?.easeTo({ padding: camPadding(split, topInset), duration: SPLIT_MS })
-  }, [split, topInset])
+  const splitRef = useRef(split)
+  const overlayRef = useRef<HTMLDivElement>(null)
+
+  /** Measured from the overlay box, which CSS pins to the uncovered area.
+   *  The right edge is computed: the pane is mid-slide when this runs. */
+  const camPadding = useCallback(() => {
+    const shell = shellRef.current?.getBoundingClientRect()
+    const box = overlayRef.current?.getBoundingClientRect()
+    const carousel = carouselRef.current?.offsetHeight ?? 0
+    return {
+      top: shell && box ? Math.max(0, box.top - shell.top) : 0,
+      bottom: (shell && box ? Math.max(0, shell.bottom - box.bottom) : 0) + carousel,
+      left: 0,
+      right: splitRef.current ? window.innerWidth * 0.4 : 0,
+    }
+  }, [])
 
   // mapbox-gl watches the window, not its container (there is no ResizeObserver
   // anywhere in the library), so every layout change that resizes this pane
@@ -148,7 +158,7 @@ export default function MapPane({
         last = size
         mapRef.current?.resize()
         // 40vw moved with the window.
-        mapRef.current?.getMap().setPadding(camPadding(padRef.current.split, padRef.current.top))
+        mapRef.current?.getMap().setPadding(camPadding())
       }, RESIZE_SETTLE_MS)
     })
     ro.observe(el)
@@ -156,7 +166,25 @@ export default function MapPane({
       clearTimeout(timer)
       ro.disconnect()
     }
-  }, [])
+  }, [camPadding])
+
+  // The canvas is lvh tall, so a phone's browser toolbar sliding in or out
+  // never resizes it, but it does move the tab bar. Re-pad once it settles.
+  useEffect(() => {
+    let timer = 0
+    const onResize = () => {
+      clearTimeout(timer)
+      timer = window.setTimeout(
+        () => mapRef.current?.easeTo({ padding: camPadding(), duration: 200 }),
+        RESIZE_SETTLE_MS
+      )
+    }
+    window.addEventListener('resize', onResize)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [camPadding])
 
   const onMoveEnd = useCallback(
     (e: ViewStateChangeEvent) => {
@@ -202,7 +230,7 @@ export default function MapPane({
       if (!src || typeof clusterId !== 'number') return
       src.getClusterExpansionZoom(clusterId, (err, zoom) => {
         if (err || zoom == null) return
-        mapRef.current?.easeTo({ center: [lng, lat], zoom, duration: 400 })
+        mapRef.current?.easeTo({ center: [lng, lat], zoom, padding: camPadding(), duration: 400 })
       })
       return
     }
@@ -216,7 +244,7 @@ export default function MapPane({
       lat,
       lng,
     })
-  }, [])
+  }, [camPadding])
 
   // The card -> pin direction was wired from the start; this is the return leg.
   // mouseenter/mouseleave alone cannot carry it: moving straight from one pin
@@ -280,9 +308,48 @@ export default function MapPane({
       const item = carouselItems.find((i) => i.id === id)
       if (!item || item.lat == null || item.lng == null) return
       setSelected({ id: item.id, slug: item.slug, name: item.name, priceLevel: item.priceLevel, lat: item.lat, lng: item.lng })
-      mapRef.current?.easeTo({ center: [item.lng, item.lat], duration: 450 })
+      // Padding passed along, not left to the camera: this easeTo cancels any
+      // padding glide still running, which would otherwise stop halfway.
+      mapRef.current?.easeTo({ center: [item.lng, item.lat], padding: camPadding(), duration: 450 })
     }, 120)
   }
+
+  useEffect(() => {
+    splitRef.current = split
+    mapRef.current?.easeTo({ padding: camPadding(), duration: SPLIT_MS })
+  }, [split, topInset, showCarousel, camPadding])
+
+  // Turning "near me" on (or off) re-sorts the results. When they land, go to
+  // the new first one: on a phone by bringing its card to the front, which
+  // selects it and glides the map to its pin (onCarouselScroll); from md by
+  // gliding there directly.
+  const nearKey = near ? `${near.lat},${near.lng}` : ''
+  const lastNear = useRef(nearKey)
+  const toFirst = useRef(false)
+  useEffect(() => {
+    if (lastNear.current === nearKey) return
+    lastNear.current = nearKey
+    toFirst.current = true
+  }, [nearKey])
+
+  const onCarouselScrollRef = useRef(onCarouselScroll)
+  useEffect(() => {
+    onCarouselScrollRef.current = onCarouselScroll
+  })
+  useEffect(() => {
+    if (!toFirst.current) return
+    const first = items.find((i) => i.lat != null && i.lng != null)
+    if (!first || first.lat == null || first.lng == null) return
+    toFirst.current = false
+    const list = carouselRef.current
+    if (!desktop && list) {
+      list.scrollTo({ left: 0, behavior: 'smooth' })
+      // Already at the front means no scroll event: settle by hand.
+      onCarouselScrollRef.current()
+      return
+    }
+    mapRef.current?.easeTo({ center: [first.lng, first.lat], padding: camPadding(), duration: 600 })
+  }, [items, desktop, camPadding])
 
   if (!token) {
     // No MAPBOX_TOKEN: the grid is still the product. Nothing here throws and
@@ -305,7 +372,10 @@ export default function MapPane({
       className="ef-map relative h-full w-full"
       style={
         {
-          '--map-bottom-inset': showCarousel ? '9.25rem' : '0px',
+          // Where Mapbox's own corner controls sit above the bottom edge.
+          '--map-bottom-inset': desktop
+            ? '0px'
+            : `calc(var(--tabbar-h) + var(--safe-b) + ${showCarousel ? '9.25rem' : '0px'})`,
           '--map-right-inset': split ? '40vw' : '0px',
         } as React.CSSProperties
       }
@@ -314,7 +384,9 @@ export default function MapPane({
         ref={mapRef}
         mapboxAccessToken={token}
         mapStyle="mapbox://styles/mapbox/light-v11"
-        initialViewState={{ longitude: CITY.lng, latitude: CITY.lat, zoom: CITY.zoom, padding: camPadding(split, topInset) }}
+        initialViewState={{ longitude: CITY.lng, latitude: CITY.lat, zoom: CITY.zoom }}
+        // The ref is not there yet when the padding effect first runs.
+        onLoad={() => mapRef.current?.getMap().setPadding(camPadding())}
         interactiveLayerIds={[CLUSTER_LAYER, POINT_LAYER]}
         cursor={cursor}
         onMouseEnter={() => setCursor('pointer')}
@@ -339,6 +411,12 @@ export default function MapPane({
           onGeolocate={(e) => onLocate(e.coords.latitude, e.coords.longitude)}
         />
 
+        {near && (
+          <Marker longitude={near.lng} latitude={near.lat} anchor="center">
+            <span className="ef-me" role="img" aria-label={t(locale, 'map.you')} />
+          </Marker>
+        )}
+
         <PointsLayer points={points} hoveredId={hoveredId} selectedId={live?.id ?? null} />
 
         {live && desktop && (
@@ -355,10 +433,11 @@ export default function MapPane({
         )}
       </Map>
 
-      {/* The view toggle, desktop only: on a phone the tab bar is the switch.
-          pointer-events-none on the row so map drag still works around it. */}
-      {/* Overlays live in the visible part of the map, beside the pane. */}
-      <div className="ef-map-visible pointer-events-none absolute bottom-0 left-0 z-overlay">
+      {/* Everything drawn over the map lives in its uncovered part (see
+          .ef-map-visible). pointer-events-none so the map still drags under
+          it; each control opts back in. */}
+      <div ref={overlayRef} className="ef-map-visible pointer-events-none z-overlay">
+        {/* The view toggle, desktop only: on a phone the tab bar is the switch. */}
         <div className="absolute inset-x-3 top-3 hidden items-start justify-end gap-2 md:flex">
           <ViewToggle locale={locale} view={view} onChange={onView} className="pointer-events-auto" />
         </div>
@@ -377,14 +456,13 @@ export default function MapPane({
             {t(locale, 'map.searchArea')}
           </button>
         )}
-      </div>
 
       {showCarousel && (
         <ul
           ref={carouselRef}
           onScroll={onCarouselScroll}
           aria-label={t(locale, 'map.label')}
-          className="ef-snap absolute inset-x-0 bottom-0 z-overlay gap-3 px-4 pb-4 pt-2"
+          className="ef-snap pointer-events-auto absolute inset-x-0 bottom-0 gap-3 px-4 pb-4 pt-2"
         >
           {orphan && (
             <li data-id={orphan.id} className="w-[86%] max-w-[22rem]">
@@ -411,6 +489,7 @@ export default function MapPane({
           ))}
         </ul>
       )}
+      </div>
     </div>
   )
 }

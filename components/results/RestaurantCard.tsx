@@ -88,7 +88,11 @@ export default function RestaurantCard({
   const meta = [
     cuisine,
     priceGlyphs(item.priceLevel),
-    item.distanceKm != null ? t(locale, 'card.distance', { n: item.distanceKm.toFixed(1) }) : null,
+    item.distanceKm == null
+      ? null
+      : item.distanceKm < 0.995 // not "1000 m"
+        ? t(locale, 'card.distanceM', { n: Math.round(item.distanceKm * 100) * 10 })
+        : t(locale, 'card.distance', { n: item.distanceKm.toFixed(1) }),
   ].filter(Boolean)
 
   const hover = onHover

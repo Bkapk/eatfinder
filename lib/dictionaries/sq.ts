@@ -83,6 +83,7 @@ export const sq = {
   'view.map': 'Hartë',
 
   'map.label': 'Harta e vendeve',
+  'map.you': 'Ju jeni këtu',
   'map.searchArea': 'Kërko në këtë zonë',
   'map.disabled.title': 'Harta nuk është e disponueshme',
   'map.disabled.body': 'Nuk është konfiguruar çelësi i Mapbox. Rezultatet shfaqen si listë.',
@@ -117,6 +118,7 @@ export const sq = {
   'card.closed': 'Mbyllur',
   'card.match': '{n}% përputhje',
   'card.distance': '{n} km',
+  'card.distanceM': '{n} m',
   'card.noImage': 'Pa foto',
   'card.favoriteAdd': 'Shto te të preferuarat',
   'card.favoriteRemove': 'Hiq nga të preferuarat',

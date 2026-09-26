@@ -81,6 +81,7 @@ export const en: Record<keyof typeof sq, string> = {
   'view.map': 'Map',
 
   'map.label': 'Map of places',
+  'map.you': 'You are here',
   'map.searchArea': 'Search this area',
   'map.disabled.title': 'Map unavailable',
   'map.disabled.body': 'No Mapbox token is configured. Results are shown as a list.',
@@ -115,6 +116,7 @@ export const en: Record<keyof typeof sq, string> = {
   'card.closed': 'Closed',
   'card.match': '{n}% match',
   'card.distance': '{n} km',
+  'card.distanceM': '{n} m',
   'card.noImage': 'No photo',
   'card.favoriteAdd': 'Add to favourites',
   'card.favoriteRemove': 'Remove from favourites',

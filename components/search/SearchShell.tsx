@@ -236,24 +236,21 @@ export default function SearchShell({
   const appbarRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
 
-  // The chip row pushes <main> down when it appears. The map pulls itself back
-  // up behind it by the same amount (--chips-h), so its box never changes and
-  // the canvas is never resized; MapPane pads the camera instead. The var is
-  // written straight to the DOM, in the same frame as the layout change.
-  const [chipsH, setChipsH] = useState(0)
-  const chipsRef = useCallback((el: HTMLDivElement | null) => {
+  // The map is one screen-sized canvas fixed behind everything, in every view
+  // and at every width (see the map wrapper below); the header just covers its
+  // top. Its height (--appbar-h: the chip row comes and goes, and wraps) tells
+  // MapPane where the visible part starts. Written straight to the DOM so the
+  // overlays move in the same frame as the header.
+  const [appbarH, setAppbarH] = useState(0)
+  useEffect(() => {
+    const el = appbarRef.current
     if (!el) return
-    const apply = (h: number) => {
-      rootRef.current?.style.setProperty('--chips-h', `${h}px`)
-      setChipsH(h)
-    }
-    apply(el.offsetHeight)
-    const ro = new ResizeObserver(() => apply(el.offsetHeight))
+    const ro = new ResizeObserver(() => {
+      rootRef.current?.style.setProperty('--appbar-h', `${el.offsetHeight}px`)
+      setAppbarH(el.offsetHeight)
+    })
     ro.observe(el)
-    return () => {
-      ro.disconnect()
-      apply(0)
-    }
+    return () => ro.disconnect()
   }, [])
 
   const view: View = filters.view
@@ -265,6 +262,19 @@ export default function SearchShell({
   useHideOnScroll(appbarRef, showResults)
 
   const setView = (next: View) => patch({ view: next }, { keepPage: true })
+
+  // Map view pins the page to one screen, which snaps the list's scroll to the
+  // top. Remember where the list was and put it back on the way out.
+  const listY = useRef<number | null>(null)
+  const toMap = () => {
+    listY.current = window.scrollY
+    setView('map')
+  }
+  useLayoutEffect(() => {
+    if (!showResults || listY.current === null) return
+    window.scrollTo(0, listY.current)
+    listY.current = null
+  }, [showResults])
 
   return (
     <div
@@ -316,7 +326,6 @@ export default function SearchShell({
           // chips pushing the list down a row at a time. Clear-all leads, so
           // it is never the thing scrolled off the end.
           <div
-            ref={chipsRef}
             className="ef-no-scrollbar flex items-center gap-2 overflow-x-auto px-4 pb-3 sm:px-5 md:flex-wrap"
             role="group"
             aria-label={t(locale, 'search.activeFilters')}
@@ -357,13 +366,18 @@ export default function SearchShell({
           id={showResults ? undefined : 'results'}
           tabIndex={showResults ? undefined : -1}
           className={[
-            // From md the map always fills the whole stage and the results
-            // pane slides over it: opening the split pans the camera (see
-            // MapPane) instead of resizing the canvas, which flashed.
-            // `isolate` keeps the map's overlays below the pane.
-            // The negative margin tucks it up behind the chip row (see chipsRef).
-            'relative isolate mt-[calc(var(--chips-h,0px)*-1)] min-h-0 flex-1 outline-none md:absolute md:inset-0',
-            showMap ? '' : 'hidden md:block',
+            // Always the full screen, fixed behind the header, the tab bar and
+            // the results pane, whatever the view. Nothing that happens on
+            // this page ever changes its size, so the canvas is never
+            // reallocated (a white flash) and never re-laid out; MapPane pans
+            // the camera to keep the pins in the part that is uncovered.
+            // h-lvh, not dvh: the phone's browser toolbar coming and going
+            // must not resize it either. `isolate` keeps its overlays under
+            // the pane and the header.
+            'fixed inset-x-0 top-0 isolate h-lvh outline-none',
+            // The phone list covers the screen: hide the map without taking
+            // it out of layout, so switching tabs is instant.
+            showMap ? '' : 'invisible md:visible',
           ].join(' ')}
         >
           <MapPane
@@ -372,7 +386,8 @@ export default function SearchShell({
             points={points}
             items={items}
             queriedBbox={filters.bbox}
-            topInset={chipsH}
+            topInset={appbarH}
+            near={filters.near}
             hoveredId={hoveredId}
             view={view}
             onHover={setHoveredId}
@@ -442,7 +457,7 @@ export default function SearchShell({
         hasMap={Boolean(mapboxToken)}
         onView={(tab) =>
           tab === 'map'
-            ? setView('map')
+            ? toMap()
             : showMap
               ? setView('grid')
               : window.scrollTo({ top: 0, behavior: 'smooth' }) // re-tap = back to top
