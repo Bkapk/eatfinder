@@ -1307,13 +1307,46 @@ select:disabled {
 
 /* "Near me": the you-are-here dot, in the platform's own idiom. */
 .ef-me {
+  position: relative;
   display: block;
   width: 1.125rem;
   height: 1.125rem;
   border-radius: 9999px;
   background-color: var(--primary);
   border: 3px solid var(--surface);
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary) 22%, transparent), var(--shadow-md);
+  box-shadow: var(--shadow-md);
+}
+
+/* The pulse says "live": a ring that swells out of the dot and fades.
+   Transform and opacity only, so it never re-lays out the map. */
+.ef-me::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--primary);
+  animation: ef-me-pulse 2s var(--ease-out) infinite;
+}
+
+@keyframes ef-me-pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  to {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Still marked as active, just held still: the static halo. */
+  .ef-me::after {
+    animation: none;
+    transform: scale(1.9);
+    opacity: 0.2;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
