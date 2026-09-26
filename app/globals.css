@@ -1015,13 +1015,14 @@
    canvas in step for every frame of it. */
 .ef-split-pane {
   overflow: clip;
-  transition: width var(--dur-split) var(--ease-drawer);
-  will-change: width;
+  transition: transform var(--dur-split) var(--ease-drawer);
 }
 
+/* The pane floats over the map from md, so it slides off rather than
+   collapsing its width: no layout per frame. */
 @media (min-width: 768px) {
   .ef-split-pane[data-state='closed'] {
-    width: 0;
+    transform: translateX(100%);
   }
 }
 

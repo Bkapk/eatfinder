@@ -370,10 +370,7 @@ export default function SearchShell({
             showResults ? 'flex' : 'hidden md:flex'
           }`}
         >
-          {/* shrink-0 is the whole trick: the pane keeps its full width while the
-              section around it collapses, so it slides out to the right under
-              the clip instead of squashing and reflowing the cards. */}
-          <div className={`flex w-full shrink-0 flex-col md:h-full ${mapboxToken ? 'md:w-[40vw]' : 'md:w-full'}`}>
+<div className={`flex w-full shrink-0 flex-col md:h-full ${mapboxToken ? 'md:w-[40vw]' : 'md:w-full'}`}>
             <SortHeader
               locale={locale}
               total={total}
