@@ -361,8 +361,10 @@ queries, because the pane is narrower than the window: 1 column (one photo-led
 card per row on a phone), 2 at 540px of pane width, 3 at 900px, 4 at 1240px;
 16px column gutters, 28–32px between rows so name and meta read as belonging
 to the photo above them. Admin forms are one column, two at `xl`,
-with `.admin-form-wide` for full-bleed sections. The admin stat row is three
-columns at every size and drops its icons below `sm`.
+with `.admin-form-wide` for full-bleed sections. Dashboards (`/account`, the
+admin overview) are a bento of panels: one column on a phone, twelve from `lg`
+(account) or `xl` (admin, which loses 240px to the rail); KPI tiles are two
+across on a phone and three from `md`.
 
 **Tables become cards.** Under 768px `.admin-table` switches to a two-column
 grid per row with the `<thead>` visually hidden and each cell's label re-emitted
@@ -528,6 +530,16 @@ Blue border plus the halo, with no offset ring. Labels are `.ef-field-label`
 vertically only. Checkboxes, radios and select chevrons are drawn by this system,
 not by the OS, and hand themselves back to the UA under forced colours.
 
+### Combobox — `.ef-combo` (`VocabPicker`)
+The admin's picker for neighbourhoods, cuisines and tags. `.ef-combo-field` is
+drawn exactly like `.ef-input` (Control Edge border, 44px, Signal Blue border
+plus halo on `:focus-within`) but can hold `.ef-chip`s and a borderless
+`.ef-combo-input`. The list (`.ef-combo-list`) is a white popover with the
+`--shadow-lg` step, 44px `.ef-combo-option` rows, Hover Mist on the
+keyboard-active row and Signal Blue for selected ones; the other language's label
+sits right-aligned in `.ef-combo-hint`. "Add new" opens `.ef-combo-create`
+under the field for both labels. No native `<select>` anywhere in it.
+
 ### Search capsule — `.ef-searchbar`
 The signature control. A 44px fully-round white capsule holding the icon, the
 input, the applied-filter chip rail and a quiet clear button. It lights up on
@@ -592,6 +604,27 @@ secondary description, actions right-aligned, wrapping to a column below `xl`),
 `<EmptyState icon title description>` (a 56px bordered icon tile over a heading
 and one sentence, with room for one action), `<LoadingState label>` (the same
 288px-min box with a spinner, `role="status"`), and `<ScoreMeter value>`.
+
+### Dashboards — `.ef-hero`, `.ef-figure`, `.ef-row`, `components/charts.tsx`
+The account page and the admin overview share one vocabulary, borrowed from
+bento dashboards and translated into this palette:
+- **`.ef-hero`** — the one dark card per page, holding the key figure (who you
+  are and your three numbers; what is live and how complete it is). It is Ink
+  used as a fill, not a new colour: Card White on it is 18.4:1, `--hero-muted`
+  ~10:1, and `--hero-data` (Signal Blue lifted toward white) ~8:1 for rings and
+  meters inside it. A low Signal Blue glow in one corner is its only decoration.
+  Two dark cards on one page means neither is the headline.
+- **`.ef-figure`** (32px/800, tabular) and **`--xl`** (52–60px) — figures, not
+  headings. A number that is the answer gets size; it does not get a colour.
+- **`.ef-row`** — thumb · text · right-aligned value, 56px minimum, Hover Mist
+  on linked rows bleeding 8px past the text column.
+- **`.ef-round`** — the decorative arrow circle in a linked tile's corner. The
+  tile is the link; the circle is never a second tab stop.
+- **Charts** (`Donut`, `Spark`, `BarList`) are inline SVG/CSS, no library.
+  Categories are steps of Signal Blue (`SERIES`) plus Hairline Strong for
+  "other" — the Two Voices Rule holds in charts too. Every chart carries a
+  `role="img"` label and its numbers as visible text, so no tint carries
+  meaning alone. `BarList` is `.ef-meter` with a label row.
 
 ### Navigation
 The admin rail: 13px semibold rows at 12px inset, 12px radius, 44px minimum

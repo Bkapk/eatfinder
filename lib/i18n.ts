@@ -46,16 +46,6 @@ export function t(
   )
 }
 
-/**
- * Vocabulary values come from the database and may pre-date or post-date
- * CUISINE_VOCAB / TAG_VOCAB, so an unknown value renders as itself rather than
- * disappearing behind a missing-key placeholder.
- */
-export function tVocab(locale: Locale, prefix: 'cuisine' | 'tag', value: string): string {
-  const key = `${prefix}.${value}` as TKey
-  return DICTIONARIES[locale][key] ?? value
-}
-
 /** "$", "$$", … for a 1-4 price level. Currency-neutral, so not a dictionary string. */
 export function priceGlyphs(level: number): string {
   return '$'.repeat(Math.min(4, Math.max(1, Math.round(level))))

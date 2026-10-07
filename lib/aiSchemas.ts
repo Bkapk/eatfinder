@@ -1,6 +1,5 @@
 import { Type, type Schema } from '@google/genai'
 import { z } from 'zod'
-import { CUISINE_VOCAB, TAG_VOCAB } from './types'
 
 /**
  * The Gemini `responseSchema` objects and their mirror zod schemas for both
@@ -61,53 +60,46 @@ const priceLevelFieldGeminiSchema: Schema = {
   propertyOrdering: ['value', 'confidence', 'rationale'],
 }
 
+/**
+ * The slugs the model may choose from. Read from VocabTerm (active terms) at
+ * call time — the vocabulary is admin-managed now, so the enum is built per
+ * request rather than baked in at module load.
+ */
+export interface ScoringVocab {
+  cuisines: string[]
+  tags: string[]
+  neighborhoods: string[]
+}
+
+// z.enum() wants a literal tuple; this list comes from the database.
+const oneOf = (allowed: string[]) =>
+  z.string().refine((v) => allowed.includes(v), { message: 'not in the vocabulary' })
+
+const enumOf = (allowed: string[]): Schema =>
+  allowed.length ? { type: Type.STRING, enum: allowed } : { type: Type.STRING }
+
 // Vocabulary-constrained arrays: the schema enum is what stops tag-space
-// explosion, not a free string field.
-const cuisinesFieldSchema = z
-  .object({
-    value: z.array(z.enum(CUISINE_VOCAB)).max(4),
-    confidence: z.number().min(0).max(1),
-    rationale: singleLine(160),
-  })
-  .strict()
+// explosion, not a free string field. Without a vocab this is the lenient
+// reader for payloads already stored (see restaurantScoringResultSchema).
+const listFieldSchema = (allowed?: string[]) =>
+  z
+    .object({
+      value: z.array(allowed ? oneOf(allowed) : z.string()).max(4),
+      confidence: z.number().min(0).max(1),
+      rationale: singleLine(160),
+    })
+    .strict()
 
-const cuisinesFieldGeminiSchema: Schema = {
+const listFieldGeminiSchema = (allowed: string[]): Schema => ({
   type: Type.OBJECT,
   properties: {
-    value: {
-      type: Type.ARRAY,
-      maxItems: '4',
-      items: { type: Type.STRING, enum: [...CUISINE_VOCAB] },
-    },
+    value: { type: Type.ARRAY, maxItems: '4', items: enumOf(allowed) },
     confidence: { type: Type.NUMBER, minimum: 0, maximum: 1 },
     rationale: { type: Type.STRING, maxLength: '160' },
   },
   required: ['value', 'confidence', 'rationale'],
   propertyOrdering: ['value', 'confidence', 'rationale'],
-}
-
-const tagsFieldSchema = z
-  .object({
-    value: z.array(z.enum(TAG_VOCAB)).max(4),
-    confidence: z.number().min(0).max(1),
-    rationale: singleLine(160),
-  })
-  .strict()
-
-const tagsFieldGeminiSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    value: {
-      type: Type.ARRAY,
-      maxItems: '4',
-      items: { type: Type.STRING, enum: [...TAG_VOCAB] },
-    },
-    confidence: { type: Type.NUMBER, minimum: 0, maximum: 1 },
-    rationale: { type: Type.STRING, maxLength: '160' },
-  },
-  required: ['value', 'confidence', 'rationale'],
-  propertyOrdering: ['value', 'confidence', 'rationale'],
-}
+})
 
 // description is restaurant data, not chrome — written in Albanian per the
 // Decisions log (item 5), because the public UI ships Albanian-first.
@@ -130,89 +122,100 @@ const descriptionFieldGeminiSchema: Schema = {
   propertyOrdering: ['value', 'confidence', 'rationale'],
 }
 
-const neighborhoodFieldSchema = z
-  .object({
-    value: z.string().max(120),
-    confidence: z.number().min(0).max(1),
-    rationale: singleLine(160),
-  })
-  .strict()
+// null = the evidence does not place it in any listed neighbourhood. Proposals
+// stored before the vocabulary existed carry free text here instead.
+const neighborhoodFieldSchema = (allowed?: string[]) =>
+  z
+    .object({
+      value: (allowed ? oneOf(allowed) : z.string().max(120)).nullable(),
+      confidence: z.number().min(0).max(1),
+      rationale: singleLine(160),
+    })
+    .strict()
 
-const neighborhoodFieldGeminiSchema: Schema = {
+const neighborhoodFieldGeminiSchema = (allowed: string[]): Schema => ({
   type: Type.OBJECT,
   properties: {
-    value: { type: Type.STRING, maxLength: '120' },
+    value: { ...enumOf(allowed), nullable: true },
     confidence: { type: Type.NUMBER, minimum: 0, maximum: 1 },
     rationale: { type: Type.STRING, maxLength: '160' },
   },
   required: ['value', 'confidence', 'rationale'],
   propertyOrdering: ['value', 'confidence', 'rationale'],
+})
+
+const scoresSchema = z.object({
+  heaviness: axisFieldSchema,
+  portionSize: axisFieldSchema,
+  fineDining: axisFieldSchema,
+})
+
+/**
+ * With a vocab: what the model must return right now — strict, every slug in
+ * the vocabulary. Without one: the reader for AiProposal.payload rows already
+ * in the database, which may predate the vocabulary (free-text cuisines) or
+ * still carry the removed scores.spiceLevel (stripped, not rejected).
+ */
+export function restaurantScoringResultSchema(vocab?: ScoringVocab) {
+  return z
+    .object({
+      scores: vocab ? scoresSchema.strict() : scoresSchema,
+      priceLevel: priceLevelFieldSchema,
+      cuisines: listFieldSchema(vocab?.cuisines),
+      tags: listFieldSchema(vocab?.tags),
+      description: descriptionFieldSchema,
+      neighborhood: neighborhoodFieldSchema(vocab?.neighborhoods),
+      overallConfidence: z.number().min(0).max(1),
+      insufficientEvidence: z.boolean(),
+    })
+    .strict()
 }
 
-export const restaurantScoringResultSchema = z
-  .object({
-    scores: z
-      .object({
-        heaviness: axisFieldSchema,
-        portionSize: axisFieldSchema,
-        fineDining: axisFieldSchema,
-        spiceLevel: axisFieldSchema,
-      })
-      .strict(),
-    priceLevel: priceLevelFieldSchema,
-    cuisines: cuisinesFieldSchema,
-    tags: tagsFieldSchema,
-    description: descriptionFieldSchema,
-    neighborhood: neighborhoodFieldSchema,
-    overallConfidence: z.number().min(0).max(1),
-    insufficientEvidence: z.boolean(),
-  })
-  .strict()
+export type RestaurantScoringResult = z.infer<ReturnType<typeof restaurantScoringResultSchema>>
 
-export type RestaurantScoringResult = z.infer<typeof restaurantScoringResultSchema>
-
-export const restaurantScoringGeminiSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    scores: {
-      type: Type.OBJECT,
-      properties: {
-        heaviness: axisFieldGeminiSchema,
-        portionSize: axisFieldGeminiSchema,
-        fineDining: axisFieldGeminiSchema,
-        spiceLevel: axisFieldGeminiSchema,
+export function restaurantScoringGeminiSchema(vocab: ScoringVocab): Schema {
+  return {
+    type: Type.OBJECT,
+    properties: {
+      scores: {
+        type: Type.OBJECT,
+        properties: {
+          heaviness: axisFieldGeminiSchema,
+          portionSize: axisFieldGeminiSchema,
+          fineDining: axisFieldGeminiSchema,
+        },
+        required: ['heaviness', 'portionSize', 'fineDining'],
+        propertyOrdering: ['heaviness', 'portionSize', 'fineDining'],
       },
-      required: ['heaviness', 'portionSize', 'fineDining', 'spiceLevel'],
-      propertyOrdering: ['heaviness', 'portionSize', 'fineDining', 'spiceLevel'],
+      priceLevel: priceLevelFieldGeminiSchema,
+      cuisines: listFieldGeminiSchema(vocab.cuisines),
+      tags: listFieldGeminiSchema(vocab.tags),
+      description: descriptionFieldGeminiSchema,
+      neighborhood: neighborhoodFieldGeminiSchema(vocab.neighborhoods),
+      overallConfidence: { type: Type.NUMBER, minimum: 0, maximum: 1 },
+      insufficientEvidence: { type: Type.BOOLEAN },
     },
-    priceLevel: priceLevelFieldGeminiSchema,
-    cuisines: cuisinesFieldGeminiSchema,
-    tags: tagsFieldGeminiSchema,
-    description: descriptionFieldGeminiSchema,
-    neighborhood: neighborhoodFieldGeminiSchema,
-    overallConfidence: { type: Type.NUMBER, minimum: 0, maximum: 1 },
-    insufficientEvidence: { type: Type.BOOLEAN },
-  },
-  required: [
-    'scores',
-    'priceLevel',
-    'cuisines',
-    'tags',
-    'description',
-    'neighborhood',
-    'overallConfidence',
-    'insufficientEvidence',
-  ],
-  propertyOrdering: [
-    'scores',
-    'priceLevel',
-    'cuisines',
-    'tags',
-    'description',
-    'neighborhood',
-    'overallConfidence',
-    'insufficientEvidence',
-  ],
+    required: [
+      'scores',
+      'priceLevel',
+      'cuisines',
+      'tags',
+      'description',
+      'neighborhood',
+      'overallConfidence',
+      'insufficientEvidence',
+    ],
+    propertyOrdering: [
+      'scores',
+      'priceLevel',
+      'cuisines',
+      'tags',
+      'description',
+      'neighborhood',
+      'overallConfidence',
+      'insufficientEvidence',
+    ],
+  }
 }
 
 /**
@@ -225,7 +228,6 @@ export interface RestaurantProposalFields {
   heaviness: number
   portionSize: number
   fineDining: number
-  spiceLevel: number
   priceLevel: number
   cuisines: string[]
   tags: string[]
@@ -238,12 +240,11 @@ export function flattenScoringResult(r: RestaurantScoringResult): RestaurantProp
     heaviness: r.scores.heaviness.value,
     portionSize: r.scores.portionSize.value,
     fineDining: r.scores.fineDining.value,
-    spiceLevel: r.scores.spiceLevel.value,
     priceLevel: r.priceLevel.value,
     cuisines: r.cuisines.value,
     tags: r.tags.value,
     description: r.description.value,
-    neighborhood: r.neighborhood.value,
+    neighborhood: r.neighborhood.value ?? '',
   }
 }
 
@@ -252,14 +253,13 @@ export function flattenScoringResult(r: RestaurantScoringResult): RestaurantProp
  * written to Restaurant on approval — "the same zod schema a manual edit
  * uses" (docs/PLAN.md). The per-field rules mirror restaurantSchema in
  * app/api/restaurants/[id]/route.ts for exactly the fields an AI proposal
- * can touch; that schema is not exported and that file is out of scope here,
- * so the constraints are intentionally duplicated rather than imported.
+ * can touch. Vocabulary membership is checked by the route against VocabTerm
+ * (checkTerms in lib/vocab.ts), the same check a manual edit gets.
  */
 export const aiProposalEditSchema = z.object({
   heaviness: z.coerce.number().int().min(0).max(100),
   portionSize: z.coerce.number().int().min(0).max(100),
   fineDining: z.coerce.number().int().min(0).max(100),
-  spiceLevel: z.coerce.number().int().min(0).max(100),
   priceLevel: z.coerce.number().int().min(1).max(4),
   cuisines: z.array(z.string()).max(4),
   tags: z.array(z.string()).max(4),

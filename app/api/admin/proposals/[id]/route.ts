@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { aiProposalEditSchema, flattenScoringResult, restaurantScoringResultSchema } from '@/lib/aiSchemas'
 import { adminServerError } from '@/lib/apiError'
+import { checkVocabFields, unknownTermsMessage } from '@/lib/vocabDb'
 import { z } from 'zod'
 
 const approveBodySchema = z.object({
@@ -66,8 +67,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // model's original answer. The merge of original + owner edits is
     // re-validated through the same rules a manual edit uses before it is
     // ever written to Restaurant.
-    const original = flattenScoringResult(restaurantScoringResultSchema.parse(JSON.parse(proposal.payload)))
+    const original = flattenScoringResult(restaurantScoringResultSchema().parse(JSON.parse(proposal.payload)))
     const applied = aiProposalEditSchema.parse({ ...original, ...edited })
+
+    // Same vocabulary gate as a manual edit. A proposal queued before the
+    // vocabulary existed says "Balkan" / "Qendra"; those resolve through the
+    // legacy aliases, so approving an old proposal still lands on real terms.
+    const { fields, unknown } = await checkVocabFields(applied)
+    if (unknown.length) return NextResponse.json({ error: unknownTermsMessage(unknown) }, { status: 400 })
+    Object.assign(applied, fields)
 
     await prisma.restaurant.update({
       where: { id: proposal.restaurantId },
@@ -76,7 +84,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         heaviness: applied.heaviness,
         portionSize: applied.portionSize,
         fineDining: applied.fineDining,
-        spiceLevel: applied.spiceLevel,
         // Always set on approval — an un-enriched restaurant otherwise sits
         // at the default 2 forever and the price filter goes meaningless
         // (docs/PLAN.md, Risk 8).

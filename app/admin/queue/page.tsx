@@ -3,7 +3,11 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Check, X, AlertTriangle, Sparkles } from 'lucide-react'
-import { CUISINE_VOCAB, TAG_VOCAB, type RestaurantDTO } from '@/lib/types'
+import type { RestaurantDTO } from '@/lib/types'
+import { useVocab, useVocabLabel } from '@/components/VocabProvider'
+import { resolveTerm, type VocabKind } from '@/lib/vocab'
+import { PRICE_OPTIONS, Segmented } from '../components/FormControls'
+import VocabPicker from '../components/VocabPicker'
 import {
   flattenScoringResult,
   type RestaurantScoringResult,
@@ -180,7 +184,6 @@ function currentAsFields(r: RestaurantDTO): RestaurantProposalFields {
     heaviness: r.heaviness,
     portionSize: r.portionSize,
     fineDining: r.fineDining,
-    spiceLevel: r.spiceLevel,
     priceLevel: r.priceLevel,
     cuisines: r.cuisines,
     tags: r.tags,
@@ -202,10 +205,24 @@ function ProposalCard({
 }) {
   const { restaurant, payload } = proposal
   const lowSignal = payload?.insufficientEvidence ?? false
+  const label = useVocabLabel('sq')
+  const labels = (kind: 'cuisine' | 'tag', slugs: string[]) => slugs.map((s) => label(kind, s)).join(', ')
 
-  const [fields, setFields] = useState<RestaurantProposalFields>(() =>
-    payload && !lowSignal ? flattenScoringResult(payload) : currentAsFields(restaurant)
-  )
+  const vocab = useVocab()
+  const [fields, setFields] = useState<RestaurantProposalFields>(() => {
+    const f = payload && !lowSignal ? flattenScoringResult(payload) : currentAsFields(restaurant)
+    // A proposal queued before the vocabulary existed says "Balkan" or
+    // "Qendra": show the term it maps to. A value with no match stays as
+    // written so it is visible, and approving it is refused until it is fixed.
+    const map = (kind: VocabKind, values: string[]) =>
+      [...new Set(values.map((v) => resolveTerm(vocab, kind, v) ?? v).filter(Boolean))]
+    return {
+      ...f,
+      cuisines: map('cuisine', f.cuisines),
+      tags: map('tag', f.tags),
+      neighborhood: map('neighborhood', [f.neighborhood])[0] ?? '',
+    }
+  })
 
   if (proposal.status === 'failed') {
     return (
@@ -253,10 +270,12 @@ function ProposalCard({
           <span>Heaviness: {reviewedFields.heaviness}</span>
           <span>Portion: {reviewedFields.portionSize}</span>
           <span>Fine dining: {reviewedFields.fineDining}</span>
-          <span>Spice: {reviewedFields.spiceLevel}</span>
           <span>Price: {'$'.repeat(reviewedFields.priceLevel)}</span>
-          <span>Neighborhood: {reviewedFields.neighborhood || '—'}</span>
-          <span className="sm:col-span-2">Cuisines: {reviewedFields.cuisines.join(', ') || '—'}</span>
+          <span>
+            Neighborhood:{' '}
+            {reviewedFields.neighborhood ? label('neighborhood', reviewedFields.neighborhood) : '—'}
+          </span>
+          <span className="sm:col-span-2">Cuisines: {labels('cuisine', reviewedFields.cuisines) || '—'}</span>
         </div>
         <p className="mt-3 text-sm text-text-secondary">{reviewedFields.description}</p>
       </article>
@@ -285,7 +304,7 @@ function ProposalCard({
         )}
       </div>
 
-      <div className="mb-5 grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-4">
+      <div className="mb-5 grid grid-cols-1 gap-5 md:grid-cols-3">
         <AxisField
           id={`${proposal.id}-heaviness`}
           label="Heaviness"
@@ -310,20 +329,11 @@ function ProposalCard({
           value={fields.fineDining}
           onChange={(v) => setFields((f) => ({ ...f, fineDining: v }))}
         />
-        <AxisField
-          id={`${proposal.id}-spiceLevel`}
-          label="Spice level"
-          current={restaurant.spiceLevel}
-          field={payload.scores.spiceLevel}
-          value={fields.spiceLevel}
-          onChange={(v) => setFields((f) => ({ ...f, spiceLevel: v }))}
-        />
       </div>
 
       <div className="mb-5 grid grid-cols-1 gap-5 md:grid-cols-2">
         <div>
           <FieldLabel
-            htmlFor={`${proposal.id}-priceLevel`}
             label="Price level"
             confidence={payload.priceLevel.confidence}
             rationale={payload.priceLevel.rationale}
@@ -331,36 +341,30 @@ function ProposalCard({
           <p className="mb-2 text-xs text-text-secondary">
             Current: {'$'.repeat(restaurant.priceLevel)}
           </p>
-          <select
-            id={`${proposal.id}-priceLevel`}
+          <Segmented
+            name={`${proposal.id}-priceLevel`}
+            label="Price level"
             value={fields.priceLevel}
-            onChange={(e) => setFields((f) => ({ ...f, priceLevel: Number(e.target.value) }))}
-            className="ef-input"
-          >
-            {[1, 2, 3, 4].map((n) => (
-              <option key={n} value={n}>
-                {'$'.repeat(n)}
-              </option>
-            ))}
-          </select>
+            options={PRICE_OPTIONS}
+            onChange={(priceLevel) => setFields((f) => ({ ...f, priceLevel }))}
+          />
         </div>
 
         <div>
           <FieldLabel
-            htmlFor={`${proposal.id}-neighborhood`}
             label="Neighborhood"
             confidence={payload.neighborhood.confidence}
             rationale={payload.neighborhood.rationale}
           />
           <p className="mb-2 text-xs text-text-secondary">
-            Current: {restaurant.neighborhood || '(none)'}
+            Current: {restaurant.neighborhood ? label('neighborhood', restaurant.neighborhood) : '(none)'}
           </p>
-          <input
-            id={`${proposal.id}-neighborhood`}
-            type="text"
+          <VocabPicker
+            kind="neighborhood"
+            label="Approve as"
+            placeholder="No neighborhood"
             value={fields.neighborhood}
-            onChange={(e) => setFields((f) => ({ ...f, neighborhood: e.target.value }))}
-            className="ef-input"
+            onChange={(neighborhood) => setFields((f) => ({ ...f, neighborhood }))}
           />
         </div>
       </div>
@@ -372,12 +376,15 @@ function ProposalCard({
           rationale={payload.cuisines.rationale}
         />
         <p className="mb-2 text-xs text-text-secondary">
-          Current: {restaurant.cuisines.join(', ') || '(none)'}
+          Current: {labels('cuisine', restaurant.cuisines) || '(none)'}
         </p>
         <VocabPicker
-          vocab={CUISINE_VOCAB}
-          selected={fields.cuisines}
-          onChange={(v) => setFields((f) => ({ ...f, cuisines: v }))}
+          kind="cuisine"
+          label="Approve as"
+          multiple
+          max={4}
+          value={fields.cuisines}
+          onChange={(cuisines) => setFields((f) => ({ ...f, cuisines }))}
         />
       </div>
 
@@ -388,12 +395,15 @@ function ProposalCard({
           rationale={payload.tags.rationale}
         />
         <p className="mb-2 text-xs text-text-secondary">
-          Current: {restaurant.tags.join(', ') || '(none)'}
+          Current: {labels('tag', restaurant.tags) || '(none)'}
         </p>
         <VocabPicker
-          vocab={TAG_VOCAB}
-          selected={fields.tags}
-          onChange={(v) => setFields((f) => ({ ...f, tags: v }))}
+          kind="tag"
+          label="Approve as"
+          multiple
+          max={4}
+          value={fields.tags}
+          onChange={(tags) => setFields((f) => ({ ...f, tags }))}
         />
       </div>
 
@@ -509,48 +519,13 @@ function AxisField({
         max={100}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full"
+        style={{ '--fill': `${value}%` } as React.CSSProperties}
       />
       {/* tabular-nums in the UI font, not font-mono: there is no mono token in
           this design system, so that span rendered in the browser default. */}
       <div className="mt-1.5 text-right text-[13px] font-bold tabular-nums text-primary">
         {value}
       </div>
-    </div>
-  )
-}
-
-// ponytail: plain checkbox list, not a combobox/tag-input — the vocab is
-// short (< 30 entries) and this is an internal review tool, not the public UI.
-function VocabPicker({
-  vocab,
-  selected,
-  onChange,
-}: {
-  vocab: readonly string[]
-  selected: string[]
-  onChange: (v: string[]) => void
-}) {
-  const toggle = (v: string) => {
-    onChange(selected.includes(v) ? selected.filter((s) => s !== v) : [...selected, v])
-  }
-  return (
-    <div className="flex flex-wrap gap-2">
-      {vocab.map((v) => (
-        <button
-          key={v}
-          type="button"
-          onClick={() => toggle(v)}
-          aria-pressed={selected.includes(v)}
-          // .ef-pill: the app already has a toggleable pill, and this one was
-          // 26px tall. min-h-11 on top of it because .ef-pill's own 36px is a
-          // dense search rail's height, and this is the one admin view whose
-          // whole job is tapping twenty of them in a row on a phone.
-          className={`ef-pill min-h-11 ${selected.includes(v) ? 'ef-pill--active' : ''}`}
-        >
-          {v}
-        </button>
-      ))}
     </div>
   )
 }

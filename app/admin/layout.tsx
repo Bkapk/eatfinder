@@ -8,12 +8,13 @@ import {
   ChevronRight,
   Compass,
   Images,
+  LayoutDashboard,
   LayoutList,
   LogOut,
   Menu,
   Sparkles,
   Activity,
-  Store,
+  Tags,
   UtensilsCrossed,
   X,
 } from 'lucide-react'
@@ -27,10 +28,11 @@ import './admin.css'
  * each phase's agent correctly refused to edit a file outside its ownership.
  */
 const NAV = [
-  { href: '/admin', label: 'Restaurants', icon: Store },
+  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/discover', label: 'Discover', icon: Compass },
   { href: '/admin/queue', label: 'AI Queue', icon: Sparkles },
   { href: '/admin/photos', label: 'Photos', icon: Images },
+  { href: '/admin/vocab', label: 'Vocabulary', icon: Tags },
   { href: '/admin/import', label: 'Import/Export', icon: LayoutList },
   { href: '/admin/system', label: 'System', icon: Activity },
 ] as const
@@ -149,15 +151,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
         setUser(data.user)
       } else {
-        if (pathname !== '/admin/login') {
-          router.push('/admin/login')
-        }
+        router.push(`/account/login?next=${encodeURIComponent(pathname)}`)
       }
     } catch (error) {
       console.error('Auth check failed:', error)
-      if (pathname !== '/admin/login') {
-        router.push('/admin/login')
-      }
+      router.push(`/account/login?next=${encodeURIComponent(pathname)}`)
     } finally {
       setLoading(false)
     }
@@ -165,7 +163,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/admin/login')
+    router.push('/account/login')
   }
 
   if (loading) {
@@ -174,10 +172,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <Spinner size={32} />
       </div>
     )
-  }
-
-  if (pathname === '/admin/login') {
-    return <>{children}</>
   }
 
   return (

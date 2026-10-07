@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { resolveTerm } from '@/lib/vocab'
+import { getVocab } from '@/lib/vocabDb'
 import { prisma } from '@/lib/prisma'
 import { adminServerError } from '@/lib/apiError'
 import { requireAdmin } from '@/lib/auth'
@@ -121,6 +123,10 @@ async function createDraftRestaurant(placeId: string, draft: RestaurantDraft) {
     (n): n is string => Boolean(n)
   )
 
+  // Google's sublocality text, mapped onto our list ("Ulpiana" -> ulpiane).
+  // No match stays empty for the admin to pick, rather than inventing a term.
+  const neighborhood = resolveTerm(await getVocab(), 'neighborhood', draft.neighborhood) ?? ''
+
   for (const name of attempts) {
     try {
       return await prisma.restaurant.create({
@@ -134,7 +140,7 @@ async function createDraftRestaurant(placeId: string, draft: RestaurantDraft) {
           isActive: false,
           aiStatus: 'none',
           address: draft.address,
-          neighborhood: draft.neighborhood,
+          neighborhood,
           lat: draft.lat,
           lng: draft.lng,
           phone: draft.phone,

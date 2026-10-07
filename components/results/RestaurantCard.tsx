@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { ImageOff, Star } from 'lucide-react'
-import type { RestaurantDTO } from '@/lib/types'
-import { priceGlyphs, t, tVocab, type Locale } from '@/lib/i18n'
+import { Award, ImageOff, Navigation, Star } from 'lucide-react'
+import { directionsUrl, type RestaurantDTO } from '@/lib/types'
+import { priceGlyphs, t, type Locale } from '@/lib/i18n'
+import { useVocabLabel } from '@/components/VocabProvider'
 import FavoriteButton from '@/components/FavoriteButton'
 
 /**
@@ -63,6 +64,33 @@ function Rating({ value, locale }: { value: number; locale: Locale }) {
   )
 }
 
+/**
+ * The public face of `isFeatured`: a place the people who make EatFinder would
+ * send a friend to. Ember, because that is the food-quality voice, but filled
+ * and lit so it reads as a mark of its own rather than one more tag. `compact`
+ * is the icon alone, for a row with no room for the words; it keeps them for
+ * screen readers.
+ */
+export function PickBadge({
+  locale,
+  compact = false,
+  className = '',
+}: {
+  locale: Locale
+  compact?: boolean
+  className?: string
+}) {
+  return (
+    <span
+      className={`ef-pick ${compact ? 'ef-pick--icon' : ''} ${className}`}
+      title={t(locale, 'card.featuredHint')}
+    >
+      <Award size={compact ? 12 : 13} strokeWidth={2.5} aria-hidden />
+      <span className={compact ? 'sr-only' : ''}>{t(locale, 'card.featured')}</span>
+    </span>
+  )
+}
+
 export default function RestaurantCard({
   item,
   locale,
@@ -82,7 +110,8 @@ export default function RestaurantCard({
   const row = size === 'list' || size === 'carousel'
   const popup = size === 'popup'
   const stars = item.googleRating ?? item.rating
-  const cuisine = item.cuisines[0] ? tVocab(locale, 'cuisine', item.cuisines[0]) : null
+  const label = useVocabLabel(locale)
+  const cuisine = item.cuisines[0] ? label('cuisine', item.cuisines[0]) : null
 
   // cuisine · $$ · 1.2 km — one line, the order people scan it in.
   const meta = [
@@ -158,11 +187,7 @@ export default function RestaurantCard({
           ].join(' ')}
         >
           {photo}
-          {item.isFeatured && (
-            <span className="absolute left-3 top-3 rounded-full bg-surface px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-accent shadow-sm">
-              {t(locale, 'card.featured')}
-            </span>
-          )}
+          {item.isFeatured && <PickBadge locale={locale} className="absolute left-3 top-3" />}
           {/* z-[2]: above the name link's stretched ::after, so the heart is
               its own target and not a tap on the card. */}
           <FavoriteButton
@@ -195,6 +220,10 @@ export default function RestaurantCard({
   }
 
   // --- the compact row: list view, the phone map carousel, the popup -------
+  // On the map the next question is "how do I get there", so the map's two
+  // cards carry the route one tap away. Not in the list: it would be a fourth
+  // control on every row of a scan-heavy column.
+  const route = size === 'list' ? null : directionsUrl(item)
   return (
     <article
       {...hover}
@@ -219,11 +248,27 @@ export default function RestaurantCard({
             className="ef-favorite-overlay absolute left-2 top-2 z-[2]"
           />
         )}
+        {popup && item.isFeatured && <PickBadge locale={locale} className="absolute left-2 top-2" />}
+        {route && (
+          // z-[2], like the heart: its own target above the card's stretched link.
+          <a
+            href={route}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t(locale, 'card.directionsTo', { name: item.name })}
+            className="ef-favorite-overlay absolute bottom-2 left-2 z-[2] hover:text-primary"
+          >
+            <Navigation size={15} aria-hidden />
+          </a>
+        )}
       </div>
 
       <div className={['flex min-w-0 flex-1 flex-col gap-1', popup ? 'p-3' : 'p-3.5'].join(' ')}>
         <div className="flex min-w-0 items-center justify-between gap-2">
-          {name}
+          <span className="flex min-w-0 items-center gap-1.5">
+            {!popup && item.isFeatured && <PickBadge locale={locale} compact />}
+            {name}
+          </span>
           {stars != null && <Rating value={stars} locale={locale} />}
         </div>
         <p className="truncate text-[13px] font-medium text-text-secondary">{meta.join(' · ')}</p>

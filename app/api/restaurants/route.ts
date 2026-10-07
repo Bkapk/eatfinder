@@ -4,6 +4,7 @@ import { uniqueConflictResponse } from '@/lib/apiError'
 import { requireAdmin } from '@/lib/auth'
 import { toDTO, slugify, openHoursSchema, httpUrlSchema } from '@/lib/types'
 import { adminServerError } from '@/lib/apiError'
+import { checkVocabFields, unknownTermsMessage } from '@/lib/vocabDb'
 import { z } from 'zod'
 
 const restaurantSchema = z.object({
@@ -13,7 +14,6 @@ const restaurantSchema = z.object({
   portionSize: z.coerce.number().min(0).max(100),
   fineDining: z.coerce.number().min(0).max(100),
   priceLevel: z.coerce.number().min(1).max(4),
-  spiceLevel: z.coerce.number().min(0).max(100).optional().default(0),
   avgPrepTime: z.coerce.number().min(0).optional().default(30),
   cuisines: z.array(z.string()).optional().default([]),
   tags: z.array(z.string()).optional().default([]),
@@ -116,6 +116,9 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const data = restaurantSchema.parse(body)
+    const { fields, unknown } = await checkVocabFields(data)
+    if (unknown.length) return NextResponse.json({ error: unknownTermsMessage(unknown) }, { status: 400 })
+    Object.assign(data, fields)
 
     const restaurant = await prisma.restaurant.create({
       data: {

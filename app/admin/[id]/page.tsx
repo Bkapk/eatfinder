@@ -55,7 +55,6 @@ export default function EditRestaurantPage() {
       />
       <RestaurantForm
         restaurant={restaurant}
-        onSuccess={() => router.push('/admin')}
         onCancel={() => router.push('/admin')}
       />
     </div>

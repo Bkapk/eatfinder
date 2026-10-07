@@ -5,6 +5,7 @@ import { passesFilters, search } from '@/lib/scoring'
 import { toDTO } from '@/lib/types'
 import type { RestaurantDTO } from '@/lib/types'
 import { serverError } from '@/lib/apiError'
+import { getVocab } from '@/lib/vocabDb'
 import type { Facets, RecommendResponse } from '@/components/search/types'
 import { PAGE_SIZE } from '@/components/search/types'
 import { z } from 'zod'
@@ -56,15 +57,21 @@ export async function GET(request: NextRequest) {
     // link and this endpoint cannot disagree.
     const { view: _view, page, ...filters } = parseFilters(request.nextUrl.searchParams)
 
-    // Public endpoint: only ever surface active listings. Exactly one query,
-    // no joins — this is what __tests__/api.test.ts mocks.
-    const rows = await prisma.restaurant.findMany({ where: { isActive: true } })
+    // Public endpoint: only ever surface active listings. One restaurant
+    // query, no joins — this is what __tests__/api.test.ts mocks. The vocab
+    // (~70 rows, only when there is free text) lets "pica" match `pizza`.
+    const [rows, terms] = await Promise.all([
+      prisma.restaurant.findMany({ where: { isActive: true } }),
+      filters.query?.trim() ? getVocab() : Promise.resolve([]),
+    ])
     const all: RestaurantDTO[] = rows.map(toDTO)
     const now = new Date()
+    const labels: Record<string, string> = {}
+    for (const term of terms) labels[term.slug] = `${labels[term.slug] ?? ''} ${term.labelSq} ${term.labelEn}`
 
     // Full match set, already sorted. `search` slices at `limit`, so ask for
     // everything and page here — `total` has to count matches, not the page.
-    const matched = search(all, filters, Number.MAX_SAFE_INTEGER, now)
+    const matched = search(all, filters, Number.MAX_SAFE_INTEGER, now, labels)
 
     const start = (page - 1) * PAGE_SIZE
     const items = matched.slice(start, start + PAGE_SIZE)
@@ -87,7 +94,7 @@ export async function GET(request: NextRequest) {
     const facetBase = { ...filters, cuisines: undefined, tags: undefined, neighborhoods: undefined }
     const facets: Facets = { cuisines: {}, tags: {}, neighborhoods: {}, priceLevels: {} }
     for (const r of all) {
-      if (!passesFilters(r, facetBase, now)) continue
+      if (!passesFilters(r, facetBase, now, labels)) continue
       tally(r.cuisines, facets.cuisines)
       tally(r.tags, facets.tags)
       tally([r.neighborhood], facets.neighborhoods)

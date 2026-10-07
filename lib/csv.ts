@@ -10,7 +10,6 @@ export interface CSVRow {
   portionSize: string
   fineDining: string
   priceLevel: string
-  spiceLevel?: string
   avgPrepTime?: string
   cuisines?: string
   tags?: string
@@ -104,13 +103,6 @@ export function validateCSVRow(row: CSVRow, rowIndex: number): string | null {
     return `Row ${rowIndex + 1}: priceLevel must be 1-4`
   }
 
-  if (row.spiceLevel) {
-    const spiceLevel = Number(row.spiceLevel)
-    if (!whole(row.spiceLevel) || spiceLevel < 0 || spiceLevel > 100) {
-      return `Row ${rowIndex + 1}: spiceLevel must be 0-100`
-    }
-  }
-
   if (row.avgPrepTime) {
     const avgPrepTime = Number(row.avgPrepTime)
     if (!whole(row.avgPrepTime) || avgPrepTime < 0) {
@@ -151,7 +143,9 @@ export function validateCSVRow(row: CSVRow, rowIndex: number): string | null {
 }
 
 /**
- * Convert CSV row to Restaurant data
+ * Convert CSV row to Restaurant data. cuisines/tags/neighborhood are still the
+ * raw values here; the import route maps them onto vocabulary slugs. An old
+ * file with a spiceLevel column imports fine: the column is ignored.
  */
 export function csvRowToRestaurant(row: CSVRow): Partial<Restaurant> {
   const cuisines = parseListField(row.cuisines)
@@ -167,7 +161,6 @@ export function csvRowToRestaurant(row: CSVRow): Partial<Restaurant> {
     portionSize: Number(row.portionSize),
     fineDining: Number(row.fineDining),
     priceLevel: Number(row.priceLevel),
-    spiceLevel: row.spiceLevel ? Number(row.spiceLevel) : 0,
     avgPrepTime: row.avgPrepTime ? Number(row.avgPrepTime) : 30,
     cuisines: JSON.stringify(cuisines),
     tags: JSON.stringify(tags),
@@ -201,7 +194,6 @@ export function exportToCSV(restaurants: Restaurant[]): string {
       portionSize: r.portionSize.toString(),
       fineDining: r.fineDining.toString(),
       priceLevel: r.priceLevel.toString(),
-      spiceLevel: r.spiceLevel.toString(),
       avgPrepTime: r.avgPrepTime.toString(),
       cuisines: JSON.stringify(cuisines),
       tags: JSON.stringify(tags),
@@ -230,7 +222,6 @@ export function exportToCSV(restaurants: Restaurant[]): string {
       'portionSize',
       'fineDining',
       'priceLevel',
-      'spiceLevel',
       'avgPrepTime',
       'cuisines',
       'tags',

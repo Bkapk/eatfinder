@@ -280,18 +280,140 @@
     opacity: 1;
   }
 
+  /* The slider. The input box is 24px tall (44px on touch) and transparent;
+     the 8px track is drawn by the pseudo-elements, so the whole height is the
+     hit area rather than the 8px stripe it used to be. The filled part reads
+     --fill (a percentage the caller sets inline); without it the track is
+     plain Hover Mist, which is still correct, just unfilled. Firefox draws
+     the fill natively with ::-moz-range-progress. */
   input[type='range'] {
-    @apply h-2 w-full cursor-pointer appearance-none rounded-lg;
+    @apply w-full cursor-pointer appearance-none bg-transparent;
+    height: 1.5rem;
+    --thumb: 1.25rem;
+  }
+
+  input[type='range']::-webkit-slider-runnable-track {
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: linear-gradient(
+      to right,
+      var(--primary) var(--fill, 0%),
+      var(--surface-hover) var(--fill, 0%)
+    );
+  }
+
+  input[type='range']::-moz-range-track {
+    height: 0.5rem;
+    border-radius: 9999px;
     background-color: var(--surface-hover);
   }
 
+  input[type='range']::-moz-range-progress {
+    height: 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--primary);
+  }
+
+  /* A white collar on the thumb so it separates from the blue fill it sits on. */
   input[type='range']::-webkit-slider-thumb {
-    @apply h-5 w-5 cursor-pointer appearance-none rounded-full bg-primary transition-colors hover:bg-primary-hover;
+    appearance: none;
+    width: var(--thumb);
+    height: var(--thumb);
+    margin-top: calc((0.5rem - var(--thumb)) / 2);
+    border: 2px solid var(--surface);
+    border-radius: 9999px;
+    background-color: var(--primary);
     box-shadow: var(--shadow-sm);
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease),
+      transform var(--dur-fast) var(--ease);
   }
 
   input[type='range']::-moz-range-thumb {
-    @apply h-5 w-5 cursor-pointer rounded-full border-0 bg-primary transition-colors hover:bg-primary-hover;
+    width: var(--thumb);
+    height: var(--thumb);
+    border: 2px solid var(--surface);
+    border-radius: 9999px;
+    background-color: var(--primary);
+    box-shadow: var(--shadow-sm);
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
+  }
+
+  input[type='range']:hover:not(:disabled)::-webkit-slider-thumb {
+    background-color: var(--primary-hover);
+  }
+
+  input[type='range']:hover:not(:disabled)::-moz-range-thumb {
+    background-color: var(--primary-hover);
+  }
+
+  input[type='range']:active:not(:disabled)::-webkit-slider-thumb {
+    transform: scale(1.12);
+  }
+
+  /* The input itself drops the global ring (it is a form control); the halo
+     goes on the thumb, which is the thing the arrow keys move. */
+  input[type='range']:focus-visible::-webkit-slider-thumb {
+    box-shadow: var(--ring), var(--shadow-sm);
+  }
+
+  input[type='range']:focus-visible::-moz-range-thumb {
+    box-shadow: var(--ring), var(--shadow-sm);
+  }
+
+  input[type='range']:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  @media (pointer: coarse) {
+    input[type='range'] {
+      height: var(--control-h);
+      --thumb: 1.5rem;
+    }
+  }
+
+  @media (forced-colors: active) {
+    input[type='range'] {
+      appearance: auto;
+    }
+  }
+
+  /* Number fields type their value; the OS spinner arrows were 12px targets
+     that looked different on every platform. */
+  input[type='number'] {
+    appearance: textfield;
+  }
+
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
+  }
+
+  /* Time fields: our clock glyph instead of the UA's, and the focused
+     hour/minute segment highlighted in Blue Wash rather than OS selection blue.
+     The data URI spells out --text-secondary (#55617a). */
+  input[type='time']::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.8;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2355617a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E")
+      center / 1rem no-repeat;
+  }
+
+  input[type='time']::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
+  input[type='time']::-webkit-datetime-edit-hour-field:focus,
+  input[type='time']::-webkit-datetime-edit-minute-field:focus,
+  input[type='time']::-webkit-datetime-edit-ampm-field:focus {
+    border-radius: 6px;
+    background-color: var(--primary-soft);
+    color: var(--primary);
   }
 
   /* Firefox has no ::-webkit pseudo-elements; `thin` is the only knob it gives
@@ -580,6 +702,42 @@
     box-shadow: var(--ring);
   }
 
+  /* ---- FORM CONTROL STATES (.ef-input) ---------------------------------- */
+  /* Disabled reads as "not now", not as a broken field: muted fill, secondary
+     ink, and the border kept so the box does not vanish. */
+  .ef-input:disabled {
+    cursor: not-allowed;
+    background-color: var(--surface-muted);
+    color: var(--text-secondary);
+  }
+
+  /* Invalid is set by the form after a failed save (aria-invalid), never on
+     load or while typing. Signal Red border; the halo turns red with it. */
+  .ef-input[aria-invalid='true'] {
+    border-color: var(--error);
+  }
+
+  .ef-input[aria-invalid='true']:focus {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--error) 22%, transparent);
+  }
+
+  /* Autofill: Chrome's tinted slab covered with the field's own white, our ink
+     kept. Same technique as .ef-auth-input; the focus variant re-adds the halo
+     because both live on box-shadow. */
+  .ef-input:-webkit-autofill,
+  .ef-input:-webkit-autofill:hover {
+    -webkit-text-fill-color: var(--text);
+    -webkit-box-shadow: 0 0 0 100px var(--surface) inset;
+    caret-color: var(--primary);
+    transition: background-color 600000s 0s;
+  }
+
+  .ef-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text);
+    -webkit-box-shadow: var(--ring), 0 0 0 100px var(--surface) inset;
+  }
+  /* ---- end FORM CONTROL STATES ------------------------------------------ */
+
   .ef-field-label {
     @apply mb-2 block text-[13px] font-semibold text-text;
   }
@@ -862,6 +1020,163 @@
   .ef-scroll-fade > *:not(:focus-visible) {
     box-shadow: none !important;
   }
+
+  /* The combobox: a searchable single- or multi-select over a vocabulary
+     (admin neighbourhood, cuisines, tags). The field is drawn as an .ef-input
+     that can hold chips and a borderless text box; the list is a popover under
+     it. Classes, not inline utilities, so a global restyle of the admin forms
+     reaches it in one place. */
+  .ef-combo {
+    @apply relative;
+  }
+
+  .ef-combo-field {
+    @apply flex w-full cursor-text flex-wrap items-center gap-1.5 rounded-xl border bg-surface py-1 pl-2 pr-1;
+    min-height: var(--control-h);
+    border-color: var(--border-control);
+    transition:
+      border-color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
+  }
+
+  .ef-combo-field:focus-within {
+    border-color: var(--primary);
+    box-shadow: var(--ring);
+  }
+
+  /* The text box inside the field. The field carries the focus ring
+     (:focus-within above); inputs already drop the global offset ring. */
+  .ef-combo-input {
+    @apply h-9 min-w-[8ch] flex-1 bg-transparent px-2 text-[14px] text-text outline-none placeholder:text-text-secondary;
+  }
+
+  .ef-combo-list {
+    @apply absolute inset-x-0 top-full z-sticky mt-1.5 max-h-72 overflow-y-auto overscroll-contain rounded-xl border border-border bg-surface p-1;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .ef-combo-option {
+    @apply flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-3 text-[14px] text-text;
+    transition: background-color var(--dur-fast) var(--ease);
+  }
+
+  .ef-combo-option[data-active='true'] {
+    @apply bg-surface-hover;
+  }
+
+  .ef-combo-option[aria-selected='true'] {
+    @apply font-semibold text-primary;
+  }
+
+  /* The other language's label, right-aligned and quiet. */
+  .ef-combo-hint {
+    @apply ml-auto shrink-0 pl-3 text-[12px] font-normal text-text-secondary;
+  }
+
+  .ef-combo-empty {
+    @apply px-3 py-2.5 text-[13px] text-text-secondary;
+  }
+
+  /* "Add a new term": both language labels, inline under the field. A solid
+     hairline, not dashed: dashed is reserved for the upload drop zone. */
+  .ef-combo-create {
+    @apply mt-2 grid gap-3 rounded-xl border border-border bg-background p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end;
+  }
+
+  /* ============================ SWITCH ==================================== */
+  /* An on/off setting that takes effect as a state (Published, Featured, a day
+     being open) rather than a pick from a list. It is a real checkbox with
+     role="switch", so the keyboard, the label and forms all behave natively;
+     only the drawing is ours. The knob is a radial gradient that slides by
+     background-position, so nothing lays out. Always sits inside a 44px label. */
+  input[type='checkbox'].ef-switch {
+    width: 2.5rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    background-color: var(--surface-muted);
+    background-image: radial-gradient(
+      circle closest-side,
+      var(--border-control) 0 calc(100% - 1px),
+      transparent 100%
+    );
+    background-size: 1.125rem 1.125rem;
+    background-position: 0.125rem center;
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      background-position var(--dur) var(--ease-out),
+      border-color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
+  }
+
+  input[type='checkbox'].ef-switch:checked {
+    background-color: var(--primary);
+    background-image: radial-gradient(
+      circle closest-side,
+      var(--surface) 0 calc(100% - 1px),
+      transparent 100%
+    );
+    background-size: 1.125rem 1.125rem;
+    background-position: calc(100% - 0.125rem) center;
+  }
+  /* ============================ end SWITCH ================================ */
+
+  /* ========================== SEGMENTED CONTROL ========================== */
+  /* One choice from a short, ordered set that fits on one line ($ → $$$$).
+     Real radios underneath (one tab stop, arrow keys move the choice), each
+     stretched invisibly over its segment so the whole segment is the target.
+     One --control-h tall so it lines up with the inputs beside it. */
+  .ef-segmented {
+    @apply grid w-full auto-cols-fr grid-flow-col gap-1 rounded-xl border bg-surface p-1;
+    min-height: var(--control-h);
+    border-color: var(--border-control);
+  }
+
+  .ef-segment {
+    @apply relative grid min-h-0 cursor-pointer place-items-center rounded-lg px-2 text-[13px] font-semibold tracking-wider text-text-secondary;
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
+  }
+
+  .ef-segment input[type='radio'] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: inherit;
+    opacity: 0;
+    cursor: inherit;
+  }
+
+  @media (hover: hover) {
+    .ef-segment:not(:has(:checked)):hover {
+      @apply bg-surface-hover text-text;
+    }
+  }
+
+  .ef-segment:has(:checked) {
+    @apply bg-primary text-on-primary;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .ef-segment:has(:focus-visible) {
+    box-shadow: var(--ring);
+  }
+
+  .ef-segment:has(:disabled) {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  @media (forced-colors: active) {
+    .ef-segment:has(:checked) {
+      outline: 2px solid;
+    }
+  }
+  /* ======================== end SEGMENTED CONTROL ======================== */
 }
 
 /* Keyframes live outside @layer: a layered @keyframes is still global, but
@@ -1051,6 +1366,83 @@ select {
 select:disabled {
   cursor: not-allowed;
 }
+
+/* ========================= CUSTOMIZABLE SELECT ============================ */
+/* Where the browser allows it (appearance: base-select, Chromium 135+), the
+   open list is ours too: a white popover on the --shadow-lg step with 44px
+   rows, Hover Mist on the active row and Signal Blue on the chosen one — the
+   same drawing as .ef-combo-list, so a select and a combobox open into the
+   same thing. Everywhere else the closed control above is already ours and
+   the OS list is the graceful fallback. Still a real <select>: keyboard,
+   form value and labels are untouched. */
+@supports (appearance: base-select) {
+  select,
+  ::picker(select) {
+    appearance: base-select;
+  }
+
+  /* No colours here: this block is unlayered, so a fill set here would beat
+     every class a select wears. .ef-input / .ef-pill already paint it. */
+  select {
+    align-items: center;
+  }
+
+  /* Our chevron stays (it is the background image above); the UA's goes. */
+  select::picker-icon {
+    display: none;
+  }
+
+  /* select.ef-pill was display:block for the native control; base-select lays
+     its label out as a button, which needs flex to centre vertically. */
+  select.ef-pill {
+    display: inline-flex;
+  }
+
+  ::picker(select) {
+    margin-block: 6px;
+    padding: 4px;
+    min-width: anchor-size(width);
+    max-height: 18rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background-color: var(--surface);
+    box-shadow: var(--shadow-lg);
+  }
+
+  select option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: var(--control-h);
+    padding: 0 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text);
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease);
+  }
+
+  select option:hover,
+  select option:focus-visible {
+    outline: none;
+    background-color: var(--surface-hover);
+  }
+
+  select option:checked {
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  select option::checkmark {
+    order: 1;
+    margin-left: auto;
+    color: var(--primary);
+  }
+  /* ponytail: no open/close animation; the parsers in this toolchain reject
+     ::picker(select):popover-open, and the list opening instantly is fine. */
+}
+/* ======================= end CUSTOMIZABLE SELECT ========================== */
 
 .mapboxgl-ctrl-group {
   border-radius: 9999px !important;
@@ -1408,3 +1800,493 @@ select:disabled {
     background-color: var(--surface-hover);
   }
 }
+
+/* =========================================================================
+   AUTH SCREEN — sign in / register (app/account/AuthScreen.tsx,
+   components/auth/*). One surface, two tabs. Everything for it lives in this
+   block; nothing outside it depends on these classes.
+   ========================================================================= */
+@layer components {
+  /* Phone: a short illustrated band, then the form. From lg: form left, art
+     right, filling the viewport under the top bar. */
+  .ef-auth {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ef-auth-art {
+    position: relative;
+    overflow: hidden;
+    height: 7rem;
+    margin: 0.75rem 1rem 0;
+    border-radius: 1rem;
+    /* A pool of light behind the object, on a blue that deepens downward. */
+    background:
+      radial-gradient(55% 50% at 50% 46%, color-mix(in srgb, var(--surface) 85%, transparent), transparent 75%),
+      linear-gradient(170deg, var(--primary-soft) 10%, color-mix(in srgb, var(--primary) 32%, var(--primary-soft)) 100%);
+  }
+
+  /* On the band the art is drawn oversized and cropped to the plate and pin,
+     rather than shrunk until the qebapa are a smudge. */
+  .ef-auth-illo {
+    position: absolute;
+    left: 50%;
+    top: -1.5rem;
+    width: 11rem;
+    height: 11rem;
+    translate: -50% 0;
+  }
+
+  .ef-auth-tagline {
+    display: none;
+  }
+
+  .ef-auth-pane {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.5rem 1.25rem 2.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .ef-auth-art {
+      height: 10rem;
+      margin-inline: 1.25rem;
+    }
+
+    .ef-auth-illo {
+      top: -2.25rem;
+      width: 16rem;
+      height: 16rem;
+    }
+
+    .ef-auth-pane {
+      padding: 2.5rem 2rem 3rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .ef-auth {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    }
+
+    .ef-auth-pane {
+      order: -1;
+      padding: 3rem;
+    }
+
+    .ef-auth-art {
+      height: auto;
+      min-height: 36rem;
+      margin: 1rem 1rem 1rem 0;
+    }
+
+    .ef-auth-illo {
+      left: 10%;
+      top: 8%;
+      width: 80%;
+      height: 76%;
+      translate: none;
+    }
+
+    .ef-auth-tagline {
+      display: block;
+      position: absolute;
+      inset-inline: 2rem;
+      bottom: 2.5rem;
+      text-align: center;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+  }
+
+  /* The switcher. The tab bar's pattern (a full-round track with one
+     highlight that slides) driven by sliding-bubble.ts, as in ViewToggle. */
+  .ef-auth-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 1.75rem;
+    padding: 0.3125rem;
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    background-color: var(--surface-muted);
+  }
+
+  .ef-auth-switch .bubble-pill--active {
+    box-shadow: var(--shadow-sm);
+  }
+
+  .ef-auth-tab {
+    min-height: var(--control-h);
+    border-radius: 9999px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color var(--dur) var(--ease);
+  }
+
+  .ef-auth-tab[aria-selected="true"] {
+    color: var(--primary);
+  }
+
+  @media (hover: hover) {
+    .ef-auth-tab:not([aria-selected="true"]):hover {
+      color: var(--text);
+    }
+  }
+
+  /* The panel under the switcher follows its content's height (AuthScreen
+     measures it). A deliberate exception to "never animate height": it is one
+     box on a page with nothing below it to push around. The -4px margin and
+     the inner p-1 keep the focus halo outside the clip. */
+  .ef-auth-morph {
+    margin: 1.25rem -0.25rem -0.25rem;
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ef-auth-morph {
+      transition: height var(--dur-panel) var(--ease-out);
+    }
+  }
+
+  /* The roomy field: icon | hairline | small label over the value. Taller
+     than --control-h on purpose (the label rides inside), so the submit
+     button below matches it rather than the toolbar height. */
+  .ef-auth-field {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 3.75rem;
+    padding-inline: 1rem 0.375rem;
+    border: 1px solid var(--border-control);
+    border-radius: 0.75rem;
+    background-color: var(--surface);
+    cursor: text;
+    transition:
+      border-color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
+  }
+
+  .ef-auth-field:focus-within {
+    border-color: var(--primary);
+    box-shadow: var(--ring);
+  }
+
+  /* Only after the user has had a go at it (and left), never while typing. */
+  .ef-auth-field:not(:focus-within):has(.ef-auth-input:user-invalid) {
+    border-color: var(--error);
+  }
+
+  .ef-auth-field-icon {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    transition: color var(--dur-fast) var(--ease);
+  }
+
+  .ef-auth-field:focus-within .ef-auth-field-icon {
+    color: var(--primary);
+  }
+
+  .ef-auth-field-body {
+    flex: 1;
+    min-width: 0;
+    padding-block: 0.5rem;
+    padding-left: 0.75rem;
+    border-left: 1px solid var(--border);
+  }
+
+  .ef-auth-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    cursor: text;
+    transform-origin: left center;
+  }
+
+  /* Floating label: empty and idle, it sits on the value line at reading
+     size; focus or a value lifts it. Transform only, so nothing reflows.
+     Autofilled fields count as filled before the page can read their value. */
+  .ef-auth-field:not(:focus-within):has(.ef-auth-input:placeholder-shown:not(:-webkit-autofill)) .ef-auth-label {
+    translate: 0 0.75rem;
+    scale: 1.25;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ef-auth-label {
+      transition:
+        translate var(--dur) var(--ease),
+        scale var(--dur) var(--ease);
+    }
+  }
+
+  /* 16px: anything smaller and iOS zooms the page on focus. */
+  .ef-auth-input {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    appearance: none;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--text);
+    caret-color: var(--primary);
+  }
+
+  .ef-auth-input:focus {
+    outline: none;
+  }
+
+  .ef-auth-input::placeholder {
+    color: transparent;
+  }
+
+  /* Edge draws its own reveal eye in password fields; we already have one. */
+  .ef-auth-input::-ms-reveal,
+  .ef-auth-input::-ms-clear {
+    display: none;
+  }
+
+  /* Autofill: Chrome paints its own tinted slab and text colour. Cover the
+     slab with the field's white and keep our ink; the very long transition
+     delay stops the UA background from ever arriving. */
+  .ef-auth-input:-webkit-autofill,
+  .ef-auth-input:-webkit-autofill:hover,
+  .ef-auth-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text);
+    -webkit-box-shadow: 0 0 0 100px var(--surface) inset;
+    caret-color: var(--primary);
+    transition: background-color 600000s 0s;
+  }
+
+  /* The tick: in place but invisible until the browser's constraints pass. */
+  .ef-auth-check {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-right: 0.625rem;
+    border-radius: 9999px;
+    background-color: var(--success);
+    color: var(--on-primary);
+    opacity: 0;
+    scale: 0.6;
+    transition:
+      opacity var(--dur) var(--ease),
+      scale var(--dur) var(--ease-out);
+  }
+
+  .ef-auth-check:has(+ .ef-auth-reveal) {
+    margin-right: 0;
+  }
+
+  .ef-auth-field:has(.ef-auth-input:valid:not(:placeholder-shown)) .ef-auth-check {
+    opacity: 1;
+    scale: 1;
+  }
+
+  .ef-auth-reveal {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease),
+      background-color var(--dur-fast) var(--ease);
+  }
+
+  @media (hover: hover) {
+    .ef-auth-reveal:hover {
+      background-color: var(--surface-hover);
+      color: var(--text);
+    }
+  }
+
+  /* One strong action, the same height as the fields above it. */
+  .ef-auth-submit {
+    width: 100%;
+    min-height: 3.5rem;
+    margin-top: 0.5rem;
+    font-size: 15px;
+  }
+}
+
+/* The art drifts, slowly, and only for people who have not asked for less
+   motion. ease-in-out rather than --ease: this is a loop with no landing. */
+@media (prefers-reduced-motion: no-preference) {
+  .ef-auth-float {
+    animation: ef-auth-float 6s ease-in-out infinite alternate;
+  }
+
+  .ef-auth-float--late {
+    animation-delay: -3s;
+  }
+}
+
+@keyframes ef-auth-float {
+  to {
+    transform: translateY(-8px);
+  }
+}
+/* ========================= end AUTH SCREEN ============================== */
+
+/* ============================ DASHBOARDS ================================ */
+/* /account and the admin overview. Bento of .ef-panel tiles on Cool Paper,
+   with exactly one .ef-hero per page carrying the key figure. */
+@layer components {
+  /* The one dark surface in the system. It is Ink used as a fill, not a new
+     colour: Card White on it is 18.4:1, --hero-muted ~10:1, the light-blue
+     data colour ~8:1 (well past 3:1 for graphics). One per page — two dark
+     cards and neither is the headline. */
+  .ef-hero {
+    @apply relative isolate overflow-hidden rounded-2xl p-6;
+    background-color: var(--text);
+    color: var(--surface);
+    --hero-muted: color-mix(in srgb, var(--surface) 72%, var(--text));
+    --hero-line: color-mix(in srgb, var(--surface) 14%, var(--text));
+    --hero-data: color-mix(in srgb, var(--primary) 55%, var(--surface));
+    /* A low Signal Blue glow in one corner: depth without a second shadow. */
+    background-image: radial-gradient(
+      70% 90% at 100% 100%,
+      color-mix(in srgb, var(--primary) 42%, transparent),
+      transparent 70%
+    );
+  }
+
+  .ef-hero-muted {
+    color: var(--hero-muted);
+  }
+
+  .ef-hero .ef-meter {
+    background-color: var(--hero-line);
+  }
+
+  .ef-hero .ef-meter > * {
+    background-color: var(--hero-data);
+  }
+
+  /* The global ring's offset is Card White, which on Ink is the visible part
+     of the halo — keep it, but make the ring itself light too. */
+  .ef-hero :focus-visible {
+    --tw-ring-color: var(--hero-data);
+    --tw-ring-offset-color: var(--text);
+  }
+
+  /* Figures, not headings: a number that is the answer. Tabular so a count
+     that changes does not jitter, tight tracking because it is display size. */
+  .ef-figure {
+    @apply text-[32px] font-extrabold leading-none tracking-[-0.03em];
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ef-figure--xl {
+    @apply text-[52px] sm:text-[60px];
+  }
+
+  /* A list row inside a panel: thumb · text · right-aligned value. Linked rows
+     get a Hover Mist fill that bleeds 8px past the panel's text column, so the
+     content still aligns with the heading above it. */
+  .ef-row {
+    @apply -mx-2 flex min-h-14 items-center gap-3 rounded-xl px-2 py-2;
+    transition: background-color var(--dur-fast) var(--ease);
+  }
+
+  @media (hover: hover) {
+    a.ef-row:hover {
+      background-color: var(--surface-hover);
+    }
+  }
+
+  /* Decorative 32px round affordance in a linked tile's corner. The tile is the
+     link; this is only the arrow that says so, never a second tab stop. */
+  .ef-round {
+    @apply grid h-8 w-8 shrink-0 place-items-center rounded-full border border-border text-text-secondary;
+  }
+}
+/* ========================== end DASHBOARDS ============================== */
+
+/* =========================================================================
+   LISTING FLYOUT + OUR PICK — components/detail/Flyout.tsx,
+   app/(browse)/@modal, PickBadge in components/results/RestaurantCard.tsx.
+   Everything for them lives in this block.
+   ========================================================================= */
+
+/* A listing opened from Explore or Saved. It is an .ef-drawer (same <dialog>,
+   same useDrawer, same slide, scrim and reduced-motion rules); this only sizes
+   the sheet. Wide enough for the listing's single-column layout with a photo
+   that still reads as a hero; full width on a phone, where it is the page in
+   every way but the results staying alive underneath it. */
+.ef-flyout-sheet {
+  width: 100%;
+  max-width: 40rem;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background-color: var(--surface);
+}
+
+/* The page under a modal sheet does not scroll. Phones scroll the document
+   (DESIGN.md, the phone shell), and a wheel over the scrim chained into it.
+   overflow:hidden keeps the offset, so the list is where it was on close. */
+html:has(.ef-flyout[open]) {
+  overflow: hidden;
+}
+
+/* Our pick (isFeatured): the house recommendation, so it is the one mark on a
+   card that is filled rather than tinted. Ember, the food-quality voice —
+   not a third colour — run from Ember to Ember Deep, with a light edge along
+   the top so it reads as a small object rather than a label. White on Ember
+   is 5.7:1 and on Ember Deep higher; the top light fades out above the text
+   line, so the text never sits on anything lighter than Ember. */
+.ef-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  height: 1.5rem;
+  padding: 0 0.625rem 0 0.5rem;
+  border-radius: 9999px;
+  /* --on-primary is the app's "white on a filled voice colour". */
+  color: var(--on-primary);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.16), transparent 45%),
+    linear-gradient(135deg, var(--accent), var(--accent-hover));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    var(--shadow-sm);
+}
+
+/* The icon alone, beside a name in a row with no room for the words. */
+.ef-pick--icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  justify-content: center;
+  padding: 0;
+}
+
+/* Windows high contrast drops backgrounds: keep an edge so it is still a badge. */
+@media (forced-colors: active) {
+  .ef-pick {
+    border: 1px solid CanvasText;
+  }
+}
+/* ========================== end FLYOUT + OUR PICK ======================= */

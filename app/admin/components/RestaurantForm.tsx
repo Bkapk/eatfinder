@@ -1,82 +1,98 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { X, Upload, Save, Sparkles } from 'lucide-react'
-import { CUISINE_VOCAB, TAG_VOCAB } from '@/lib/types'
+import { useState, useEffect, useMemo } from 'react'
+import { Upload, Sparkles } from 'lucide-react'
+import type { CSSProperties } from 'react'
+import { DAYS, type Day } from '@/lib/types'
+import { useVocabLabel } from '@/components/VocabProvider'
 import PhotoGalleryManager from './PhotoGalleryManager'
+import VocabPicker from './VocabPicker'
+import SaveBar from './SaveBar'
+import { HoursEditor, PRICE_OPTIONS, Segmented } from './FormControls'
+import { DAY_NAMES, FIELD_LABELS, diffRestaurant, type RestaurantFormValues } from './restaurantDiff'
 
 interface RestaurantFormProps {
   restaurant?: any
-  onSuccess: () => void
+  /** Called after a create. An edit stays on the page and shows "saved". */
+  onSuccess?: () => void
   onCancel: () => void
 }
 
-export default function RestaurantForm({ restaurant, onSuccess, onCancel }: RestaurantFormProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    heaviness: 50,
-    portionSize: 50,
-    fineDining: 50,
-    priceLevel: 2,
-    spiceLevel: 50,
-    avgPrepTime: 30,
-    cuisines: [] as string[],
-    tags: [] as string[],
-    neighborhood: '',
-    address: '',
-    websiteUrl: '',
-    gmapsUrl: '',
-    woltUrl: '',
-    instagramUrl: '',
-    phone: '',
-    image: '',
-    lat: '',
-    lng: '',
-    openHours: '',
-    rating: '',
-    isFeatured: false,
-    isActive: false,
-  })
+type Values = RestaurantFormValues
 
-  const [cuisineInput, setCuisineInput] = useState('')
-  const [tagInput, setTagInput] = useState('')
+function toValues(restaurant?: any): Values {
+  return {
+    name: restaurant?.name || '',
+    description: restaurant?.description || '',
+    heaviness: restaurant?.heaviness ?? 50,
+    portionSize: restaurant?.portionSize ?? 50,
+    fineDining: restaurant?.fineDining ?? 50,
+    priceLevel: restaurant?.priceLevel ?? 2,
+    avgPrepTime: restaurant?.avgPrepTime ?? 30,
+    cuisines: restaurant?.cuisines || [],
+    tags: restaurant?.tags || [],
+    neighborhood: restaurant?.neighborhood || '',
+    address: restaurant?.address || '',
+    websiteUrl: restaurant?.websiteUrl || '',
+    gmapsUrl: restaurant?.gmapsUrl || '',
+    woltUrl: restaurant?.woltUrl || '',
+    instagramUrl: restaurant?.instagramUrl || '',
+    phone: restaurant?.phone || '',
+    image: restaurant?.image || '',
+    lat: restaurant?.lat?.toString() || '',
+    lng: restaurant?.lng?.toString() || '',
+    openHours: restaurant?.openHours && Object.keys(restaurant.openHours).length ? restaurant.openHours : null,
+    rating: restaurant?.rating?.toString() || '',
+    isFeatured: restaurant?.isFeatured ?? false,
+    isActive: restaurant?.isActive ?? false,
+  }
+}
+
+/** The slider's filled share, read by the range track in globals.css. */
+const fill = (v: number) => ({ '--fill': `${v}%` }) as CSSProperties
+
+export default function RestaurantForm({ restaurant, onSuccess, onCancel }: RestaurantFormProps) {
+  const label = useVocabLabel('en')
+  const [baseline, setBaseline] = useState<Values>(() => toValues(restaurant))
+  const [formData, setFormData] = useState<Values>(baseline)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [invalid, setInvalid] = useState<string[]>([])
   const [aiStatus, setAiStatus] = useState('')
   const [asking, setAsking] = useState(false)
 
   useEffect(() => {
     if (restaurant) {
-      setFormData({
-        name: restaurant.name || '',
-        description: restaurant.description || '',
-        heaviness: restaurant.heaviness ?? 50,
-        portionSize: restaurant.portionSize ?? 50,
-        fineDining: restaurant.fineDining ?? 50,
-        priceLevel: restaurant.priceLevel ?? 2,
-        spiceLevel: restaurant.spiceLevel ?? 50,
-        avgPrepTime: restaurant.avgPrepTime ?? 30,
-        cuisines: restaurant.cuisines || [],
-        tags: restaurant.tags || [],
-        neighborhood: restaurant.neighborhood || '',
-        address: restaurant.address || '',
-        websiteUrl: restaurant.websiteUrl || '',
-        gmapsUrl: restaurant.gmapsUrl || '',
-        woltUrl: restaurant.woltUrl || '',
-        instagramUrl: restaurant.instagramUrl || '',
-        phone: restaurant.phone || '',
-        image: restaurant.image || '',
-        lat: restaurant.lat?.toString() || '',
-        lng: restaurant.lng?.toString() || '',
-        openHours: restaurant.openHours ? JSON.stringify(restaurant.openHours, null, 2) : '',
-        rating: restaurant.rating?.toString() || '',
-        isFeatured: restaurant.isFeatured ?? false,
-        isActive: restaurant.isActive ?? false,
-      })
+      const v = toValues(restaurant)
+      setBaseline(v)
+      setFormData(v)
     }
   }, [restaurant])
+
+  const changes = useMemo(() => diffRestaurant(baseline, formData, label), [baseline, formData, label])
+
+  const set = <K extends keyof Values>(key: K, value: Values[K]) => {
+    setFormData((f) => ({ ...f, [key]: value }))
+    setSaved(false)
+    setInvalid((xs) => (xs.includes(key) ? xs.filter((x) => x !== key) : xs))
+  }
+  const isInvalid = (key: string) => (invalid.includes(key) ? true : undefined)
+
+  const discard = () => {
+    if (!window.confirm(`Discard ${changes.length} unsaved ${changes.length === 1 ? 'change' : 'changes'}?`)) return
+    setFormData(baseline)
+    setInvalid([])
+    setError('')
+  }
+
+  /** Report a problem in the bar, mark the fields and take focus to the first. */
+  const fail = (message: string, keys: string[] = []) => {
+    setError(message)
+    setInvalid(keys)
+    if (keys[0]) document.getElementById(keys[0])?.focus()
+  }
 
   const askAi = async () => {
     if (!restaurant?.id) return
@@ -127,7 +143,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
       const data = await res.json()
 
       if (res.ok) {
-        setFormData((prev) => ({ ...prev, image: data.url }))
+        set('image', data.url)
       } else {
         setError(data.error || 'Failed to upload image')
       }
@@ -138,52 +154,22 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
     }
   }
 
-  const addCuisine = () => {
-    const cuisine = cuisineInput.trim()
-    if (cuisine && !formData.cuisines.includes(cuisine)) {
-      setFormData((prev) => ({
-        ...prev,
-        cuisines: [...prev.cuisines, cuisine],
-      }))
-      setCuisineInput('')
-    }
-  }
-
-  const removeCuisine = (cuisine: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      cuisines: prev.cuisines.filter((c) => c !== cuisine),
-    }))
-  }
-
-  const addTag = () => {
-    const tag = tagInput.trim()
-    if (tag && !formData.tags.includes(tag)) {
-      setFormData((prev) => ({ ...prev, tags: [...prev.tags, tag] }))
-      setTagInput('')
-    }
-  }
-
-  const removeTag = (tag: string) => {
-    setFormData((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag) }))
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSaving(true)
+    if (saving) return
     setError('')
 
-    let openHours: unknown = null
-    if (formData.openHours.trim()) {
-      try {
-        openHours = JSON.parse(formData.openHours)
-      } catch {
-        setError('Open Hours must be valid JSON, e.g. {"mon": ["09:00", "23:00"], "sun": null}')
-        setSaving(false)
-        return
-      }
+    // Our own checks instead of the browser's bubbles (the form is noValidate).
+    if (!formData.name.trim()) return fail('Give the restaurant a name.', ['name'])
+    const badDays = DAYS.filter((d) => {
+      const slot = formData.openHours?.[d]
+      return slot && (!slot[0] || !slot[1])
+    })
+    if (badDays.length) {
+      return fail(`Set both times for ${badDays.map((d) => DAY_NAMES[d]).join(', ')}, or mark the day closed.`, badDays.map((d) => `hours.${d}`))
     }
 
+    setSaving(true)
     try {
       const payload: any = {
         ...formData,
@@ -196,7 +182,7 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
         lat: formData.lat ? parseFloat(formData.lat) : null,
         lng: formData.lng ? parseFloat(formData.lng) : null,
         rating: formData.rating ? parseFloat(formData.rating) : null,
-        openHours,
+        openHours: formData.openHours,
       }
 
       const url = restaurant ? `/api/restaurants/${restaurant.id}` : '/api/restaurants'
@@ -211,19 +197,57 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
       const data = await res.json()
 
       if (res.ok) {
-        onSuccess()
+        setBaseline(formData)
+        setInvalid([])
+        if (restaurant) setSaved(true)
+        else onSuccess?.()
+      } else if (Array.isArray(data.details) && data.details.length) {
+        // Zod issues: name the fields in words, and mark them.
+        const keys = [...new Set<string>(data.details.map((d: any) => String(d.path?.[0] ?? '')))].filter(Boolean)
+        const msg = data.details
+          .map((d: any) => `${FIELD_LABELS[d.path?.[0] as keyof Values] ?? d.path?.join('.') ?? 'Field'}: ${d.message}`)
+          .join(' · ')
+        fail(msg, keys)
       } else {
-        setError(data.error || 'Failed to save restaurant')
+        fail(data.error || 'Failed to save restaurant')
       }
-    } catch (err) {
-      setError('An error occurred. Please try again.')
+    } catch {
+      fail('Could not reach the server. Your changes are still here — try again.')
     } finally {
       setSaving(false)
     }
   }
 
+  const field = (
+    key: 'address' | 'websiteUrl' | 'gmapsUrl' | 'phone' | 'woltUrl' | 'instagramUrl',
+    text: string,
+    type = 'text',
+    extra: React.InputHTMLAttributes<HTMLInputElement> = {}
+  ) => (
+    <div>
+      <label htmlFor={key} className="ef-field-label">
+        {text}
+      </label>
+      <input
+        id={key}
+        type={type}
+        value={formData[key]}
+        onChange={(e) => set(key, e.target.value)}
+        aria-invalid={isInvalid(key)}
+        className="ef-input"
+        {...extra}
+      />
+    </div>
+  )
+
+  const axes = [
+    ['heaviness', 'Heaviness', 'Light', 'Hearty'],
+    ['portionSize', 'Portion size', 'Small', 'Generous'],
+    ['fineDining', 'Fine dining', 'Casual', 'Formal'],
+  ] as const
+
   return (
-    <form onSubmit={handleSubmit} className="admin-form" aria-busy={saving}>
+    <form onSubmit={handleSubmit} className="admin-form" aria-busy={saving} noValidate>
       <div className="admin-form-grid">
         <nav aria-label="Restaurant form sections" className="admin-form-jumps admin-form-wide">
           {[
@@ -232,29 +256,19 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
             ['contact', 'Contact'],
             ['image', 'Images'],
             ['location', 'Location & hours'],
-          ].map(([id, label]) => (
+          ].map(([id, text]) => (
             <a key={id} href={'#' + id}>
-              {label}
+              {text}
             </a>
           ))}
         </nav>
-        {error && (
-          <div role="alert" className="ef-alert admin-form-wide !mb-0">
-            {error}
-          </div>
-        )}
 
         {/* Basic Information */}
         <div id="basic" className="ef-panel admin-form-section admin-form-wide">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <h2>Basic information</h2>
             {restaurant?.id && (
-              <button
-                type="button"
-                onClick={askAi}
-                disabled={asking}
-                className="ef-btn ef-btn--ghost"
-              >
+              <button type="button" onClick={askAi} disabled={asking} className="ef-btn ef-btn--ghost">
                 <Sparkles size={16} />
                 {asking ? 'Asking AI…' : 'Ask AI'}
               </button>
@@ -270,9 +284,10 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
                 id="name"
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => set('name', e.target.value)}
+                aria-invalid={isInvalid('name')}
+                aria-required
                 className="ef-input"
-                required
               />
             </div>
 
@@ -283,37 +298,22 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
               <textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) => set('description', e.target.value)}
+                aria-invalid={isInvalid('description')}
                 rows={4}
                 className="ef-input"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="neighborhood" className="ef-field-label">
-                  Neighborhood
-                </label>
-                <input
-                  id="neighborhood"
-                  type="text"
-                  value={formData.neighborhood}
-                  onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
-                  className="ef-input"
-                />
-              </div>
-              <div>
-                <label htmlFor="address" className="ef-field-label">
-                  Address
-                </label>
-                <input
-                  id="address"
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="ef-input"
-                />
-              </div>
+              <VocabPicker
+                kind="neighborhood"
+                label="Neighborhood"
+                placeholder="Search neighborhoods…"
+                value={formData.neighborhood}
+                onChange={(neighborhood) => set('neighborhood', neighborhood)}
+              />
+              {field('address', 'Address', 'text', { autoComplete: 'street-address' })}
             </div>
           </div>
         </div>
@@ -321,118 +321,65 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
         {/* Core Scores */}
         <div id="scores" className="ef-panel admin-form-section admin-form-wide">
           <h2 className="mb-4">Profile scores</h2>
-          <p className="admin-form-hint">
-            Describe the dining experience on a scale from 0 to 100.
-          </p>
-          {/* gap-4 is the gutter every other field row in this form uses; gap-6
-              made the three sliders drift out of step with the grids above. */}
+          <p className="admin-form-hint">Describe the dining experience on a scale from 0 to 100.</p>
+          {/* gap-4 is the gutter every other field row in this form uses. */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label htmlFor="heaviness" className="text-[13px] font-semibold text-text">
-                  Heaviness
-                </label>
-                <span className="text-[13px] font-bold tabular-nums text-primary">{formData.heaviness}</span>
+            {axes.map(([key, text, lo, hi]) => (
+              <div key={key}>
+                <div className="flex justify-between items-center mb-1">
+                  <label htmlFor={key} className="text-[13px] font-semibold text-text">
+                    {text}
+                  </label>
+                  <span className="text-[13px] font-bold tabular-nums text-primary">{formData[key]}</span>
+                </div>
+                <input
+                  id={key}
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={formData[key]}
+                  onChange={(e) => set(key, Number(e.target.value))}
+                  style={fill(formData[key])}
+                />
+                <div className="mt-1 flex justify-between text-[11px] font-semibold text-text-secondary">
+                  <span>{lo}</span>
+                  <span>{hi}</span>
+                </div>
               </div>
-              <input
-                id="heaviness"
-                type="range"
-                min="0"
-                max="100"
-                value={formData.heaviness}
-                onChange={(e) => setFormData({ ...formData, heaviness: Number(e.target.value) })}
-                className="w-full"
-              />
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label htmlFor="portionSize" className="text-[13px] font-semibold text-text">
-                  Portion Size
-                </label>
-                <span className="text-[13px] font-bold tabular-nums text-primary">{formData.portionSize}</span>
-              </div>
-              <input
-                id="portionSize"
-                type="range"
-                min="0"
-                max="100"
-                value={formData.portionSize}
-                onChange={(e) => setFormData({ ...formData, portionSize: Number(e.target.value) })}
-                className="w-full"
-              />
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label htmlFor="fineDining" className="text-[13px] font-semibold text-text">
-                  Fine Dining
-                </label>
-                <span className="text-[13px] font-bold tabular-nums text-primary">{formData.fineDining}</span>
-              </div>
-              <input
-                id="fineDining"
-                type="range"
-                min="0"
-                max="100"
-                value={formData.fineDining}
-                onChange={(e) => setFormData({ ...formData, fineDining: Number(e.target.value) })}
-                className="w-full"
-              />
-            </div>
+            ))}
           </div>
         </div>
 
         {/* Additional Details */}
         <div id="details" className="ef-panel admin-form-section admin-form-wide">
           <h2 className="mb-4">Additional details</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="priceLevel" className="ef-field-label">
-                Price Level (1-4)
-              </label>
-              <select
-                id="priceLevel"
+              <span id="priceLevel-label" className="ef-field-label">
+                Price level
+              </span>
+              <Segmented
+                name="priceLevel"
+                labelId="priceLevel-label"
                 value={formData.priceLevel}
-                onChange={(e) => setFormData({ ...formData, priceLevel: Number(e.target.value) })}
-                className="ef-input"
-              >
-                <option value="1">$</option>
-                <option value="2">$$</option>
-                <option value="3">$$$</option>
-                <option value="4">$$$$</option>
-              </select>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label htmlFor="spiceLevel" className="text-[13px] font-semibold text-text">
-                  Spice Level
-                </label>
-                <span className="text-[13px] font-bold tabular-nums text-primary">{formData.spiceLevel}</span>
-              </div>
-              <input
-                id="spiceLevel"
-                type="range"
-                min="0"
-                max="100"
-                value={formData.spiceLevel}
-                onChange={(e) => setFormData({ ...formData, spiceLevel: Number(e.target.value) })}
-                className="w-full"
+                options={PRICE_OPTIONS}
+                onChange={(v) => set('priceLevel', v)}
               />
             </div>
 
             <div>
               <label htmlFor="avgPrepTime" className="ef-field-label">
-                Avg Prep Time (minutes)
+                Avg prep time <span className="font-normal text-text-secondary">(minutes)</span>
               </label>
               <input
                 id="avgPrepTime"
                 type="number"
+                inputMode="numeric"
                 min="0"
                 value={formData.avgPrepTime}
-                onChange={(e) => setFormData({ ...formData, avgPrepTime: Number(e.target.value) })}
-                className="ef-input"
+                onChange={(e) => set('avgPrepTime', Number(e.target.value))}
+                aria-invalid={isInvalid('avgPrepTime')}
+                className="ef-input tabular-nums"
               />
             </div>
           </div>
@@ -441,101 +388,29 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
         {/* Cuisines */}
         <div id="cuisines" className="ef-panel admin-form-section">
           <h2 className="mb-4">Cuisines</h2>
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                list="cuisine-vocab"
-                value={cuisineInput}
-                onChange={(e) => setCuisineInput(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addCuisine()
-                  }
-                }}
-                placeholder="Add cuisine tag"
-                aria-label="Add cuisine tag"
-                className="ef-input flex-1"
-              />
-              {/* ponytail: native <datalist> autocomplete, not a combobox component — the API
-                still accepts free text, this just nudges toward CUISINE_VOCAB. */}
-              <datalist id="cuisine-vocab">
-                {CUISINE_VOCAB.map((c) => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
-              <button type="button" onClick={addCuisine} className="ef-btn ef-btn--primary">
-                Add
-              </button>
-            </div>
-            {formData.cuisines.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {formData.cuisines.map((cuisine) => (
-                  <span key={cuisine} className="ef-chip ef-chip-enter">
-                    {cuisine}
-                    <button
-                      type="button"
-                      onClick={() => removeCuisine(cuisine)}
-                      aria-label={`Remove ${cuisine}`}
-                      className="ef-chip-remove"
-                    >
-                      <X size={12} aria-hidden />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+          <p className="admin-form-hint">What kind of food. The first one is shown on the card.</p>
+          <VocabPicker
+            kind="cuisine"
+            label="Selected cuisines"
+            placeholder="Search or add a cuisine…"
+            multiple
+            value={formData.cuisines}
+            onChange={(cuisines) => set('cuisines', cuisines)}
+          />
         </div>
 
         {/* Tags */}
         <div id="tags" className="ef-panel admin-form-section">
           <h2 className="mb-4">Tags</h2>
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                list="tag-vocab"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addTag()
-                  }
-                }}
-                placeholder="Add tag, e.g. outdoor-seating"
-                aria-label="Add tag"
-                className="ef-input flex-1"
-              />
-              <datalist id="tag-vocab">
-                {TAG_VOCAB.map((t) => (
-                  <option key={t} value={t} />
-                ))}
-              </datalist>
-              <button type="button" onClick={addTag} className="ef-btn ef-btn--primary">
-                Add
-              </button>
-            </div>
-            {formData.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {formData.tags.map((tag) => (
-                  <span key={tag} className="ef-chip ef-chip-enter">
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => removeTag(tag)}
-                      aria-label={`Remove ${tag}`}
-                      className="ef-chip-remove"
-                    >
-                      <X size={12} aria-hidden />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+          <p className="admin-form-hint">Features guests filter by: terrace, open late, delivery…</p>
+          <VocabPicker
+            kind="tag"
+            label="Selected tags"
+            placeholder="Search or add a tag…"
+            multiple
+            value={formData.tags}
+            onChange={(tags) => set('tags', tags)}
+          />
         </div>
 
         {/* Contact & Links */}
@@ -543,109 +418,60 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
           <h2 className="mb-4">Contact & links</h2>
           <p className="admin-form-hint">Give guests a direct route to the restaurant.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="websiteUrl" className="ef-field-label">
-                Website URL
-              </label>
-              <input
-                id="websiteUrl"
-                type="url"
-                value={formData.websiteUrl}
-                onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
-                className="ef-input"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="gmapsUrl" className="ef-field-label">
-                Google Maps URL
-              </label>
-              <input
-                id="gmapsUrl"
-                type="url"
-                value={formData.gmapsUrl}
-                onChange={(e) => setFormData({ ...formData, gmapsUrl: e.target.value })}
-                className="ef-input"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="phone" className="ef-field-label">
-                Phone
-              </label>
-              <input
-                id="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="ef-input"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="woltUrl" className="ef-field-label">
-                Wolt URL
-              </label>
-              <input
-                id="woltUrl"
-                type="url"
-                value={formData.woltUrl}
-                onChange={(e) => setFormData({ ...formData, woltUrl: e.target.value })}
-                className="ef-input"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="instagramUrl" className="ef-field-label">
-                Instagram URL
-              </label>
-              <input
-                id="instagramUrl"
-                type="url"
-                value={formData.instagramUrl}
-                onChange={(e) => setFormData({ ...formData, instagramUrl: e.target.value })}
-                className="ef-input"
-              />
-            </div>
-
+            {field('websiteUrl', 'Website URL', 'url', { inputMode: 'url', placeholder: 'https://' })}
+            {field('gmapsUrl', 'Google Maps URL', 'url', { inputMode: 'url', placeholder: 'https://' })}
+            {field('phone', 'Phone', 'tel', { autoComplete: 'tel' })}
+            {field('woltUrl', 'Wolt URL', 'url', { inputMode: 'url', placeholder: 'https://' })}
+            {field('instagramUrl', 'Instagram URL', 'url', { inputMode: 'url', placeholder: 'https://' })}
             <div>
               <label htmlFor="rating" className="ef-field-label">
-                Editorial Rating (0-5)
+                Editorial rating <span className="font-normal text-text-secondary">(0–5)</span>
               </label>
               <input
                 id="rating"
                 type="number"
+                inputMode="decimal"
                 min="0"
                 max="5"
                 step="0.1"
                 value={formData.rating}
-                onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
-                className="ef-input"
+                onChange={(e) => set('rating', e.target.value)}
+                aria-invalid={isInvalid('rating')}
+                className="ef-input tabular-nums"
               />
             </div>
           </div>
 
-          {/* No w-4 h-4: that override shrank this one box below the 18px every
-              other checkbox in the app draws, and the gap-3 matches them too. */}
-          <label className="mt-5 flex cursor-pointer items-center gap-3 text-[13px] font-semibold text-text">
-            <input
-              type="checkbox"
-              checked={formData.isFeatured}
-              onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
-            />
-            Featured
-          </label>
-          <label className="mt-5 flex cursor-pointer items-center gap-3 text-[13px] font-semibold text-text">
-            <input
-              type="checkbox"
-              checked={formData.isActive}
-              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-            />
-            Publish on EatFinder
-          </label>
-          <p className="mt-1 text-xs text-text-secondary">
-            New restaurants stay in drafts until you publish them.
-          </p>
+          {/* Switches, not checkboxes: both are states of the listing that take
+              effect on save, and each row is a full 44px target. */}
+          <div className="mt-5 grid gap-1 sm:grid-cols-2 sm:gap-4">
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[13px] font-semibold text-text">
+              <input
+                type="checkbox"
+                role="switch"
+                className="ef-switch"
+                checked={formData.isActive}
+                onChange={(e) => set('isActive', e.target.checked)}
+                aria-describedby="isActive-hint"
+              />
+              <span>
+                Publish on EatFinder
+                <span id="isActive-hint" className="block text-xs font-normal text-text-secondary">
+                  New restaurants stay in drafts until you publish them.
+                </span>
+              </span>
+            </label>
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[13px] font-semibold text-text">
+              <input
+                type="checkbox"
+                role="switch"
+                className="ef-switch"
+                checked={formData.isFeatured}
+                onChange={(e) => set('isFeatured', e.target.checked)}
+              />
+              Featured
+            </label>
+          </div>
         </div>
 
         {/* Image */}
@@ -684,51 +510,38 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
         {/* Location */}
         <div id="location" className="ef-panel admin-form-section admin-form-wide">
           <h2 className="mb-4">Location & opening hours</h2>
-          <p className="admin-form-hint">
-            Optional coordinates and the restaurant’s weekly schedule.
-          </p>
-          <div className="space-y-4">
+          <p className="admin-form-hint">Optional coordinates and the restaurant’s weekly schedule.</p>
+          <div className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="lat" className="ef-field-label">
-                  Latitude
-                </label>
-                <input
-                  id="lat"
-                  type="number"
-                  step="any"
-                  value={formData.lat}
-                  onChange={(e) => setFormData({ ...formData, lat: e.target.value })}
-                  className="ef-input"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="lng" className="ef-field-label">
-                  Longitude
-                </label>
-                <input
-                  id="lng"
-                  type="number"
-                  step="any"
-                  value={formData.lng}
-                  onChange={(e) => setFormData({ ...formData, lng: e.target.value })}
-                  className="ef-input"
-                />
-              </div>
+              {(['lat', 'lng'] as const).map((key) => (
+                <div key={key}>
+                  <label htmlFor={key} className="ef-field-label">
+                    {key === 'lat' ? 'Latitude' : 'Longitude'}
+                  </label>
+                  <input
+                    id={key}
+                    type="number"
+                    inputMode="decimal"
+                    step="any"
+                    value={formData[key]}
+                    onChange={(e) => set(key, e.target.value)}
+                    aria-invalid={isInvalid(key)}
+                    placeholder={key === 'lat' ? '42.6629' : '21.1655'}
+                    className="ef-input tabular-nums"
+                  />
+                </div>
+              ))}
             </div>
 
             <div>
-              <label htmlFor="openHours" className="ef-field-label">
-                Open Hours (JSON)
-              </label>
-              <textarea
-                id="openHours"
+              <h3 className="ef-field-label">Opening hours</h3>
+              <HoursEditor
                 value={formData.openHours}
-                onChange={(e) => setFormData({ ...formData, openHours: e.target.value })}
-                rows={9}
-                placeholder='{"mon": ["09:00", "23:00"], "sun": null}'
-                className="ef-input resize-none font-mono text-sm"
+                onChange={(v) => {
+                  set('openHours', v)
+                  setInvalid((xs) => xs.filter((x) => !x.startsWith('hours.')))
+                }}
+                invalidDays={invalid.filter((x) => x.startsWith('hours.')).map((x) => x.slice(6) as Day)}
               />
             </div>
           </div>
@@ -739,23 +552,21 @@ export default function RestaurantForm({ restaurant, onSuccess, onCancel }: Rest
           <PhotoGalleryManager
             restaurantId={restaurant.id}
             restaurantName={formData.name}
-            onSetHero={(url) => setFormData((f) => ({ ...f, image: url }))}
+            onSetHero={(url) => set('image', url)}
           />
         )}
       </div>
-      {/* Actions */}
-      <div className="admin-form-actions">
-        <span className="mr-auto hidden text-xs text-text-secondary sm:block">
-          Review your changes before saving.
-        </span>
-        <button type="button" onClick={onCancel} className="ef-btn ef-btn--ghost">
-          Cancel
-        </button>
-        <button type="submit" disabled={saving} className="ef-btn ef-btn--primary">
-          <Save size={17} aria-hidden />
-          {saving ? 'Saving…' : 'Save restaurant'}
-        </button>
-      </div>
+
+      <SaveBar
+        changes={changes}
+        saving={saving}
+        saved={saved}
+        error={error}
+        submitLabel={restaurant ? 'Save changes' : 'Create restaurant'}
+        onDiscard={discard}
+        onBack={onCancel}
+      />
     </form>
   )
 }
+

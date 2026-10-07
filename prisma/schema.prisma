@@ -22,6 +22,10 @@ model User {
   displayName String  @default("")
   isBanned    Boolean @default(false)
 
+  // Embedded in every session token; bumping it (lib/auth.ts revokeSessions)
+  // invalidates all cookies issued before. Logout and create-admin bump it.
+  sessionVersion Int @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -44,15 +48,14 @@ model Restaurant {
   portionSize Int @default(50) // small plates 0 <-> very filling 100
   fineDining  Int @default(50) // street food 0 <-> white tablecloth 100
 
-  spiceLevel  Int @default(0)  // 0-100
   priceLevel  Int @default(2)  // 1-4, shown as $..$$$$
   avgPrepTime Int @default(30) // minutes
 
-  // JSON string arrays (SQLite has no array type)
-  cuisines String @default("[]")
-  tags     String @default("[]") // "vegan-friendly", "outdoor-seating", "late-night", ...
+  // JSON string arrays of VocabTerm slugs (SQLite has no array type)
+  cuisines String @default("[]") // ["grill", "traditional"]
+  tags     String @default("[]") // ["outdoor-seating", "late-night"]
 
-  neighborhood String @default("")
+  neighborhood String @default("") // a VocabTerm slug ("bregu-i-diellit"), or "" for none
   address      String @default("")
   lat          Float?
   lng          Float?
@@ -204,6 +207,27 @@ model Favorite {
 
   @@unique([userId, restaurantId])
   @@index([userId, createdAt])
+}
+
+/// The admin-managed lists behind Restaurant.neighborhood, .cuisines and .tags.
+/// Restaurants store the slug, not a relation, so /api/recommend stays one
+/// findMany and a rename never touches a restaurant row.
+model VocabTerm {
+  id        String  @id @default(cuid())
+  kind      String // "neighborhood" | "cuisine" | "tag"
+  slug      String // what Restaurant stores. Never changes after creation.
+  labelSq   String
+  labelEn   String
+  sortOrder Int     @default(0)
+  // false = hidden from the admin pickers. Restaurants already using it keep it
+  // and it still renders publicly, so deactivating never silently edits data.
+  active    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([kind, slug])
+  @@index([kind, sortOrder])
 }
 
 /// Operator-visible application events. Messages are intentionally short and

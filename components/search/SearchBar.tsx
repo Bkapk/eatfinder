@@ -2,7 +2,8 @@
 
 import type { RefObject } from 'react'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
-import { priceGlyphs, t, tVocab, type Locale } from '@/lib/i18n'
+import { priceGlyphs, t, type Locale } from '@/lib/i18n'
+import type { VocabKind } from '@/lib/vocab'
 import type { ParsedFilters } from '@/lib/filters'
 import { activeMood } from './moods'
 
@@ -25,15 +26,19 @@ const without = (list: string[] | undefined, v: string) => {
  * Mood axes only appear once moved off the neutral 50 — otherwise every visit
  * would open with three chips nobody set.
  */
-export function activeChips(f: ParsedFilters, locale: Locale): Chip[] {
+export function activeChips(
+  f: ParsedFilters,
+  locale: Locale,
+  label: (kind: VocabKind, slug: string) => string
+): Chip[] {
   const chips: Chip[] = []
 
   for (const v of f.cuisines ?? [])
-    chips.push({ key: `cuisine:${v}`, label: tVocab(locale, 'cuisine', v), patch: { cuisines: without(f.cuisines, v) } })
+    chips.push({ key: `cuisine:${v}`, label: label('cuisine', v), patch: { cuisines: without(f.cuisines, v) } })
   for (const v of f.tags ?? [])
-    chips.push({ key: `tag:${v}`, label: tVocab(locale, 'tag', v), patch: { tags: without(f.tags, v) } })
+    chips.push({ key: `tag:${v}`, label: label('tag', v), patch: { tags: without(f.tags, v) } })
   for (const v of f.neighborhoods ?? [])
-    chips.push({ key: `hood:${v}`, label: v, patch: { neighborhoods: without(f.neighborhoods, v) } })
+    chips.push({ key: `hood:${v}`, label: label('neighborhood', v), patch: { neighborhoods: without(f.neighborhoods, v) } })
 
   if (f.minPrice !== undefined)
     chips.push({ key: 'minPrice', label: `${priceGlyphs(f.minPrice)}+`, patch: { minPrice: undefined } })
@@ -43,8 +48,6 @@ export function activeChips(f: ParsedFilters, locale: Locale): Chip[] {
     chips.push({ key: 'openNow', label: t(locale, 'filters.openNow'), patch: { openNow: undefined } })
   if (f.woltOnly)
     chips.push({ key: 'woltOnly', label: t(locale, 'filters.woltOnly'), patch: { woltOnly: undefined } })
-  if (f.spiceMax !== undefined)
-    chips.push({ key: 'spiceMax', label: `${t(locale, 'filters.spice')} ${f.spiceMax}`, patch: { spiceMax: undefined } })
   if (f.maxDistanceKm !== undefined)
     chips.push({
       key: 'radius',

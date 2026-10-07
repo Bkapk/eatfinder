@@ -1,5 +1,5 @@
 import { passesFilters, calculateScore, search, SearchFilters } from '../lib/scoring'
-import { RestaurantDTO, nextChange } from '../lib/types'
+import { RestaurantDTO, directionsUrl, nextChange } from '../lib/types'
 
 function makeRestaurant(overrides: Partial<RestaurantDTO> = {}): RestaurantDTO {
   return {
@@ -10,7 +10,6 @@ function makeRestaurant(overrides: Partial<RestaurantDTO> = {}): RestaurantDTO {
     heaviness: 50,
     portionSize: 50,
     fineDining: 50,
-    spiceLevel: 0,
     priceLevel: 2,
     avgPrepTime: 30,
     cuisines: ['Italian'],
@@ -124,6 +123,17 @@ describe('search', () => {
     const results = search(restaurants, makeFilters({ maxPrice: 2 }))
     expect(results.map((r) => r.id)).toEqual(['1'])
   })
+
+  it('puts our picks first among ties in an explicit sort, and only among ties', () => {
+    const restaurants = [
+      makeRestaurant({ id: 'plain', priceLevel: 2 }),
+      makeRestaurant({ id: 'pick', priceLevel: 2, isFeatured: true }),
+      makeRestaurant({ id: 'cheap', priceLevel: 1 }),
+    ]
+
+    const results = search(restaurants, makeFilters({ sort: 'price-asc' }))
+    expect(results.map((r) => r.id)).toEqual(['cheap', 'pick', 'plain'])
+  })
 })
 
 describe('nextChange', () => {
@@ -148,5 +158,28 @@ describe('nextChange', () => {
 
   it('is null for unknown hours', () => {
     expect(nextChange(null, at(12))).toBeNull()
+  })
+})
+
+describe('directionsUrl', () => {
+  const place = { name: 'Napoli', address: 'Rr. Agim Ramadani 15', lat: 42.66, lng: 21.16, gmapsUrl: null }
+
+  it('routes to the coordinates, naming the Google place when there is one', () => {
+    const url = new URL(directionsUrl(place, 'places/ChIJabc')!)
+    expect(url.origin + url.pathname).toBe('https://www.google.com/maps/dir/')
+    expect(url.searchParams.get('api')).toBe('1')
+    expect(url.searchParams.get('destination')).toBe('42.66,21.16')
+    expect(url.searchParams.get('destination_place_id')).toBe('ChIJabc')
+  })
+
+  it('falls back to name and address, then the stored Maps link, then nothing', () => {
+    const noCoords = { ...place, lat: null, lng: null }
+    expect(new URL(directionsUrl(noCoords)!).searchParams.get('destination')).toBe(
+      'Napoli, Rr. Agim Ramadani 15'
+    )
+    expect(directionsUrl({ ...noCoords, address: '', gmapsUrl: 'https://maps.app.goo.gl/x' })).toBe(
+      'https://maps.app.goo.gl/x'
+    )
+    expect(directionsUrl({ ...noCoords, address: '' })).toBeNull()
   })
 })

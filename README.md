@@ -136,7 +136,9 @@ components/
   search/  map/  results/    the map-first shell (SearchShell owns filter state, syncs to the URL)
   community/                  photo upload widget
 lib/
-  types.ts        RestaurantDTO, RestaurantPhotoDTO, CUISINE_VOCAB, TAG_VOCAB, toDTO, slugify, isOpenAt
+  types.ts        RestaurantDTO, RestaurantPhotoDTO, toDTO, slugify, isOpenAt
+  vocab.ts        neighbourhood/cuisine/tag terms: labels, legacy aliases, resolveTerm (client-safe)
+  vocabDb.ts      getVocab (root layout, cached per request), createTerm, import/API vocab gate
   scoring.ts      SearchFilters, passesFilters, calculateScore, search
   filters.ts      single URL <-> SearchFilters parser, shared by the client shell and /api/recommend
   auth.ts         HMAC session, bcrypt, requireAuth, requireAdmin
@@ -145,8 +147,8 @@ lib/
   gemini.ts       Gemini calls, retry-once-then-fail, auto-publish rule
   aiSchemas.ts    Gemini responseSchema + mirror zod schemas
   ratelimit.ts    DB-counted limiters (money endpoints) + in-process Map limiter (quota endpoints)
-  i18n.ts         t()/tVocab(), Albanian default, English toggle, no i18n dependency
-middleware.ts     cookie-presence gate on /admin/*, not a security boundary
+  i18n.ts         t(), Albanian default, English toggle, no i18n dependency
+middleware.ts     cookie-presence gate on /admin/* + Origin check on /api writes
 prisma/
   schema.prisma
   migrations/      four applied: init, rebuild_restaurant_model, v2_places_ai_community, system_events
@@ -161,7 +163,7 @@ docs/
 
 Two passes in `lib/scoring.ts`, unchanged in shape from v1.
 
-**`passesFilters`** — hard filters: price range, prep time, spice max, Wolt
+**`passesFilters`** — hard filters: price range, prep time, Wolt
 availability, cuisines, tags, neighbourhoods, free-text query, distance, map
 bounding box, and open-now (unknown hours are never treated as closed — only
 a confirmed-closed restaurant is excluded).
@@ -208,11 +210,23 @@ approved. `Favorite` is a plain `(userId, restaurantId)` join. Full schema:
 
 ## Security
 
-- Sessions: signed HMAC token (`<userId>.<expiry>.<hmac>`), `timingSafeEqual`
-  verification, httpOnly cookie, `secure` in production.
-- Passwords: bcrypt, cost 10.
-- Login: 10 failures per username/email per 15 minutes, in-process. A wrong
-  username and a wrong password return the same response.
+- Sessions: signed HMAC token (`<userId>.<sessionVersion>.<expiry>.<hmac>`),
+  `timingSafeEqual` verification, httpOnly + SameSite=Lax cookie, `secure` in
+  production, 7 days. The version must equal `User.sessionVersion`; logout and
+  `create-admin` bump it, killing every existing cookie for that account.
+- Passwords: bcrypt, cost 12 (old cost-10 hashes still verify); 8-72 bytes.
+- Login: one page, `/account/login`, for everyone (`/admin/login` redirects
+  there). Admins land on `/admin`. 10 failures per account and 30 attempts per
+  IP (`X-Real-IP` from nginx) per 15 minutes, in-process. Unknown user, wrong
+  password and banned account all return the same 401 at the same bcrypt cost.
+- Register: 10 per email / 15 min and 10 per IP / hour. It never sets a role;
+  only `create-admin`/`db:seed` make an admin, and `create-admin` warns if more
+  than one admin exists.
+- CSRF: `middleware.ts` rejects POST/PUT/PATCH/DELETE to `/api/*` whose
+  `Origin` host differs from `Host` (SameSite=Lax alone lets sibling
+  subdomains through).
+- Headers (`next.config.js`): CSP, HSTS, X-Frame-Options DENY, nosniff,
+  Referrer-Policy, Permissions-Policy (geolocation self only).
 - Every catalogue-mutating route calls `requireAdmin()`; every
   community-mutating route calls `requireAuth()`.
 - Uploads (admin, community, and Places photo downloads) all go through
@@ -268,10 +282,12 @@ Genuinely unverified or deferred, not softened:
   findings, verification, and deployment checks. The catalogue, forms,
   discovery, review queues, import/export, and sign-in share a responsive
   light dashboard layout; the earlier visual pass is in `docs/VISUAL_REVIEW.md`.
-- **`CUISINE_VOCAB` / `TAG_VOCAB` in `lib/types.ts`** were seeded from
-  existing data plus obvious Kosovo categories by the Phase 1 agent and have
-  not been reviewed by the owner. Changing them after Gemini enrichment has
-  run against real restaurants means re-running that enrichment.
+- **Neighbourhoods, cuisines and tags are the `VocabTerm` table**, managed at
+  /admin/vocab (rename, reorder, hide, add) and from "Add …" inside the
+  restaurant form's pickers. Restaurants store slugs; the labels (sq + en) come
+  from the table. The `vocab_terms` migration seeded the curated lists and
+  moved existing data onto slugs, inserting any value it did not recognise as a
+  new term rather than dropping it. Gemini may only propose active terms.
 - The remaining Phase 6 backlog items (mobile map/list collapse behaviour
   under load, keyboard/screen-reader passes, spinner de-duplication across
   four admin pages, the `middleware.ts` → `proxy` rename Next 16 warns about,

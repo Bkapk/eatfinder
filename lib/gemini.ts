@@ -7,7 +7,9 @@ import {
   photoModerationGeminiSchema,
   type RestaurantScoringResult,
   type PhotoModerationResult,
+  type ScoringVocab,
 } from './aiSchemas'
+import type { Term } from './vocab'
 
 const DEFAULT_MODEL = 'gemini-3.5-flash-lite'
 
@@ -151,6 +153,21 @@ export interface ScoreRestaurantInput {
   reviews: ScoreRestaurantReview[]
   /** Up to 8 photos; only the first 8 are sent. */
   photos: ScoreRestaurantPhoto[]
+  /** VocabTerm rows. Active ones become the schema enums the model must pick from. */
+  vocab: Term[]
+}
+
+function scoringVocab(terms: Term[]): ScoringVocab {
+  const slugs = (kind: Term['kind']) => terms.filter((t) => t.kind === kind && t.active).map((t) => t.slug)
+  return { cuisines: slugs('cuisine'), tags: slugs('tag'), neighborhoods: slugs('neighborhood') }
+}
+
+/** "grill = Grill & Qebapa": the enums are slugs, the model reads the meaning here. */
+function vocabGlossary(terms: Term[], kind: Term['kind']): string {
+  return terms
+    .filter((t) => t.kind === kind && t.active)
+    .map((t) => (t.labelEn && t.labelEn !== t.slug ? `${t.slug} = ${t.labelEn}` : t.slug))
+    .join('; ')
 }
 
 export type ScoreResult = StructuredResult<RestaurantScoringResult>
@@ -166,7 +183,10 @@ function scoringPrompt(input: ScoreRestaurantInput): string {
     'Use only the evidence given below: the name, address, category, existing description, up to 10 review excerpts and any attached photos.',
     'If there is not enough evidence to judge a field with any confidence, still return your best estimate but set overallConfidence low and insufficientEvidence to true.',
     'The "description" field MUST be written in Albanian (sq), 1-3 sentences, no more than 280 characters — it is shown to end users, not translated later.',
-    'cuisines and tags MUST each be chosen only from the enum lists provided by the schema; never invent a new value.',
+    'cuisines, tags and neighborhood MUST each be chosen only from the enum lists provided by the schema; never invent a new value.',
+    'neighborhood is the Prishtina neighbourhood the address is in; return null if the evidence does not place it in one of the listed neighbourhoods.',
+    `Cuisines: ${vocabGlossary(input.vocab, 'cuisine')}`,
+    `Tags: ${vocabGlossary(input.vocab, 'tag')}`,
     '',
     `Name: ${input.name}`,
     `Address: ${input.address}`,
@@ -185,8 +205,8 @@ export async function scoreRestaurant(input: ScoreRestaurantInput): Promise<Scor
   return generateStructured(
     scoringPrompt(input),
     mediaParts,
-    restaurantScoringGeminiSchema,
-    restaurantScoringResultSchema
+    restaurantScoringGeminiSchema(scoringVocab(input.vocab)),
+    restaurantScoringResultSchema(scoringVocab(input.vocab))
   )
 }
 

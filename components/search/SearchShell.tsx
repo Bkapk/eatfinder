@@ -15,6 +15,7 @@ import SortHeader, { ViewToggle } from './SortHeader'
 import ResultsPane from '@/components/results/ResultsPane'
 import TopBar from '@/components/TopBar'
 import MobileNav from '@/components/MobileNav'
+import { useVocabLabel } from '@/components/VocabProvider'
 import { PAGE_SIZE, type Facets, type RecommendResponse } from './types'
 import { resultsKey, searchMemory } from './memory'
 
@@ -59,7 +60,15 @@ export default function SearchShell({
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const spString = searchParams.toString()
+  // A listing opened from here is a flyout over this shell (app/(browse)/
+  // @modal), so the shell stays mounted while the URL is /r/slug — and these
+  // hooks report THAT URL, with no query. Read literally, the results would
+  // reset to an unfiltered search behind the sheet. So the shell keeps the
+  // last query it saw on its own path and ignores the URL while it is not.
+  const [home] = useState(pathname)
+  const liveParams = searchParams.toString()
+  const [spString, setSpString] = useState(liveParams)
+  if (pathname === home && liveParams !== spString) setSpString(liveParams)
   const key = resultsKey(spString)
 
   // The URL is the state store. parseFilters is the same function
@@ -105,11 +114,11 @@ export default function SearchShell({
       const params = toSearchParams(next).toString()
       if (writtenParamsRef.current.size > 20) writtenParamsRef.current.clear()
       writtenParamsRef.current.add(params)
-      const url = `${pathname}?${params}`
+      const url = `${home}?${params}`
       if (mode === 'push') router.push(url, { scroll: false })
       else router.replace(url, { scroll: false })
     },
-    [pathname, router]
+    [home, router]
   )
 
   /** `debounce` is for anything that fires continuously; everything else writes now. */
@@ -254,7 +263,8 @@ export default function SearchShell({
   }, [])
 
   const view: View = filters.view
-  const chips = activeChips(filters, locale)
+  const vocabLabel = useVocabLabel(locale)
+  const chips = activeChips(filters, locale, vocabLabel)
   const hasMore = items.length < total
 
   const showMap = Boolean(mapboxToken) && view === 'map'

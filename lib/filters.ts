@@ -42,7 +42,6 @@ const filtersSchema = z.object({
   minPrice: z.coerce.number().min(1).max(4).optional(),
   maxPrice: z.coerce.number().min(1).max(4).optional(),
   maxPrepTime: z.coerce.number().min(0).optional(),
-  spiceMax: z.coerce.number().min(0).max(100).optional(),
   openNow: flag,
   woltOnly: flag,
   lat: z.coerce.number().min(-90).max(90).optional(),
@@ -86,7 +85,6 @@ export function toSearchParams(filters: ParsedFilters): URLSearchParams {
   if (filters.minPrice !== undefined) sp.set('minPrice', String(filters.minPrice))
   if (filters.maxPrice !== undefined) sp.set('maxPrice', String(filters.maxPrice))
   if (filters.maxPrepTime !== undefined) sp.set('maxPrepTime', String(filters.maxPrepTime))
-  if (filters.spiceMax !== undefined) sp.set('spiceMax', String(filters.spiceMax))
   if (filters.openNow) sp.set('openNow', 'true')
   if (filters.woltOnly) sp.set('woltOnly', 'true')
   if (filters.near) {

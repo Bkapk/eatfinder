@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/auth'
 import { toDTO, slugify, openHoursSchema, httpUrlSchema } from '@/lib/types'
 import { deleteRestaurantsWithFiles } from '@/lib/restaurants'
 import { adminServerError } from '@/lib/apiError'
+import { checkVocabFields, unknownTermsMessage } from '@/lib/vocabDb'
 import { z } from 'zod'
 
 const restaurantSchema = z.object({
@@ -14,7 +15,6 @@ const restaurantSchema = z.object({
   portionSize: z.coerce.number().min(0).max(100).optional(),
   fineDining: z.coerce.number().min(0).max(100).optional(),
   priceLevel: z.coerce.number().min(1).max(4).optional(),
-  spiceLevel: z.coerce.number().min(0).max(100).optional(),
   avgPrepTime: z.coerce.number().min(0).optional(),
   cuisines: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
@@ -66,6 +66,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params
     const body = await request.json()
     const data = restaurantSchema.parse(body)
+    const { fields, unknown } = await checkVocabFields(data)
+    if (unknown.length) return NextResponse.json({ error: unknownTermsMessage(unknown) }, { status: 400 })
+    Object.assign(data, fields)
 
     const updateData: any = { ...data }
     if (data.cuisines) {

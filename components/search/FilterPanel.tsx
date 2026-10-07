@@ -3,7 +3,8 @@
 import { useDrawer } from '../useDrawer'
 import { useSheetDrag } from '../useSheetDrag'
 import { X } from 'lucide-react'
-import { priceGlyphs, t, tVocab, type Locale } from '@/lib/i18n'
+import { priceGlyphs, t, type Locale } from '@/lib/i18n'
+import { useVocabLabel } from '@/components/VocabProvider'
 import type { ParsedFilters } from '@/lib/filters'
 import type { Facets } from './types'
 import type { Patch } from './SearchBar'
@@ -84,6 +85,7 @@ function Mood({
         max={100}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
+        style={{ '--fill': `${value}%` } as React.CSSProperties}
       />
       <div className="mt-1.5 flex justify-between text-[11px] font-semibold text-text-secondary">
         <span>{min}</span>
@@ -120,6 +122,7 @@ export default function FilterPanel({
   // and three of the four were simply missing. useDrawer adds the slide.
   const drawer = useDrawer(open, onClose)
   const drag = useSheetDrag(onClose)
+  const label = useVocabLabel(locale)
 
   const priceOptions = [1, 2, 3, 4]
   const priceLo = filters.minPrice ?? (filters.maxPrice !== undefined ? 1 : undefined)
@@ -206,7 +209,7 @@ export default function FilterPanel({
                     onClick={() => onPatch({ cuisines: toggle(filters.cuisines, c) })}
                     className={`ef-pill ${on ? 'ef-pill--active' : ''}`}
                   >
-                    {tVocab(locale, 'cuisine', c)}
+                    {label('cuisine', c)}
                     <span className={on ? 'opacity-80' : 'text-text-secondary'}>
                       {facets.cuisines[c] ?? 0}
                     </span>
@@ -228,7 +231,7 @@ export default function FilterPanel({
                     onClick={() => onPatch({ tags: toggle(filters.tags, tag) })}
                     className={`ef-pill ${on ? 'ef-pill--active' : ''}`}
                   >
-                    {tVocab(locale, 'tag', tag)}
+                    {label('tag', tag)}
                     <span className={on ? 'opacity-80' : 'text-text-secondary'}>
                       {facets.tags[tag] ?? 0}
                     </span>
@@ -270,7 +273,7 @@ export default function FilterPanel({
                     onClick={() => onPatch({ neighborhoods: toggle(filters.neighborhoods, n) })}
                     className={`ef-pill ${on ? 'ef-pill--active' : ''}`}
                   >
-                    {n}
+                    {label('neighborhood', n)}
                     <span className={on ? 'opacity-80' : 'text-text-secondary'}>
                       {facets.neighborhoods[n] ?? 0}
                     </span>
@@ -300,28 +303,6 @@ export default function FilterPanel({
               </label>
             </div>
 
-            <div className="mt-5">
-              <div className="mb-2 flex items-baseline justify-between">
-                <label htmlFor="f-spice" className="text-[13px] font-bold text-text">
-                  {t(locale, 'filters.spice')}
-                </label>
-                <span className="text-[13px] font-bold tabular-nums text-primary">
-                  {filters.spiceMax ?? 100}
-                </span>
-              </div>
-              <input
-                id="f-spice"
-                type="range"
-                min={0}
-                max={100}
-                value={filters.spiceMax ?? 100}
-                onChange={(e) => {
-                  const v = Number(e.target.value)
-                  onPatch({ spiceMax: v >= 100 ? undefined : v })
-                }}
-              />
-            </div>
-
             {/* Radius is meaningless without an origin; lib/scoring only applies
                 maxDistanceKm alongside `near`, which the geolocate control sets. */}
             <div className="mt-5" aria-disabled={!filters.near}>
@@ -343,11 +324,11 @@ export default function FilterPanel({
                 max={20}
                 disabled={!filters.near}
                 value={filters.maxDistanceKm ?? 20}
+                style={{ '--fill': `${(((filters.maxDistanceKm ?? 20) - 1) / 19) * 100}%` } as React.CSSProperties}
                 onChange={(e) => {
                   const v = Number(e.target.value)
                   onPatch({ maxDistanceKm: v >= 20 ? undefined : v })
                 }}
-                className="disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
           </Section>

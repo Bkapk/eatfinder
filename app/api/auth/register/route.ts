@@ -3,27 +3,33 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { createUser, createSession, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth'
 import { cookies } from 'next/headers'
-import { createMapLimiter } from '@/lib/ratelimit'
+import { clientIp, createMapLimiter } from '@/lib/ratelimit'
 import { serverError } from '@/lib/apiError'
 
 // role is deliberately absent from this schema — a crafted body has nowhere
 // to put it. createUser() always defaults role to 'user' below.
 const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(255),
-  password: z.string().min(8).max(200),
+  // bcrypt only reads the first 72 bytes; a longer password would silently
+  // match any string sharing that prefix.
+  password: z
+    .string()
+    .min(8)
+    .refine((p) => Buffer.byteLength(p) <= 72, 'Password too long'),
   displayName: z.string().trim().min(1).max(60),
 })
 
-// Same in-process limiter pattern as the login lockout, keyed on the
-// normalised email instead of username.
+// Same in-process limiter pattern as the login lockout: per normalised email,
+// plus per IP so one client cannot mass-create accounts with fresh emails.
 const checkLimit = createMapLimiter(10, 15 * 60 * 1000)
+const checkIp = createMapLimiter(10, 60 * 60 * 1000)
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { email, password, displayName } = registerSchema.parse(body)
 
-    if (!checkLimit(email)) {
+    if (!checkIp(clientIp(request.headers)) || !checkLimit(email)) {
       return NextResponse.json(
         { error: 'Too many attempts. Try again in 15 minutes.' },
         { status: 429 }
@@ -51,12 +57,15 @@ export async function POST(request: NextRequest) {
     }
 
     const cookieStore = await cookies()
-    cookieStore.set(SESSION_COOKIE, createSession(user.id), sessionCookieOptions)
+    cookieStore.set(SESSION_COOKIE, createSession(user.id, user.sessionVersion), sessionCookieOptions)
 
     return NextResponse.json({ success: true, user: { id: user.id, displayName } })
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 })
+    }
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
     }
     return serverError('auth/register', error)
   }

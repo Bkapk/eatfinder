@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { Clock, Loader2, LocateFixed, X } from 'lucide-react'
-import { t, tVocab, type Locale } from '@/lib/i18n'
+import { t, type Locale } from '@/lib/i18n'
+import { useVocabLabel } from '@/components/VocabProvider'
 import type { ParsedFilters } from '@/lib/filters'
 import type { Facets } from './types'
 import type { Patch } from './SearchBar'
@@ -37,6 +38,7 @@ export default function QuickRail({
   const near = Boolean(filters.near)
   const mood = activeMood(filters)
   const selected = filters.cuisines ?? []
+  const label = useVocabLabel(locale)
 
   const toggleNear = () => {
     setLocateError(false)
@@ -148,7 +150,7 @@ export default function QuickRail({
               }}
               className={`ef-pill ef-pill--lg shrink-0 ${on ? 'ef-pill--active' : ''}`}
             >
-              {tVocab(locale, 'cuisine', c)}
+              {label('cuisine', c)}
             </button>
           )
         })}

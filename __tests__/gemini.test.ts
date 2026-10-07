@@ -13,6 +13,18 @@ jest.mock('@google/genai', () => ({
   GoogleGenAI: jest.fn().mockImplementation(() => ({ models: { generateContent } })),
 }))
 
+// What lib/vocabDb.ts getVocab() would hand the enrich route.
+const term = (kind: 'cuisine' | 'tag' | 'neighborhood', slug: string, labelEn = slug) => ({
+  id: slug,
+  kind,
+  slug,
+  labelSq: labelEn,
+  labelEn,
+  sortOrder: 0,
+  active: true,
+})
+const VOCAB = [term('cuisine', 'traditional', 'Traditional'), term('tag', 'late-night'), term('neighborhood', 'qendra')]
+
 const ENV = { ...process.env }
 beforeEach(() => {
   jest.resetModules()
@@ -35,6 +47,7 @@ test('missing GEMINI_API_KEY throws AiDisabledError, not a network call', async 
       types: [],
       reviews: [],
       photos: [],
+      vocab: VOCAB,
     })
   ).rejects.toBeInstanceOf(AiDisabledError)
   expect(generateContent).not.toHaveBeenCalled()
@@ -53,6 +66,7 @@ test('an out-of-range value from the model is a parse failure, retried once, the
     types: [],
     reviews: [],
     photos: [],
+    vocab: VOCAB,
   })
 
   expect(generateContent).toHaveBeenCalledTimes(2) // one retry, at temperature 0
@@ -76,6 +90,7 @@ test('a request-level failure (e.g. an invalid model id rejected by the API) als
     types: [],
     reviews: [],
     photos: [],
+    vocab: VOCAB,
   })
 
   expect(result.ok).toBe(false)
@@ -107,13 +122,12 @@ function validScoring() {
       heaviness: { value: 72, confidence: 0.81, rationale: 'x' },
       portionSize: { value: 85, confidence: 0.74, rationale: 'x' },
       fineDining: { value: 30, confidence: 0.9, rationale: 'x' },
-      spiceLevel: { value: 15, confidence: 0.5, rationale: 'x' },
     },
     priceLevel: { value: 2, confidence: 0.7, rationale: 'x' },
-    cuisines: { value: ['Balkan'], confidence: 0.88, rationale: 'x' },
+    cuisines: { value: ['traditional'], confidence: 0.88, rationale: 'x' },
     tags: { value: [], confidence: 0.6, rationale: 'x' },
     description: { value: 'Pershkrim.', confidence: 0.75, rationale: 'x' },
-    neighborhood: { value: 'Qendra', confidence: 0.4, rationale: 'x' },
+    neighborhood: { value: 'qendra', confidence: 0.4, rationale: 'x' },
     overallConfidence: 0.72,
     insufficientEvidence: false,
   }

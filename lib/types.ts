@@ -13,67 +13,6 @@ export const PRICE_LEVELS = [1, 2, 3, 4] as const
 export const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
 export type Day = (typeof DAYS)[number]
 
-/**
- * Controlled vocabularies. These constrain what the AI may ever propose
- * (lib/aiSchemas.ts enum) and what filter chips can exist (components/search).
- * Seeded from what is actually in the database plus prisma/sample-restaurants.ts,
- * extended with obvious Kosovo/Balkan categories. Review before Phase 4 —
- * changing this list after enrichment has run means re-running it.
- */
-export const CUISINE_VOCAB = [
-  'American',
-  'Bakery',
-  'Balkan',
-  'Burgers',
-  'Cafe',
-  'Chinese',
-  'Fast Food',
-  'Fine Dining',
-  'French',
-  'Grill',
-  'Healthy',
-  'Italian',
-  'Japanese',
-  'Kosovan',
-  'Mediterranean',
-  'Mexican',
-  'Modern European',
-  'Organic',
-  'Pasta',
-  'Pizza',
-  'Ramen',
-  'Salads',
-  'Smoothies',
-  'Spicy',
-  'Steakhouse',
-  'Street Food',
-  'Sushi',
-  'Szechuan',
-  'Tacos',
-  'Vegan',
-] as const
-
-export const TAG_VOCAB = [
-  'breakfast',
-  'brunch',
-  'budget-friendly',
-  'date-night',
-  'delivery',
-  'family-friendly',
-  'group-friendly',
-  'halal',
-  'late-night',
-  'live-music',
-  'outdoor-seating',
-  'parking',
-  'pet-friendly',
-  'reservation-recommended',
-  'romantic',
-  'takeout',
-  'vegan-friendly',
-  'wifi',
-] as const
-
 export const SORTS = ['match', 'rating', 'distance', 'price-asc', 'price-desc'] as const
 export type Sort = (typeof SORTS)[number]
 
@@ -123,11 +62,12 @@ export interface RestaurantDTO {
   heaviness: number
   portionSize: number
   fineDining: number
-  spiceLevel: number
   priceLevel: number
   avgPrepTime: number
+  /** VocabTerm slugs; labels come from termLabel() in lib/vocab.ts. */
   cuisines: string[]
   tags: string[]
+  /** A VocabTerm slug, or '' for none. */
   neighborhood: string
   address: string
   lat: number | null
@@ -173,7 +113,6 @@ export function toDTO(r: Restaurant): RestaurantDTO {
     heaviness: r.heaviness,
     portionSize: r.portionSize,
     fineDining: r.fineDining,
-    spiceLevel: r.spiceLevel,
     priceLevel: r.priceLevel,
     avgPrepTime: r.avgPrepTime,
     cuisines: parseJson<string[]>(r.cuisines, []),
@@ -305,4 +244,24 @@ export function nextChange(hours: OpenHours | null, now: Date = new Date()): str
     return today ? today[1] : null
   }
   return today && today[0] > hhmm ? today[0] : null
+}
+
+/**
+ * Google Maps turn-by-turn to a place: opens the Maps app on a phone, the web
+ * planner elsewhere. Coordinates are the destination when there are any (they
+ * are what the pin on our own map shows); the place id, when the row came from
+ * Google, makes Maps name the venue instead of a dropped pin. No coordinates:
+ * the name and address as a search. Neither: the stored Maps link, or nothing.
+ */
+export function directionsUrl(
+  r: Pick<RestaurantDTO, 'name' | 'address' | 'lat' | 'lng' | 'gmapsUrl'>,
+  placeId?: string | null
+): string | null {
+  const sp = new URLSearchParams({ api: '1' })
+  if (r.lat != null && r.lng != null) sp.set('destination', `${r.lat},${r.lng}`)
+  else if (r.address) sp.set('destination', `${r.name}, ${r.address}`)
+  else return r.gmapsUrl
+  // Stored as the Places v1 resource name, "places/ChIJ..."; Maps wants the bare id.
+  if (placeId) sp.set('destination_place_id', placeId.replace(/^places\//, ''))
+  return `https://www.google.com/maps/dir/?${sp}`
 }

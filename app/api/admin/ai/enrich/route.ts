@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { aiProposalsLastHour } from '@/lib/ratelimit'
 import { adminServerError } from '@/lib/apiError'
+import { getVocab } from '@/lib/vocabDb'
 import {
   scoreRestaurant,
   assertAiEnabled,
@@ -123,6 +124,7 @@ async function enrichOne(restaurantId: string): Promise<EnrichResult> {
     types: Array.isArray(placesRaw?.types) ? placesRaw.types : [],
     reviews,
     photos,
+    vocab: await getVocab(),
   })
 
   if (result.ok) {

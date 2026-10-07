@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { parseCSV, validateCSVRow, csvRowToRestaurant, CSVImportResult } from '@/lib/csv'
 import { adminServerError } from '@/lib/apiError'
+import { ensureTerms, getVocab } from '@/lib/vocabDb'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +30,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'CSV may contain at most 1000 restaurants' }, { status: 400 })
     }
 
+    // Mutable copy: ensureTerms appends the terms it creates, so a value new
+    // to the vocabulary is created once, not once per row that uses it.
+    const terms = [...(await getVocab())]
+
     const result: CSVImportResult = {
       success: true,
       imported: 0,
@@ -46,6 +51,11 @@ export async function POST(request: NextRequest) {
 
       try {
         const data = csvRowToRestaurant(row)
+        // Known values (slugs, labels, legacy names like "Kosovan") resolve;
+        // unknown ones become new terms, as the vocab_terms migration did.
+        data.cuisines = JSON.stringify(await ensureTerms('cuisine', JSON.parse(data.cuisines!), terms))
+        data.tags = JSON.stringify(await ensureTerms('tag', JSON.parse(data.tags!), terms))
+        data.neighborhood = (await ensureTerms('neighborhood', [data.neighborhood ?? ''], terms))[0] ?? ''
         await prisma.restaurant.upsert({
           where: { name: data.name! },
           update: data,

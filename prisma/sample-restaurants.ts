@@ -1,6 +1,7 @@
 // The 10 sample restaurants, in one place: both `npm run db:seed` and the
 // admin "Create Sample Data" button read this list. cuisines/tags are stored
 // as JSON strings because SQLite has no array type — see prisma/schema.prisma.
+// Values are VocabTerm slugs, seeded by the vocab_terms migration.
 export const sampleRestaurants = [
   {
     name: 'The Light Bite Cafe',
@@ -9,10 +10,9 @@ export const sampleRestaurants = [
     portionSize: 40,
     fineDining: 30,
     priceLevel: 2,
-    spiceLevel: 10,
     avgPrepTime: 15,
-    cuisines: JSON.stringify(['Healthy', 'Salads', 'Smoothies']),
-    neighborhood: 'Downtown',
+    cuisines: JSON.stringify(['healthy', 'cafe']),
+    neighborhood: 'qendra',
   },
   {
     name: 'Mama Rosa\'s Italian Kitchen',
@@ -21,10 +21,9 @@ export const sampleRestaurants = [
     portionSize: 85,
     fineDining: 45,
     priceLevel: 2,
-    spiceLevel: 20,
     avgPrepTime: 25,
-    cuisines: JSON.stringify(['Italian', 'Pizza', 'Pasta']),
-    neighborhood: 'Little Italy',
+    cuisines: JSON.stringify(['italian', 'pizza']),
+    neighborhood: 'dardania',
   },
   {
     name: 'Le Château Fine Dining',
@@ -33,10 +32,9 @@ export const sampleRestaurants = [
     portionSize: 70,
     fineDining: 95,
     priceLevel: 4,
-    spiceLevel: 15,
     avgPrepTime: 45,
-    cuisines: JSON.stringify(['French', 'Fine Dining']),
-    neighborhood: 'Uptown',
+    cuisines: JSON.stringify(['international']),
+    neighborhood: 'velania',
   },
   {
     name: 'Spicy Dragon Szechuan',
@@ -45,10 +43,9 @@ export const sampleRestaurants = [
     portionSize: 75,
     fineDining: 50,
     priceLevel: 2,
-    spiceLevel: 90,
     avgPrepTime: 20,
-    cuisines: JSON.stringify(['Chinese', 'Szechuan', 'Spicy']),
-    neighborhood: 'Chinatown',
+    cuisines: JSON.stringify(['sushi-asian']),
+    neighborhood: 'ulpiane',
   },
   {
     name: 'Burger Express',
@@ -57,10 +54,9 @@ export const sampleRestaurants = [
     portionSize: 90,
     fineDining: 15,
     priceLevel: 1,
-    spiceLevel: 30,
     avgPrepTime: 10,
-    cuisines: JSON.stringify(['American', 'Burgers', 'Fast Food']),
-    neighborhood: 'Multiple Locations',
+    cuisines: JSON.stringify(['burgers', 'fast-food']),
+    neighborhood: 'bregu-i-diellit',
   },
   {
     name: 'Sushi Zen',
@@ -69,10 +65,9 @@ export const sampleRestaurants = [
     portionSize: 50,
     fineDining: 70,
     priceLevel: 3,
-    spiceLevel: 25,
     avgPrepTime: 30,
-    cuisines: JSON.stringify(['Japanese', 'Sushi']),
-    neighborhood: 'Waterfront',
+    cuisines: JSON.stringify(['sushi-asian']),
+    neighborhood: 'pejton',
   },
   {
     name: 'Taco Fiesta',
@@ -81,10 +76,9 @@ export const sampleRestaurants = [
     portionSize: 70,
     fineDining: 25,
     priceLevel: 1,
-    spiceLevel: 60,
     avgPrepTime: 12,
-    cuisines: JSON.stringify(['Mexican', 'Tacos', 'Street Food']),
-    neighborhood: 'East Side',
+    cuisines: JSON.stringify(['mexican', 'fast-food']),
+    neighborhood: 'arberia',
   },
   {
     name: 'The Steakhouse',
@@ -93,10 +87,9 @@ export const sampleRestaurants = [
     portionSize: 95,
     fineDining: 80,
     priceLevel: 4,
-    spiceLevel: 20,
     avgPrepTime: 40,
-    cuisines: JSON.stringify(['Steakhouse', 'American']),
-    neighborhood: 'Financial District',
+    cuisines: JSON.stringify(['steakhouse', 'burgers']),
+    neighborhood: 'qendra',
   },
   {
     name: 'Green Garden Vegan',
@@ -105,10 +98,9 @@ export const sampleRestaurants = [
     portionSize: 60,
     fineDining: 55,
     priceLevel: 3,
-    spiceLevel: 35,
     avgPrepTime: 20,
-    cuisines: JSON.stringify(['Vegan', 'Organic', 'Healthy']),
-    neighborhood: 'Arts District',
+    cuisines: JSON.stringify(['vegan', 'healthy']),
+    neighborhood: 'kalabria',
   },
   {
     name: 'Ramen House',
@@ -117,9 +109,8 @@ export const sampleRestaurants = [
     portionSize: 80,
     fineDining: 40,
     priceLevel: 2,
-    spiceLevel: 50,
     avgPrepTime: 15,
-    cuisines: JSON.stringify(['Japanese', 'Ramen']),
-    neighborhood: 'University District',
+    cuisines: JSON.stringify(['sushi-asian']),
+    neighborhood: 'tophane',
   },
 ]

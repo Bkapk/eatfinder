@@ -60,18 +60,6 @@
 .admin-tab[aria-pressed='true'] {
   @apply border-primary text-primary;
 }
-.admin-stats {
-  @apply mb-7 grid grid-cols-3 gap-2 sm:gap-4;
-}
-.admin-stat {
-  @apply flex min-w-0 items-center gap-4 rounded-2xl border border-border bg-surface p-3 sm:p-5;
-}
-.admin-stat > span {
-  @apply hidden sm:grid;
-}
-.admin-stat p:first-child {
-  @apply text-[11px] sm:text-xs;
-}
 .admin-toolbar {
   @apply mb-5 flex flex-col gap-3 xl:flex-row;
 }
@@ -119,9 +107,6 @@
 .admin-table .ef-btn {
   @apply px-3 text-xs;
 }
-.admin-form {
-  @apply pb-24;
-}
 .admin-form-grid {
   @apply grid grid-cols-1 gap-5 xl:grid-cols-2;
 }
@@ -145,12 +130,81 @@
 .admin-form-hint {
   @apply -mt-2 mb-5 max-w-[68ch] text-xs leading-relaxed text-text-secondary;
 }
-.admin-form-actions {
-  @apply fixed bottom-3 left-4 right-4 z-overlay mx-auto flex max-w-[1400px] flex-wrap items-center justify-end gap-3 rounded-2xl border border-border bg-surface p-4 shadow-md sm:left-8 sm:right-8 lg:left-[272px] xl:left-[280px] xl:right-10;
+/* ============================ SAVE BAR ===================================
+   The edit form's action bar. position: sticky inside the form, not fixed:
+   it rides the bottom of the viewport while there is form below it and comes
+   to rest under the last panel at the end, so it can never cover the last
+   field and needs no padding guess. Lifted above the home indicator on
+   phones. z-overlay, one step under .ef-combo-list (z-sticky), so a picker
+   opened near the bottom still draws over it. */
+.admin-savebar {
+  @apply sticky z-overlay mt-5 rounded-2xl border border-border bg-surface shadow-md;
+  bottom: max(0.75rem, var(--safe-b));
 }
-.admin-form-actions .ef-btn {
+.admin-savebar[data-state='dirty'] {
+  border-color: var(--border-control);
+}
+.admin-savebar-row {
+  @apply flex flex-wrap items-center gap-2 p-3 sm:gap-3 sm:p-4;
+}
+/* The status reads first on a phone (its own line), then the two buttons
+   share the second line; from sm it is one row with the status pushed left. */
+.admin-savebar-status {
+  @apply flex min-h-11 min-w-0 basis-full items-center gap-2.5 text-[13px] font-semibold text-text sm:mr-auto sm:basis-auto;
+}
+.admin-savebar-row > .ef-btn {
   @apply flex-1 sm:flex-none;
 }
+.admin-savebar-toggle {
+  @apply -ml-2 inline-flex min-h-11 items-center gap-2.5 rounded-xl px-2 text-left hover:bg-surface-hover;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.admin-savebar-toggle svg {
+  transition: transform var(--dur) var(--ease);
+}
+.admin-savebar-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+/* Harvest Amber: "pending", the same tone a pending badge carries. */
+.admin-savebar-dot {
+  @apply h-2.5 w-2.5 shrink-0 rounded-full bg-warning;
+}
+/* The shortcut hint inside the primary button: a darker chip of the same
+   blue, desk sizes only (there is no Ctrl+S on a phone). */
+.admin-savebar-kbd {
+  @apply hidden rounded-md bg-primary-hover px-1.5 py-0.5 font-sans text-[11px] font-bold text-on-primary lg:inline;
+}
+/* The diff. Capped and scrolling so a big edit cannot push the buttons off
+   a phone screen. */
+.admin-savebar-diff {
+  @apply max-h-[min(40vh,20rem)] overflow-y-auto overscroll-contain border-b border-border px-3 py-2 sm:px-4;
+}
+.admin-savebar-diff li {
+  @apply grid gap-1 border-b border-border py-2.5 text-[13px] last:border-0 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-4;
+}
+.admin-savebar-diff del {
+  @apply text-text-secondary line-through;
+}
+.admin-savebar-diff ins {
+  @apply font-semibold text-text no-underline;
+}
+.admin-savebar-diff del,
+.admin-savebar-diff ins {
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.admin-savebar-error {
+  @apply flex items-start gap-2 border-b border-error bg-error-soft px-4 py-3 text-[13px] font-semibold leading-relaxed text-error first:rounded-t-2xl;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .admin-savebar-diff {
+    animation: ef-enter var(--dur) var(--ease-out) both;
+  }
+}
+/* ========================== end SAVE BAR ================================ */
 .admin-form-jumps {
   @apply mb-6 flex flex-wrap gap-2;
 }
@@ -174,9 +228,6 @@
 }
 .admin-skip {
   @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-modal focus:rounded-xl focus:bg-primary focus:px-4 focus:py-3 focus:text-on-primary;
-}
-.admin-login {
-  @apply flex min-h-[100dvh] items-center justify-center bg-background p-5;
 }
 
 /* Cards retain the table's field labels on narrow screens, without a horizontal scroll trap. */

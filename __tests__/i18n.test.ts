@@ -7,7 +7,7 @@
  */
 import { sq } from '../lib/dictionaries/sq'
 import { en } from '../lib/dictionaries/en'
-import { resolveLocale, t, tVocab, priceGlyphs } from '../lib/i18n'
+import { resolveLocale, t, priceGlyphs } from '../lib/i18n'
 
 const placeholders = (s: string) => (s.match(/\{(\w+)\}/g) ?? []).sort()
 
@@ -41,12 +41,6 @@ describe('t()', () => {
     expect(resolveLocale(null, 'en')).toBe('en')
     expect(resolveLocale('de', 'fr')).toBe('sq')
     expect(resolveLocale('__proto__', null)).toBe('sq')
-  })
-
-  it('falls back to the raw value for vocabulary outside the dictionaries', () => {
-    expect(tVocab('sq', 'cuisine', 'Pizza')).toBe('Pica')
-    expect(tVocab('sq', 'cuisine', 'Ethiopian')).toBe('Ethiopian')
-    expect(tVocab('en', 'tag', 'wifi')).toBe('Wi-Fi')
   })
 
   it('clamps price glyphs to 1-4', () => {

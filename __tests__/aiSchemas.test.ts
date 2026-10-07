@@ -17,33 +17,36 @@ import {
   aiProposalEditSchema,
 } from '@/lib/aiSchemas'
 
+// The vocabulary is admin-managed now; the enrich route passes the live one.
+const VOCAB = { cuisines: ['traditional', 'grill'], tags: ['late-night'], neighborhoods: ['qendra'] }
+const schema = restaurantScoringResultSchema(VOCAB)
+
 function validScoringPayload() {
   return {
     scores: {
       heaviness: { value: 72, confidence: 0.81, rationale: 'Grilled meat plates.' },
       portionSize: { value: 85, confidence: 0.74, rationale: 'Reviews mention huge shares.' },
       fineDining: { value: 30, confidence: 0.9, rationale: 'Counter service, plastic chairs.' },
-      spiceLevel: { value: 15, confidence: 0.5, rationale: 'No chili-forward dishes.' },
     },
     priceLevel: { value: 2, confidence: 0.7, rationale: 'Mains around 6-9 EUR.' },
-    cuisines: { value: ['Balkan', 'Grill'], confidence: 0.88, rationale: 'Qebapa dominate.' },
+    cuisines: { value: ['traditional', 'grill'], confidence: 0.88, rationale: 'Qebapa dominate.' },
     tags: { value: ['late-night'], confidence: 0.6, rationale: 'Reviews mention 2am visits.' },
     description: { value: 'Nje vend i thjeshte per gril.', confidence: 0.75, rationale: 'From reviews.' },
-    neighborhood: { value: 'Qendra', confidence: 0.4, rationale: 'Address is near the centre.' },
+    neighborhood: { value: 'qendra' as string | null, confidence: 0.4, rationale: 'Address is near the centre.' },
     overallConfidence: 0.72,
     insufficientEvidence: false,
   }
 }
 
 test('a well-formed scoring payload parses', () => {
-  expect(restaurantScoringResultSchema.safeParse(validScoringPayload()).success).toBe(true)
+  expect(schema.safeParse(validScoringPayload()).success).toBe(true)
 })
 
 test('an out-of-range axis value is REJECTED, never clamped', () => {
   const bad = validScoringPayload()
   bad.scores.heaviness.value = 340 // the exact example from docs/PLAN.md
 
-  const result = restaurantScoringResultSchema.safeParse(bad)
+  const result = schema.safeParse(bad)
   expect(result.success).toBe(false)
   // Specifically: it must not have silently become 100.
   if (!result.success) {
@@ -54,25 +57,50 @@ test('an out-of-range axis value is REJECTED, never clamped', () => {
 test('an out-of-range confidence (>1) is rejected', () => {
   const bad = validScoringPayload()
   bad.overallConfidence = 1.5
-  expect(restaurantScoringResultSchema.safeParse(bad).success).toBe(false)
+  expect(schema.safeParse(bad).success).toBe(false)
 })
 
 test('an unknown cuisine enum member is rejected, not coerced into the vocab', () => {
   const bad = validScoringPayload()
   bad.cuisines.value = ['Made Up Cuisine']
-  expect(restaurantScoringResultSchema.safeParse(bad).success).toBe(false)
+  expect(schema.safeParse(bad).success).toBe(false)
+})
+
+test('the removed spiceLevel axis is an extra key, so the model returning it fails', () => {
+  const bad: any = validScoringPayload()
+  bad.scores.spiceLevel = { value: 15, confidence: 0.5, rationale: 'x' }
+  expect(schema.safeParse(bad).success).toBe(false)
+})
+
+test('null neighborhood (not in any listed one) parses; a slug outside the list does not', () => {
+  const none = validScoringPayload()
+  none.neighborhood.value = null
+  expect(schema.safeParse(none).success).toBe(true)
+  const bad = validScoringPayload()
+  bad.neighborhood.value = 'Downtown'
+  expect(schema.safeParse(bad).success).toBe(false)
+})
+
+test('a proposal stored before the vocabulary still reads (legacy values, spiceLevel stripped)', () => {
+  const legacy: any = validScoringPayload()
+  legacy.scores.spiceLevel = { value: 15, confidence: 0.5, rationale: 'x' }
+  legacy.cuisines.value = ['Balkan', 'Grill']
+  legacy.neighborhood.value = 'Qendra'
+  const parsed = restaurantScoringResultSchema().safeParse(legacy)
+  expect(parsed.success).toBe(true)
+  if (parsed.success) expect(parsed.data.scores).not.toHaveProperty('spiceLevel')
 })
 
 test('an extra, unrequested key is a parse failure (strict schema)', () => {
   const bad: any = validScoringPayload()
   bad.extraField = 'should not be here'
-  expect(restaurantScoringResultSchema.safeParse(bad).success).toBe(false)
+  expect(schema.safeParse(bad).success).toBe(false)
 })
 
 test('a missing required key is a parse failure', () => {
   const bad: any = validScoringPayload()
   delete bad.neighborhood
-  expect(restaurantScoringResultSchema.safeParse(bad).success).toBe(false)
+  expect(schema.safeParse(bad).success).toBe(false)
 })
 
 test('photo moderation rejects an out-of-range qualityScore and an unknown verdict', () => {
@@ -99,7 +127,6 @@ test('the proposal-approval edit schema also rejects an out-of-range priceLevel'
     heaviness: 50,
     portionSize: 50,
     fineDining: 50,
-    spiceLevel: 0,
     priceLevel: 2,
     cuisines: [],
     tags: [],

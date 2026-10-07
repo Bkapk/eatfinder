@@ -19,7 +19,6 @@ export interface SearchFilters {
   maxPrice?: number // 1-4
   minPrice?: number // 1-4
   maxPrepTime?: number // minutes
-  spiceMax?: number // 0-100
   openNow?: boolean
   woltOnly?: boolean
   query?: string // free-text over name / description / cuisine
@@ -53,12 +52,13 @@ function axisScore(want: number, actual: number): number {
 export function passesFilters(
   r: RestaurantDTO,
   f: SearchFilters,
-  now: Date = new Date()
+  now: Date = new Date(),
+  /** slug -> "labelSq labelEn", so "pica" finds a place tagged `pizza`. */
+  labels: Record<string, string> = {}
 ): boolean {
   if (f.maxPrice !== undefined && r.priceLevel > f.maxPrice) return false
   if (f.minPrice !== undefined && r.priceLevel < f.minPrice) return false
   if (f.maxPrepTime !== undefined && r.avgPrepTime > f.maxPrepTime) return false
-  if (f.spiceMax !== undefined && r.spiceLevel > f.spiceMax) return false
   if (f.woltOnly && !r.woltUrl) return false
 
   // Unknown hours must not silently vanish under "open now" — only a
@@ -82,7 +82,8 @@ export function passesFilters(
 
   if (f.query?.trim()) {
     const q = f.query.trim().toLowerCase()
-    const haystack = [r.name, r.description, r.neighborhood, ...r.cuisines, ...r.tags]
+    const slugs = [r.neighborhood, ...r.cuisines, ...r.tags]
+    const haystack = [r.name, r.description, ...slugs, ...slugs.map((s) => labels[s] ?? '')]
       .join(' ')
       .toLowerCase()
     if (!haystack.includes(q)) return false
@@ -153,10 +154,11 @@ export function search(
   restaurants: RestaurantDTO[],
   filters: SearchFilters,
   limit = 24,
-  now: Date = new Date()
+  now: Date = new Date(),
+  labels: Record<string, string> = {}
 ): ScoredRestaurant[] {
   const scored = restaurants
-    .filter((r) => passesFilters(r, filters, now))
+    .filter((r) => passesFilters(r, filters, now, labels))
     .map((r) => ({
       ...r,
       score: calculateScore(r, filters, now),
@@ -168,8 +170,13 @@ export function search(
       changeAt: nextChange(r.openHours, now),
     }))
 
+  // Explicit sorts tie a lot (four price levels, ratings to one decimal); among
+  // equals, our picks go first. The match sort already carries them (+10 above).
   const comparator =
-    filters.sort && filters.sort !== 'match' ? SORT_COMPARATORS[filters.sort] : (a: ScoredRestaurant, b: ScoredRestaurant) => b.score - a.score
+    filters.sort && filters.sort !== 'match'
+      ? (a: ScoredRestaurant, b: ScoredRestaurant) =>
+          SORT_COMPARATORS[filters.sort as Exclude<Sort, 'match'>](a, b) || Number(b.isFeatured) - Number(a.isFeatured)
+      : (a: ScoredRestaurant, b: ScoredRestaurant) => b.score - a.score
 
   return scored.sort(comparator).slice(0, limit)
 }

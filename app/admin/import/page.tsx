@@ -234,17 +234,17 @@ export default function ImportPage() {
                 <strong className="text-text">description</strong> (string)
               </li>
               <li>
-                <strong className="text-text">spiceLevel</strong> (0-100, default: 50)
-              </li>
-              <li>
                 <strong className="text-text">avgPrepTime</strong> (minutes, default: 30)
               </li>
               <li>
-                <strong className="text-text">cuisines</strong> (JSON array, e.g.,
-                [&quot;Italian&quot;, &quot;Pizza&quot;])
+                <strong className="text-text">cuisines</strong>,{' '}
+                <strong className="text-text">tags</strong> (JSON array or comma list of
+                vocabulary slugs or labels, e.g. [&quot;pizza&quot;, &quot;italian&quot;]).
+                Values not in the vocabulary are added to it.
               </li>
               <li>
-                <strong className="text-text">neighborhood</strong> (string)
+                <strong className="text-text">neighborhood</strong> (slug or name, e.g.
+                &quot;pejton&quot; or &quot;Bregu i Diellit&quot;)
               </li>
               <li>
                 <strong className="text-text">websiteUrl</strong> (URL)

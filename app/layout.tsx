@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import { Manrope } from 'next/font/google'
 import { cookies } from 'next/headers'
 import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n'
+import { getVocab } from '@/lib/vocabDb'
+import { VocabProvider } from '@/components/VocabProvider'
 import './globals.css'
 
 // next/font self-hosts and preloads the file at build time: no render-blocking
@@ -38,10 +40,18 @@ export default async function RootLayout({
   // <TopBar> corrects document.documentElement.lang on the client for that one
   // render, and every later request reads the cookie it just wrote.
   const locale = resolveLocale(null, (await cookies()).get(LOCALE_COOKIE)?.value)
+  // Labels for neighbourhoods, cuisines and tags, both languages, every page.
+  // ~70 short rows. A failed read degrades to slugs as labels, not a dead site.
+  const terms = await getVocab().catch((error) => {
+    console.error('Vocabulary load failed:', error)
+    return []
+  })
 
   return (
     <html lang={locale} className={manrope.variable}>
-      <body>{children}</body>
+      <body>
+        <VocabProvider terms={terms}>{children}</VocabProvider>
+      </body>
     </html>
   )
 }

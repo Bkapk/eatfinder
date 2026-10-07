@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { CircleAlert, Loader2, LockKeyhole, Mail, UserRound } from 'lucide-react'
 import { t, type Locale } from '@/lib/i18n'
 import { reloadFavorites } from '@/components/useFavorites'
+import AuthField from '@/components/auth/AuthField'
 
+/** `next` is a safe internal path or '' (none), in which case /account. */
 export default function RegisterForm({ locale, next }: { locale: Locale; next: string }) {
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -27,7 +29,7 @@ export default function RegisterForm({ locale, next }: { locale: Locale; next: s
       const data = await res.json()
       if (res.ok) {
         void reloadFavorites()
-        router.push(next)
+        router.push(next || '/account')
         router.refresh()
       } else if (res.status === 409) {
         setError(t(locale, 'register.error.emailTaken'))
@@ -42,78 +44,58 @@ export default function RegisterForm({ locale, next }: { locale: Locale; next: s
   }
 
   return (
-    <form onSubmit={submit} aria-busy={loading} className="ef-panel flex flex-col gap-5 p-6 sm:p-8">
+    <form onSubmit={submit} aria-busy={loading} className="flex flex-col gap-4">
       {error && (
         <div role="alert" className="ef-alert !mb-0">
+          <CircleAlert size={18} aria-hidden className="mt-0.5 shrink-0" />
           {error}
         </div>
       )}
 
-      <div>
-        <label htmlFor="email" className="ef-field-label">
-          {t(locale, 'auth.email')}
-        </label>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-          className="ef-input"
-        />
-      </div>
+      <AuthField
+        id="email"
+        type="email"
+        label={t(locale, 'auth.email')}
+        icon={Mail}
+        check
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        autoComplete="email"
+      />
 
-      <div>
-        <label htmlFor="displayName" className="ef-field-label">
-          {t(locale, 'auth.displayName')}
-        </label>
-        <input
-          id="displayName"
-          type="text"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          required
-          maxLength={60}
-          autoComplete="nickname"
-          aria-describedby="displayName-hint"
-          className="ef-input"
-        />
-        <p id="displayName-hint" className="mt-1 text-[12px] text-text-secondary">
-          {t(locale, 'auth.displayNameHint')}
-        </p>
-      </div>
+      <AuthField
+        id="displayName"
+        label={t(locale, 'auth.displayName')}
+        icon={UserRound}
+        check
+        hint={t(locale, 'auth.displayNameHint')}
+        value={displayName}
+        onChange={(e) => setDisplayName(e.target.value)}
+        required
+        maxLength={60}
+        autoComplete="nickname"
+      />
 
-      <div>
-        <label htmlFor="password" className="ef-field-label">
-          {t(locale, 'auth.password')}
-        </label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={8}
-          autoComplete="new-password"
-          aria-describedby="password-hint"
-          className="ef-input"
-        />
-        <p id="password-hint" className="mt-1 text-[12px] text-text-secondary">
-          {t(locale, 'auth.passwordHint')}
-        </p>
-      </div>
+      <AuthField
+        id="password"
+        type="password"
+        label={t(locale, 'auth.password')}
+        icon={LockKeyhole}
+        check
+        reveal={[t(locale, 'auth.showPassword'), t(locale, 'auth.hidePassword')]}
+        hint={t(locale, 'auth.passwordHint')}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+        minLength={8}
+        autoComplete="new-password"
+      />
 
-      <button type="submit" disabled={loading} className="ef-btn ef-btn--primary">
+      <button type="submit" disabled={loading} className="ef-btn ef-btn--primary ef-auth-submit">
+        {loading && <Loader2 size={18} aria-hidden className="motion-safe:animate-spin" />}
         {loading ? t(locale, 'register.submitting') : t(locale, 'register.submit')}
       </button>
-
-      <p className="text-center text-[13px] text-text-secondary">
-        {t(locale, 'register.haveAccount')}{' '}
-        <Link href="/account/login" className="font-semibold text-primary hover:underline">
-          {t(locale, 'register.loginLink')}
-        </Link>
-      </p>
     </form>
   )
 }

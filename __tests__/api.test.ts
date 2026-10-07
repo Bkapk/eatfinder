@@ -22,7 +22,6 @@ const mockRow = {
   heaviness: 50,
   portionSize: 50,
   fineDining: 50,
-  spiceLevel: 0,
   priceLevel: 2,
   avgPrepTime: 30,
   cuisines: JSON.stringify(['Italian']),

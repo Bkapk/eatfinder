@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { LOCALE_COOKIE, resolveLocale, t } from '@/lib/i18n'
 import TopBar from '@/components/TopBar'
-import RegisterForm from './RegisterForm'
+import AuthScreen from '../AuthScreen'
 import { safeReturnPath } from '@/lib/redirect'
 
 export const dynamic = 'force-dynamic'
@@ -21,20 +21,16 @@ export default async function AccountRegisterPage({
   const [sp, jar] = await Promise.all([searchParams, cookies()])
   const langParam = typeof sp.lang === 'string' ? sp.lang : null
   const locale = resolveLocale(langParam, jar.get(LOCALE_COOKIE)?.value)
-  const next = safeReturnPath(sp.next, '/account')
+  // '' = no return path; RegisterForm then lands on /account.
+  const next = safeReturnPath(sp.next, '')
 
   return (
-    <div className="flex min-h-[100dvh] flex-col">
+    <div className="flex min-h-[100dvh] flex-col bg-surface">
       <Suspense fallback={<div className="ef-topbar" />}>
         <TopBar locale={locale} />
       </Suspense>
 
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-10">
-        <h1 className="ef-title mb-6 text-center">
-          {t(locale, 'register.title')}
-        </h1>
-        <RegisterForm locale={locale} next={next} />
-      </main>
+      <AuthScreen locale={locale} mode="register" next={next} />
     </div>
   )
 }

@@ -37,6 +37,8 @@ export function createMapLimiter(maxAttempts: number, windowMs: number) {
 
   return function check(key: string): boolean {
     const now = Date.now()
+    // Bound memory against key-spraying: drop expired entries once the map is large.
+    if (hits.size > 10_000) for (const [k, v] of hits) if (now > v.until) hits.delete(k)
     const h = hits.get(key)
     if (!h || now > h.until) {
       hits.set(key, { count: 1, until: now + windowMs })
@@ -46,4 +48,14 @@ export function createMapLimiter(maxAttempts: number, windowMs: number) {
     h.count++
     return true
   }
+}
+
+/**
+ * Client IP for rate-limit keys. Nginx sets X-Real-IP to $remote_addr,
+ * overwriting anything the client sent; X-Forwarded-For is appended to, so its
+ * first entry is attacker-controlled and must not be used as a key.
+ * Without the proxy (local dev) every request shares the 'unknown' bucket.
+ */
+export function clientIp(headers: Headers): string {
+  return headers.get('x-real-ip')?.trim() || 'unknown'
 }
