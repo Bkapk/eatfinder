@@ -13,6 +13,12 @@ cd "${DEV_DIR}"
 # anything else touches them.
 mkdir -p "${DEV_DATA}/uploads"
 
+# Same as prod: one cp is the whole rollback plan for a bad migration.
+if [ -f "${DEV_DATA}/eatfinder-dev.db" ]; then
+  cp "${DEV_DATA}/eatfinder-dev.db" "${DEV_DATA}/eatfinder-dev.db.$(date +%Y%m%d-%H%M%S).bak"
+  ls -1t "${DEV_DATA}"/eatfinder-dev.db.*.bak | tail -n +11 | xargs -r rm  # keep 10
+fi
+
 git fetch origin
 git checkout dev
 git reset --hard origin/dev   # a hand-edit on the server must never block a deploy
