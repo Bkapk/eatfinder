@@ -116,6 +116,11 @@ export function HoursEditor({
             >
               <label htmlFor={`${id}-${d}`} className="text-[13px] font-semibold text-text">
                 {DAY_NAMES[d]}
+                {overnight && (
+                  <span aria-hidden className="block text-[11px] text-text-secondary sm:hidden">
+                    Closes next day
+                  </span>
+                )}
               </label>
               <label className="flex min-h-11 cursor-pointer items-center gap-3 justify-self-end text-[13px] text-text-secondary sm:justify-self-start">
                 <input
@@ -137,7 +142,7 @@ export function HoursEditor({
                   disabled={!open}
                   aria-invalid={bad && open && !from ? true : undefined}
                   onChange={(e) => set(d, [e.target.value, to])}
-                  className="ef-input min-w-0 flex-1 tabular-nums"
+                  className="ef-input min-w-0 flex-1 px-3 tabular-nums sm:max-w-[10rem]"
                 />
                 <span aria-hidden className="text-text-secondary">–</span>
                 <input
@@ -148,10 +153,12 @@ export function HoursEditor({
                   disabled={!open}
                   aria-invalid={bad && open && !to ? true : undefined}
                   onChange={(e) => set(d, [from, e.target.value])}
-                  className="ef-input min-w-0 flex-1 tabular-nums"
+                  className="ef-input min-w-0 flex-1 px-3 tabular-nums sm:max-w-[10rem]"
                 />
-                {/* Reserved width so a past-midnight close doesn't shift the row. */}
-                <span id={`${id}-${d}-next`} className="w-14 shrink-0 text-[11px] font-semibold text-text-secondary">
+                {/* Reserved width so a past-midnight close doesn't shift the row.
+                    Below sm there is no room beside two time fields, so the
+                    hint moves under the day name instead. */}
+                <span id={`${id}-${d}-next`} className="hidden w-14 shrink-0 text-[11px] font-semibold text-text-secondary sm:block">
                   {overnight ? 'next day' : ''}
                 </span>
               </div>

@@ -86,12 +86,12 @@ export function Spark({
 }) {
   const max = Math.max(1, ...values)
   return (
-    <div role="img" aria-label={label} className={`flex items-end gap-[3px] ${className}`}>
+    <div role="img" aria-label={label} className={`flex items-end justify-between gap-1.5 ${className}`}>
       {values.map((v, i) => (
         <span
           key={i}
           aria-hidden
-          className="min-h-[3px] flex-1 rounded-full"
+          className="min-h-[3px] max-w-6 flex-1 rounded-md"
           // A zero day still shows a stub, so the axis reads as "nothing
           // happened" rather than "no data".
           style={{ height: `${Math.max(6, (v / max) * 100)}%`, background: v ? color : 'var(--border)' }}

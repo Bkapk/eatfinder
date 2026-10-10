@@ -56,6 +56,19 @@ typography:
     fontWeight: 600
     lineHeight: 1.5
     letterSpacing: "normal"
+  figure:
+    fontFamily: "Manrope, system-ui, sans-serif"
+    fontSize: "32px"
+    fontWeight: 800
+    lineHeight: 1
+    letterSpacing: "-0.03em"
+  figure-xl:
+    fontFamily: "Manrope, system-ui, sans-serif"
+    fontSize: "52px"
+    fontSizeFromSm: "60px"
+    fontWeight: 800
+    lineHeight: 1
+    letterSpacing: "-0.03em"
   label:
     fontFamily: "Manrope, system-ui, sans-serif"
     fontSize: "11px"
@@ -231,7 +244,7 @@ blue and a warm ember — with four semantic tints reserved for status.
 
 ### Secondary
 - **Ember** — the warm counterweight and the only colour allowed to compete with
-  Signal Blue: the match-score figure, the filled favourite heart, the Featured
+  Signal Blue: the match-score figure, the filled favourite heart, the "Our pick"
   badge, the rating number. 5.7:1 on white and 5.1:1 on its own wash. It is
   deliberately a *dark* burnt orange; the earlier brighter orange measured
   3.85:1 behind the match badge and was the only failing token in the file.
@@ -295,6 +308,11 @@ comes from weight and size, not from a serif guest appearance.
   prose steps to 15px with relaxed leading and caps at 68ch.
 - **Meta** (600, 13–14px, 1.5): card meta lines, table cells, buttons, form
   labels, hints. The working size of the product.
+- **Figure** (800, 32px, leading 1, −0.03em, tabular) and **Figure XL** (52px →
+  60px at ≥640px): dashboard numbers only — a KPI tile's value, the one key
+  figure in an `.ef-hero`. Ships as `.ef-figure` / `.ef-figure--xl`. A figure is
+  data, not a heading, so it sits outside the Three Steps Rule; it is never used
+  for words, and XL appears at most once per page.
 - **Label** (700, 11px, uppercase, 0.08em): eyebrows, table column headers and
   every micro-label. Ships as `.ef-label`; the responsive card view of the admin
   table reproduces the exact same metrics so a column header does not change
@@ -411,8 +429,8 @@ reserved for things in the top layer.
   smear behind the rail, and inside `.ef-scroll-fade` the scroller and the mask
   slice that smear into a hard diagonal cut-off. White inside a hairline is the
   separation; a toolbar is a surface, not a shelf of floating widgets.
-- **Lifted** (`--shadow-md`): the hover/focus-within state of a card, the fixed
-  admin form action bar, Mapbox control clusters.
+- **Lifted** (`--shadow-md`): the hover/focus-within state of a card, the sticky
+  admin save bar, Mapbox control clusters.
 - **Floating** (`--shadow-lg`): the admin navigation sheet, the map's card
   carousel and the "search this area" pill — elements genuinely detached from
   the page. `.ef-float-btn` (controls on a photo) takes `--shadow-md`.
@@ -448,8 +466,8 @@ Rounded, and consistently so, on a four-step radius ladder: **6px** for the
 smallest custom controls (checkbox), **8px** for inline chrome (file-input
 button, jump links), **12px** for every control that holds text or an icon
 (buttons, inputs, icon buttons, nav rows, notices, alerts, the upload zone), and
-**16px** for every surface (cards, panels, stat tiles, empty states, the fixed
-form action bar). Anything that is a *token of state* rather than a container is
+**16px** for every surface (cards, panels, stat tiles, empty states, the
+admin save bar). Anything that is a *token of state* rather than a container is
 fully round: pills, chips, badges, meters, progress bars, the favourite button,
 radios, scrollbar thumbs, Mapbox control groups.
 
@@ -530,6 +548,67 @@ Blue border plus the halo, with no offset ring. Labels are `.ef-field-label`
 vertically only. Checkboxes, radios and select chevrons are drawn by this system,
 not by the OS, and hand themselves back to the UA under forced colours.
 
+**States.** `:disabled` is Muted Mist fill with Slate text and the border kept.
+`aria-invalid="true"` (set by a form after a failed save, never while typing)
+turns the border and the halo Signal Red. Chrome's autofill slab is painted over
+with the field's own white. Below `md` every editable field renders at 16px so
+iOS never zooms on focus. Number fields have no spinner arrows (`inputMode`
+brings up the right keypad instead); time fields carry our clock glyph and a
+Blue Wash highlight on the focused hour/minute segment.
+
+### Select — native `<select>`, drawn by us
+Closed, a select wears `.ef-input` or `.ef-pill` plus the system chevron. Open,
+where the browser supports `appearance: base-select` (Chromium 135+), the list
+is drawn like `.ef-combo-list`: white popover, `--shadow-lg`, 44px rows, Hover
+Mist active row, Signal Blue chosen row with a trailing check. Other browsers
+show the OS list; that is the accepted fallback. Use a select for long lists of
+equal options (sort order, status filter); for four or fewer ordered options use
+a segmented control, for a vocabulary use the combobox.
+
+### Segmented control — `.ef-segmented` / `.ef-segment` (`<Segmented>`)
+One choice from a short ordered set: price level `$ … $$$$`. A `--control-h`
+box with the Control Edge border and 4px inset; each `.ef-segment` is a real
+radio stretched invisibly over its cell, so it is one tab stop and the arrow
+keys move the choice. Chosen segment is Signal Blue with white text and the
+resting shadow; keyboard focus is the halo on the segment. React wrapper and the
+shared `PRICE_OPTIONS` live in `app/admin/components/FormControls.tsx`.
+
+### Switch — `input[type=checkbox].ef-switch`
+For a setting that is a state (Published, Featured, a day being open, a term
+offered in pickers) rather than an item ticked in a list. A real checkbox with
+`role="switch"`: 40 × 24px, fully round, Muted Mist track with a Control Edge
+knob going to a Signal Blue track with a white knob. The knob slides by
+`background-position`, so nothing lays out. Always inside a 44px `<label>`.
+Filters that pick several things ("Open now", "Wolt only") stay checkboxes.
+
+### Slider — `input[type=range]`
+A transparent 24px box (44px on coarse pointers) whose 8px track is drawn by
+the pseudo-elements, so the whole height is the hit area. The filled share is
+Signal Blue up to `--fill`, which the caller sets inline (`style={{'--fill':
+'62%'}}`); Firefox fills natively. White-collared 20px thumb (24px on touch),
+the halo on the thumb on keyboard focus, 45% opacity when disabled.
+
+### Opening hours — `<HoursEditor>`
+Seven rows of day name, switch and two time fields, writing the `OpenHours`
+wire shape directly (no JSON in the UI). A closed day keeps its last times
+greyed out, so toggling never changes the row height or loses what was typed.
+A past-midnight close shows "next day" in a reserved slot. "Copy Monday to every
+day" and "Remove hours" sit under the list; with no hours on file the editor is
+one line and an "Add opening hours" button.
+
+### Save bar — `.admin-savebar` (`<SaveBar>`)
+The foot of every admin edit form. `position: sticky` inside the form (not
+fixed), so it rides the viewport bottom while there is form below it and comes
+to rest under the last panel, never covering a field; lifted clear of the home
+indicator on phones. Clean, it reads "No unsaved changes" with Back to list;
+after a save, "All changes saved" in Field Green. Dirty, a Harvest Amber dot
+and "3 unsaved changes · Review" expands a capped, scrolling before → after list
+(old value struck through in Slate, new value in ink; opening hours diff one
+row per day), with Discard (confirms) and Save. Ctrl/Cmd+S saves from anywhere.
+Leaving with unsaved changes asks first (reload, tab close and in-app links).
+Errors, including field-level server validation, appear in the bar in Signal
+Red, never auto-dismiss, and mark the offending fields `aria-invalid`.
+
 ### Combobox — `.ef-combo` (`VocabPicker`)
 The admin's picker for neighbourhoods, cuisines and tags. `.ef-combo-field` is
 drawn exactly like `.ef-input` (Control Edge border, 44px, Signal Blue border
@@ -548,7 +627,7 @@ the eye is concerned.
 
 ### Photo-led result card — `RestaurantCard size="grid"`
 The grid card has no box: a 4:3 photo at 16px radius on the page colour, with
-the heart top-right, Featured top-left and the match pill bottom-left *on* the
+the heart top-right, the "Our pick" badge top-left (icon-only before the name on list and carousel rows) and the match pill bottom-left *on* the
 photo, then name + ★ rating, a `cuisine · $$ · km` meta line and an open-state
 line ("Open now · Closes 23:00"). The list, map-carousel and popup variants are
 the compact `.ef-card` row. One component serves search results, Saved and
@@ -674,3 +753,18 @@ stay. Both shells start with a skip link that is `sr-only` until focused.
   checkbox/radio/select chrome is the product on every platform.
 - **Don't** write a raw `z-index`; use the `overlay`/`sticky`/`drawer`/`modal`
   scale.
+
+### Listing flyout — `components/detail/Flyout.tsx`
+Opening a place from Explore or Saved intercepts `/r/[slug]` (`app/(browse)/@modal`)
+and shows `RestaurantDetail` in a right-hand `<dialog>` built on `.ef-drawer` /
+`useDrawer`: 40rem on desktop, full-screen slide-in on phones. Results stay
+mounted underneath, so Back restores filters and scroll exactly. A hard load or
+shared link renders the full page. Close steps back past every place opened
+inside the sheet. The detail body always uses the single-column phone layout
+inside the sheet.
+
+### "Our pick" badge
+`isFeatured` reads publicly as "Zgjedhja jonë" / "Our pick": a filled Ember pill
+(Ember to deep Ember, light top edge, 12px/800 white, Award icon). Full pill on
+grid cards, popup photo and detail header; icon-only on dense rows with the
+words kept for screen readers. One per card, never stacked with other tags.

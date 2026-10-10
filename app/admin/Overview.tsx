@@ -144,7 +144,8 @@ export default async function Overview({ name }: { name: string }) {
   const pulse = pulse28.slice(14)
   const pulseTotal = pulse.reduce((a, b) => a + b, 0)
   const pulsePrev = pulse28.slice(0, 14).reduce((a, b) => a + b, 0)
-  const delta = pulsePrev ? Math.round(((pulseTotal - pulsePrev) / pulsePrev) * 100) : null
+  // Under 5 the percentage is noise ("+833%" off a base of 3), so it is not shown.
+  const delta = pulsePrev >= 5 ? Math.round(((pulseTotal - pulsePrev) / pulsePrev) * 100) : null
   const in14 = (d: { createdAt: Date }) => now - d.createdAt.getTime() < 14 * DAY
 
   const label = (kind: 'cuisine' | 'neighborhood', slug: string) => termLabel(terms, 'sq', kind, slug)
@@ -348,7 +349,7 @@ export default async function Overview({ name }: { name: string }) {
         </section>
 
         {/* ---- community pulse ---- */}
-        <section aria-labelledby="pulse-h" className="ef-panel flex flex-col xl:col-span-7">
+        <section aria-labelledby="pulse-h" className="ef-panel flex flex-col justify-between xl:col-span-7">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 id="pulse-h" className="ef-heading">
@@ -356,7 +357,7 @@ export default async function Overview({ name }: { name: string }) {
               </h2>
               <p className="mt-1 text-xs text-text-secondary">Saves, photo uploads and sign-ups · last 14 days</p>
             </div>
-            <div className="text-right">
+            <div className="sm:text-right">
               <p className="ef-figure">{pulseTotal}</p>
               {delta !== null && (
                 <p
@@ -370,7 +371,7 @@ export default async function Overview({ name }: { name: string }) {
           </div>
           <Spark
             values={pulse}
-            className="mt-6 h-28 flex-1"
+            className="mt-6 h-28"
             label={`Daily community actions, oldest first: ${pulse.join(', ')}`}
           />
           <div className="mt-2 flex justify-between text-[11px] font-semibold text-text-secondary">

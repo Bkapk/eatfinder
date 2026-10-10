@@ -141,6 +141,11 @@
   @apply sticky z-overlay mt-5 rounded-2xl border border-border bg-surface shadow-md;
   bottom: max(0.75rem, var(--safe-b));
 }
+/* Anything scrolled into view — Tab focus, a jump link, the first invalid
+   field after a failed save — stops above the bar instead of under it. */
+html:has(.admin-savebar) {
+  scroll-padding-bottom: 8rem;
+}
 .admin-savebar[data-state='dirty'] {
   border-color: var(--border-control);
 }

@@ -2245,6 +2245,7 @@ select:disabled {
    overflow:hidden keeps the offset, so the list is where it was on close. */
 html:has(.ef-flyout[open]) {
   overflow: hidden;
+  scrollbar-gutter: stable; /* keep the scrollbar's width so the page doesn't shift sideways */
 }
 
 /* Our pick (isFeatured): the house recommendation, so it is the one mark on a

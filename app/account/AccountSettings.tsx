@@ -109,9 +109,10 @@ export default function AccountSettings({
         {t(locale, 'account.settings.title')}
       </h2>
 
+      {/* Phone: profile, password, then sign out last. xl: password takes the
+          right column beside profile + session. */}
       <div className="mt-5 grid grid-cols-1 gap-x-8 gap-y-7 xl:grid-cols-2">
-        <div className="flex flex-col gap-7">
-          <form onSubmit={saveName}>
+          <form onSubmit={saveName} className="xl:col-start-1 xl:row-start-1">
             <h3 className="ef-label mb-4 flex items-center gap-2">
               <UserRound size={14} aria-hidden />
               {t(locale, 'account.settings.profile')}
@@ -141,7 +142,7 @@ export default function AccountSettings({
             <Message msg={nameMsg} />
           </form>
 
-          <div className="border-t border-border pt-6">
+          <div className="order-last border-t border-border pt-6 xl:order-none xl:col-start-1 xl:row-start-2">
             <h3 className="ef-label mb-2 flex items-center gap-2">
               <LogOut size={14} aria-hidden />
               {t(locale, 'account.session.title')}
@@ -152,9 +153,11 @@ export default function AccountSettings({
               {t(locale, 'account.logout')}
             </button>
           </div>
-        </div>
 
-        <form onSubmit={changePassword} className="border-t border-border pt-6 xl:border-l xl:border-t-0 xl:pl-8 xl:pt-0">
+        <form
+          onSubmit={changePassword}
+          className="border-t border-border pt-6 xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:border-l xl:border-t-0 xl:pl-8 xl:pt-0"
+        >
           <h3 className="ef-label mb-4 flex items-center gap-2">
             <KeyRound size={14} aria-hidden />
             {t(locale, 'account.password.title')}
