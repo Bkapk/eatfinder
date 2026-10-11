@@ -118,7 +118,9 @@ export default function PointsLayer({
 
     const start = performance.now()
     const tick = (now: number) => {
-      const p = Math.min(1, (now - start) / DUR)
+      // rAF's timestamp is the frame start, which can predate `start`, so clamp
+      // at 0 too — a negative p eases to opacity below 0 and Mapbox throws.
+      const p = Math.min(1, Math.max(0, (now - start) / DUR))
       // Ease-out cubic: leaves immediately, settles at the end.
       const e = 1 - (1 - p) ** 3
       paint(from.o + (to.o - from.o) * e, from.r + (to.r - from.r) * e)
